@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { MATCH_BY_ID, STAGE_LABELS } from '../data/schedule'
 import { useStore, emptyResult } from '../store/useStore'
 import { sideLabelFor, venueName, formatDate } from '../utils/labels'
-import type { EventType, MatchEvent, Player } from '../types'
+import type { EventType, Player } from '../types'
 import type { ActiveContext } from '../hooks'
 import { Modal } from './Modal'
 import { LineupPanel } from './LineupPanel'
@@ -63,9 +63,7 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
   const hasOverride = !!scenario.results[matchId]
   const inherited = isWhatif && !hasOverride
 
-  const [evType, setEvType] = useState<EventType>('goal')
   const [evTeam, setEvTeam] = useState<'home' | 'away'>('home')
-  const [evPlayer, setEvPlayer] = useState('')
   const [evMinute, setEvMinute] = useState('')
   const [evNote, setEvNote] = useState('')
 
@@ -87,19 +85,16 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
     patch(side === 'home' ? { homeScore: v, played: true } : { awayScore: v, played: true })
   }
 
-  const addNewEvent = () => {
+  // Alta manual de VAR (los goles/tarjetas se cargan tocando jugadores).
+  const addVarEvent = () => {
     ensureOverride()
-    const ev: Omit<MatchEvent, 'id'> = {
-      type: evType,
-      team: evTeam,
-      player: evType === 'var' ? undefined : evPlayer.trim() || undefined,
-      minute: evMinute ? Number(evMinute) : undefined,
-      note: evType === 'var' ? evNote.trim() || undefined : undefined,
-    }
-    // marcamos jugado al cargar eventos
     if (!base.played) setResult(scenario.id, matchId, { played: true })
-    addEvent(scenario.id, matchId, ev)
-    setEvPlayer('')
+    addEvent(scenario.id, matchId, {
+      type: 'var',
+      team: evTeam,
+      note: evNote.trim() || undefined,
+      minute: evMinute ? Number(evMinute) : undefined,
+    })
     setEvMinute('')
     setEvNote('')
   }
@@ -250,7 +245,9 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
         </div>
         {eventsError && <p className="text-[11px] text-rose-400 mb-2">{eventsError}</p>}
         {events.length === 0 && !isReal && (
-          <p className="text-xs text-slate-500 mb-2">Sin eventos. Agregá goleadores, tarjetas o VAR abajo.</p>
+          <p className="text-xs text-slate-500 mb-2">
+            Sin eventos. Cargá goles y tarjetas tocando jugadores en Formaciones; el VAR se agrega abajo.
+          </p>
         )}
         {events.length === 0 && isReal && (
           <p className="text-xs text-slate-500 mb-2">
@@ -294,73 +291,52 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
         </div>
       </div>
 
-      {/* Alta de evento (manual) — oculto en el escenario real */}
+      {/* Alta manual: sólo VAR (los goles/tarjetas se cargan tocando jugadores) */}
       {!isReal && (
-      <div className="bg-slate-800/40 rounded-xl p-3 space-y-2">
-        <div className="flex flex-wrap gap-1.5">
-          {(Object.keys(EVENT_META) as EventType[]).map((t) => (
+        <div className="bg-slate-800/40 rounded-xl p-3 space-y-2">
+          <div className="text-xs font-semibold flex items-center gap-1.5">
+            📺 Agregar intervención del VAR
+          </div>
+          <div className="flex gap-1.5">
             <button
-              key={t}
-              onClick={() => setEvType(t)}
-              className={`px-2.5 py-1 rounded-lg text-xs transition ${
-                evType === t ? 'bg-pitch-500 text-white' : 'bg-slate-700/60 text-slate-300 hover:bg-slate-700'
+              onClick={() => setEvTeam('home')}
+              className={`flex-1 px-2 py-1.5 rounded-lg text-xs truncate ${
+                evTeam === 'home' ? 'bg-pitch-500 text-white' : 'bg-slate-700/60 text-slate-300'
               }`}
             >
-              {EVENT_META[t].icon} {EVENT_META[t].label}
+              {home.flag} {home.name}
             </button>
-          ))}
-        </div>
-
-        <div className="flex gap-1.5">
-          <button
-            onClick={() => setEvTeam('home')}
-            className={`flex-1 px-2 py-1.5 rounded-lg text-xs truncate ${
-              evTeam === 'home' ? 'bg-pitch-500 text-white' : 'bg-slate-700/60 text-slate-300'
-            }`}
-          >
-            {home.flag} {home.name}
-          </button>
-          <button
-            onClick={() => setEvTeam('away')}
-            className={`flex-1 px-2 py-1.5 rounded-lg text-xs truncate ${
-              evTeam === 'away' ? 'bg-pitch-500 text-white' : 'bg-slate-700/60 text-slate-300'
-            }`}
-          >
-            {away.flag} {away.name}
-          </button>
-        </div>
-
-        <div className="flex gap-1.5">
-          {evType === 'var' ? (
+            <button
+              onClick={() => setEvTeam('away')}
+              className={`flex-1 px-2 py-1.5 rounded-lg text-xs truncate ${
+                evTeam === 'away' ? 'bg-pitch-500 text-white' : 'bg-slate-700/60 text-slate-300'
+              }`}
+            >
+              {away.flag} {away.name}
+            </button>
+          </div>
+          <div className="flex gap-1.5">
             <input
               value={evNote}
               onChange={(e) => setEvNote(e.target.value)}
               placeholder="Qué revisó el VAR (gol anulado, penal, roja...)"
               className="flex-1 bg-slate-800 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:border-pitch-500"
             />
-          ) : (
             <input
-              value={evPlayer}
-              onChange={(e) => setEvPlayer(e.target.value)}
-              placeholder="Jugador"
-              className="flex-1 bg-slate-800 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:border-pitch-500"
+              value={evMinute}
+              onChange={(e) => setEvMinute(e.target.value.replace(/\D/g, ''))}
+              placeholder="min"
+              inputMode="numeric"
+              className="w-16 bg-slate-800 border border-white/10 rounded-lg px-2 py-2 text-sm outline-none focus:border-pitch-500"
             />
-          )}
-          <input
-            value={evMinute}
-            onChange={(e) => setEvMinute(e.target.value.replace(/\D/g, ''))}
-            placeholder="min"
-            inputMode="numeric"
-            className="w-16 bg-slate-800 border border-white/10 rounded-lg px-2 py-2 text-sm outline-none focus:border-pitch-500"
-          />
-          <button
-            onClick={addNewEvent}
-            className="px-3 py-2 rounded-lg text-sm font-medium bg-pitch-500 hover:bg-pitch-600 text-white shrink-0"
-          >
-            +
-          </button>
+            <button
+              onClick={addVarEvent}
+              className="px-3 py-2 rounded-lg text-sm font-medium bg-pitch-500 hover:bg-pitch-600 text-white shrink-0"
+            >
+              +
+            </button>
+          </div>
         </div>
-      </div>
       )}
 
       {/* Formaciones: titulares y suplentes de ambos equipos */}
