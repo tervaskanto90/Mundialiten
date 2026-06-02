@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { useStore, ACCOUNT_PRED_ID } from '../store/useStore'
 import type { Scenario, ScenarioType } from '../types'
 import { Modal } from './Modal'
@@ -19,7 +19,6 @@ export function TabBar() {
   const addScenario = useStore((s) => s.addScenario)
   const removeScenario = useStore((s) => s.removeScenario)
   const renameScenario = useStore((s) => s.renameScenario)
-  const importState = useStore((s) => s.importState)
   const { enabled, user } = useAuth()
   const { t } = useT()
   const loggedIn = enabled && !!user
@@ -31,7 +30,6 @@ export function TabBar() {
   const [dialog, setDialog] = useState<null | { mode: 'new'; type: ScenarioType } | { mode: 'edit'; id: string }>(null)
   const [name, setName] = useState('')
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
-  const fileRef = useRef<HTMLInputElement>(null)
 
   const openNew = (type: ScenarioType) => {
     setName(type === 'prediction' ? t('Mi predicción', 'My prediction') : t('Escenario what-if', 'What-if scenario'))
@@ -55,33 +53,6 @@ export function TabBar() {
       renameScenario(dialog.id, name, date)
     }
     setDialog(null)
-  }
-
-  const exportData = () => {
-    const data = JSON.stringify({ scenarios, activeId }, null, 2)
-    const blob = new Blob([data], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `mundialiten-${new Date().toISOString().slice(0, 10)}.json`
-    a.click()
-    URL.revokeObjectURL(url)
-  }
-
-  const onImport = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = () => {
-      try {
-        const data = JSON.parse(String(reader.result))
-        importState(data)
-      } catch {
-        alert(t('Archivo inválido', 'Invalid file'))
-      }
-    }
-    reader.readAsText(file)
-    e.target.value = ''
   }
 
   const dialogType =
@@ -163,24 +134,6 @@ export function TabBar() {
         >
           🧪 + What-if
         </button>
-
-        <div className="shrink-0 ml-auto flex items-center gap-1 pl-2">
-          <button
-            onClick={exportData}
-            title={t('Exportar datos', 'Export data')}
-            className="text-xs text-slate-400 hover:text-white px-2 py-1 rounded-lg hover:bg-white/5"
-          >
-            ⤓
-          </button>
-          <button
-            onClick={() => fileRef.current?.click()}
-            title={t('Importar datos', 'Import data')}
-            className="text-xs text-slate-400 hover:text-white px-2 py-1 rounded-lg hover:bg-white/5"
-          >
-            ⤒
-          </button>
-          <input ref={fileRef} type="file" accept="application/json" className="hidden" onChange={onImport} />
-        </div>
       </div>
 
       {dialog && (
