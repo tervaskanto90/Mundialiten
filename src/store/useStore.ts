@@ -65,6 +65,9 @@ interface State {
 
   addEvent: (scenarioId: string, matchId: number, ev: Omit<MatchEvent, 'id'>) => void
   removeEvent: (scenarioId: string, matchId: number, eventId: string) => void
+  // Cantidad de intervenciones del VAR. Permitida en cualquier escenario,
+  // incluido el real (el proveedor no la trae, se carga a mano).
+  setVarCount: (scenarioId: string, matchId: number, count: number) => void
 
   setLiveEnabled: (on: boolean) => void
   setLiveConfig: (cfg: Partial<LiveConfig>) => void
@@ -223,6 +226,24 @@ export const useStore = create<State>()(
         }))
       },
 
+      setVarCount: (scenarioId, matchId, count) => {
+        if (scenarioId === REAL_ID) return // el real no se edita a mano
+        set((s) => ({
+          scenarios: s.scenarios.map((sc) => {
+            if (sc.id !== scenarioId) return sc
+            const cur = sc.results[matchId] ?? emptyResult()
+            const varCount = Math.max(0, count)
+            return {
+              ...sc,
+              results: {
+                ...sc.results,
+                [matchId]: { ...cur, varCount, played: cur.played || varCount > 0 },
+              },
+            }
+          }),
+        }))
+      },
+
       setLiveEnabled: (on) => set({ liveEnabled: on }),
 
       setLiveConfig: (cfg) => set((s) => ({ liveConfig: { ...s.liveConfig, ...cfg } })),
@@ -248,6 +269,7 @@ export const useStore = create<State>()(
                   homePens: prev?.homePens,
                   awayPens: prev?.awayPens,
                   events: prev?.events ?? [],
+                  varCount: prev?.varCount, // preservar el VAR cargado a mano
                 }
               }
               return { ...sc, results }

@@ -22,6 +22,54 @@ function sign(a: number, b: number): number {
   return a === b ? 0 : a > b ? 1 : -1
 }
 
+// Puntos por partido para el ranking.
+export const EXACT_POINTS = 3 // marcador exacto
+export const TENDENCY_POINTS = 1 // acertó sólo el resultado (1/X/2)
+
+export interface RankingScore {
+  points: number
+  max: number
+  pct: number
+  exact: number // marcadores exactos acertados
+  tendency: number // sólo el resultado acertado
+  played: number // partidos reales jugados considerados
+}
+
+/**
+ * Puntaje del ranking: SÓLO cuenta los resultados de los partidos.
+ *  - marcador exacto  → EXACT_POINTS
+ *  - acertar sólo quién ganó/empató (sin el marcador) → TENDENCY_POINTS
+ *  - errar → 0
+ * El % es sobre el máximo posible de los partidos ya jugados.
+ */
+export function computeRankingScore(
+  predResults: Record<number, MatchResult>,
+  realResults: Record<number, MatchResult>,
+): RankingScore {
+  let points = 0
+  let max = 0
+  let exact = 0
+  let tendency = 0
+  let played = 0
+  for (const m of MATCHES) {
+    const real = realResults[m.id]
+    if (!real?.played) continue
+    played++
+    max += EXACT_POINTS
+    const pred = predResults[m.id]
+    if (!pred?.played) continue
+    if (pred.homeScore === real.homeScore && pred.awayScore === real.awayScore) {
+      points += EXACT_POINTS
+      exact++
+    } else if (sign(pred.homeScore, pred.awayScore) === sign(real.homeScore, real.awayScore)) {
+      points += TENDENCY_POINTS
+      tendency++
+    }
+  }
+  const pct = max > 0 ? (points / max) * 100 : 0
+  return { points, max, pct, exact, tendency, played }
+}
+
 // Conjunto "equipo:jugador" de eventos de un tipo en un resultado.
 function eventKeys(res: MatchResult, types: string[]): string[] {
   return res.events
@@ -118,10 +166,11 @@ export function computeAccuracy(
     redTot += realRed.length
     if (pred) redOk += overlap(realRed, eventKeys(pred, ['red']))
 
-    // VAR
-    const realVar = eventKeys(real, ['var'])
-    varTot += realVar.length
-    if (pred) varOk += overlap(realVar, eventKeys(pred, ['var']))
+    // VAR: cantidad de intervenciones en el partido (acierto exacto).
+    if (real.varCount != null) {
+      varTot++
+      if (pred?.varCount != null && pred.varCount === real.varCount) varOk++
+    }
 
     // Ganador de eliminatoria
     if (m.stage !== 'group') {
@@ -155,7 +204,7 @@ export function computeAccuracy(
     { key: 'goals', label: 'Goleadores', correct: goalOk, total: goalTot },
     { key: 'yellow', label: 'Tarjetas amarillas', correct: yellowOk, total: yellowTot },
     { key: 'red', label: 'Tarjetas rojas', correct: redOk, total: redTot },
-    { key: 'var', label: 'Intervenciones VAR', correct: varOk, total: varTot },
+    { key: 'var', label: 'Cantidad de intervenciones del VAR', correct: varOk, total: varTot },
     { key: 'qualifiers', label: 'Clasificados a fase final', correct: qualOk, total: qualTot },
     { key: 'knockout', label: 'Ganadores de eliminatoria', correct: koOk, total: koTot },
     { key: 'champion', label: 'Campeón', correct: champOk, total: champTot },
