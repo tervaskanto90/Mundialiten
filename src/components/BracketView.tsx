@@ -8,48 +8,54 @@ interface Props {
   onEdit: (matchId: number) => void
 }
 
-const COLUMNS: { stage: StageId | 'finals'; label: string }[] = [
+const ROUNDS: { stage: StageId; label: string }[] = [
   { stage: 'r32', label: 'Dieciseisavos' },
   { stage: 'r16', label: 'Octavos' },
   { stage: 'qf', label: 'Cuartos' },
   { stage: 'sf', label: 'Semifinal' },
-  { stage: 'finals', label: 'Final / 3°' },
+  { stage: 'final', label: 'Final' },
 ]
 
 export function BracketView({ ctx, onEdit }: Props) {
-  const champ = ctx.resolution.matches[104]?.winner
-  const champLabel = champ ? sideLabelFor(104, ctx.resolution.matches[104]!.winner!, 'home', ctx.resolution) : null
+  const finalMatch = ctx.resolution.matches[104]
+  const champLabel = finalMatch?.winner
+    ? sideLabelFor(104, finalMatch.winner, 'home', ctx.resolution)
+    : null
+  const thirdMatch = MATCHES.find((m) => m.stage === 'third')
 
   return (
     <div>
-      {champLabel?.resolved && (
-        <div className="mb-4 text-center bg-gradient-to-r from-amber-500/20 to-amber-600/20 border border-amber-500/30 rounded-xl py-3">
-          <div className="text-xs text-amber-300/80">CAMPEÓN</div>
-          <div className="text-xl font-bold flex items-center justify-center gap-2">
-            🏆 <span>{champLabel.flag}</span> {champLabel.name}
-          </div>
+      <div
+        className={`mb-4 text-center rounded-xl py-3 border ${
+          champLabel?.resolved
+            ? 'bg-gradient-to-r from-amber-500/25 to-amber-600/20 border-amber-500/40'
+            : 'bg-slate-800/40 border-white/5'
+        }`}
+      >
+        <div className="text-xs text-amber-300/80 tracking-wide">🏆 CAMPEÓN</div>
+        <div className="text-xl font-bold flex items-center justify-center gap-2 mt-0.5">
+          {champLabel?.resolved ? (
+            <>
+              <span>{champLabel.flag}</span> {champLabel.name}
+            </>
+          ) : (
+            <span className="text-slate-500 text-base font-medium">Por definir</span>
+          )}
         </div>
-      )}
+      </div>
 
       <div className="overflow-x-auto pb-2">
-        <div className="flex gap-4 min-w-max">
-          {COLUMNS.map((col) => {
-            const matches = MATCHES.filter((m) =>
-              col.stage === 'finals' ? m.stage === 'final' || m.stage === 'third' : m.stage === col.stage,
-            )
+        <div className="bracket min-w-max">
+          {ROUNDS.map((round) => {
+            const matches = MATCHES.filter((m) => m.stage === round.stage)
             return (
-              <div key={col.label} className="w-56 shrink-0">
-                <h3 className="text-xs font-semibold text-slate-400 mb-2 sticky left-0">{col.label}</h3>
-                <div className="space-y-2">
+              <div key={round.stage} className="bracket-round">
+                <div className="bracket-round-title">{round.label}</div>
+                <div className="bracket-col">
                   {matches.map((m) => (
-                    <BracketCard
-                      key={m.id}
-                      matchId={m.id}
-                      ctx={ctx}
-                      onEdit={onEdit}
-                      isFinal={m.stage === 'final'}
-                      isThird={m.stage === 'third'}
-                    />
+                    <div key={m.id} className="bracket-match">
+                      <BracketCard matchId={m.id} ctx={ctx} onEdit={onEdit} highlight={round.stage === 'final'} />
+                    </div>
                   ))}
                 </div>
               </div>
@@ -57,6 +63,15 @@ export function BracketView({ ctx, onEdit }: Props) {
           })}
         </div>
       </div>
+
+      {thirdMatch && (
+        <div className="mt-5 max-w-xs">
+          <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5">
+            🥉 Tercer puesto
+          </div>
+          <BracketCard matchId={thirdMatch.id} ctx={ctx} onEdit={onEdit} />
+        </div>
+      )}
     </div>
   )
 }
@@ -65,14 +80,12 @@ function BracketCard({
   matchId,
   ctx,
   onEdit,
-  isFinal,
-  isThird,
+  highlight,
 }: {
   matchId: number
   ctx: ActiveContext
   onEdit: (matchId: number) => void
-  isFinal?: boolean
-  isThird?: boolean
+  highlight?: boolean
 }) {
   const match = MATCHES.find((m) => m.id === matchId)!
   const res = ctx.results[matchId]
@@ -84,19 +97,24 @@ function BracketCard({
   return (
     <button
       onClick={() => onEdit(matchId)}
-      className={`w-full text-left rounded-lg border px-2.5 py-2 transition hover:bg-slate-800 ${
-        isFinal
-          ? 'bg-amber-500/10 border-amber-500/30'
-          : isThird
-            ? 'bg-orange-900/10 border-orange-700/30'
-            : 'bg-slate-800/60 border-white/5'
+      className={`w-full text-left rounded-lg border overflow-hidden transition hover:border-pitch-500/60 ${
+        highlight ? 'border-amber-500/40 bg-amber-500/5' : 'border-white/10 bg-slate-800/70'
       }`}
     >
-      <div className="text-[10px] text-slate-500 mb-1">
-        {isFinal ? 'FINAL' : isThird ? '3° PUESTO' : `P${match.id}`}
-      </div>
-      <BracketSide label={home} score={played ? res!.homeScore : undefined} winner={played && rm?.winner === home.short} pens={res?.homePens} />
-      <BracketSide label={away} score={played ? res!.awayScore : undefined} winner={played && rm?.winner === away.short} pens={res?.awayPens} />
+      <div className="px-2 pt-1 text-[9px] text-slate-500">P{match.id}</div>
+      <BracketSide
+        label={home}
+        score={played ? res!.homeScore : undefined}
+        pens={res?.homePens}
+        winner={played && rm?.winner === home.short}
+      />
+      <div className="border-t border-white/5" />
+      <BracketSide
+        label={away}
+        score={played ? res!.awayScore : undefined}
+        pens={res?.awayPens}
+        winner={played && rm?.winner === away.short}
+      />
     </button>
   )
 }
@@ -113,8 +131,12 @@ function BracketSide({
   pens?: number
 }) {
   return (
-    <div className="flex items-center gap-1.5 py-0.5">
-      <span className="shrink-0">{label.flag}</span>
+    <div
+      className={`flex items-center gap-1.5 px-2 py-1 ${
+        winner ? 'bg-pitch-500/15' : ''
+      }`}
+    >
+      <span className="shrink-0 text-sm">{label.flag}</span>
       <span
         className={`text-xs truncate flex-1 ${
           winner ? 'font-bold text-white' : label.resolved ? 'text-slate-200' : 'text-slate-500'
@@ -123,7 +145,9 @@ function BracketSide({
         {label.name}
       </span>
       {pens != null && <span className="text-[9px] text-slate-500">({pens})</span>}
-      <span className="text-xs font-bold tabular-nums w-4 text-right">{score ?? ''}</span>
+      <span className={`text-xs tabular-nums w-4 text-right ${winner ? 'font-bold' : 'text-slate-400'}`}>
+        {score ?? ''}
+      </span>
     </div>
   )
 }

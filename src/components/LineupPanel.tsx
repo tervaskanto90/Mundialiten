@@ -32,6 +32,13 @@ export function LineupPanel({ homeId, awayId, home, away, readOnly, onAction }: 
     setMenu({ x: e.clientX, y: e.clientY, side, player })
   }
 
+  // Clic izquierdo: gol directo. (El resto de opciones, por clic derecho.)
+  const quickGoal = (e: React.MouseEvent, side: 'home' | 'away', player: Player) => {
+    if (readOnly) return
+    e.preventDefault()
+    onAction(side, player, 'goal')
+  }
+
   const items: MenuItem[] = menu
     ? [
         { icon: '⚽', label: 'Gol a favor', onClick: () => onAction(menu.side, menu.player, 'goal') },
@@ -46,12 +53,13 @@ export function LineupPanel({ homeId, awayId, home, away, readOnly, onAction }: 
       <h4 className="text-sm font-semibold mb-1">Formaciones</h4>
       {!readOnly && (
         <p className="text-[11px] text-slate-500 mb-2">
-          Tocá (o clic derecho) un jugador para asignarle un gol, un gol en contra o una tarjeta.
+          <strong>Clic</strong> en un jugador = gol. <strong>Clic derecho</strong> (o mantené
+          apretado en el celu) = gol en contra, amarilla o roja.
         </p>
       )}
       <div className="grid grid-cols-2 gap-3">
-        <TeamColumn side="home" label={home} roster={homeRoster} onPlayer={open} />
-        <TeamColumn side="away" label={away} roster={awayRoster} onPlayer={open} />
+        <TeamColumn side="home" label={home} roster={homeRoster} onPlayer={open} onQuick={quickGoal} />
+        <TeamColumn side="away" label={away} roster={awayRoster} onPlayer={open} onQuick={quickGoal} />
       </div>
 
       {menu && (
@@ -72,11 +80,13 @@ function TeamColumn({
   label,
   roster,
   onPlayer,
+  onQuick,
 }: {
   side: 'home' | 'away'
   label: SideLabel
   roster: ReturnType<typeof getRoster>
   onPlayer: (e: React.MouseEvent, side: 'home' | 'away', player: Player) => void
+  onQuick: (e: React.MouseEvent, side: 'home' | 'away', player: Player) => void
 }) {
   return (
     <div className="min-w-0">
@@ -88,8 +98,8 @@ function TeamColumn({
         <p className="text-[11px] text-slate-600 italic">Equipo por definir</p>
       ) : (
         <div className="space-y-2">
-          <PlayerList title="Titulares" players={roster.starters} side={side} onPlayer={onPlayer} />
-          <PlayerList title="Suplentes" players={roster.subs} side={side} onPlayer={onPlayer} dim />
+          <PlayerList title="Titulares" players={roster.starters} side={side} onPlayer={onPlayer} onQuick={onQuick} />
+          <PlayerList title="Suplentes" players={roster.subs} side={side} onPlayer={onPlayer} onQuick={onQuick} dim />
         </div>
       )}
     </div>
@@ -101,12 +111,14 @@ function PlayerList({
   players,
   side,
   onPlayer,
+  onQuick,
   dim,
 }: {
   title: string
   players: Player[]
   side: 'home' | 'away'
   onPlayer: (e: React.MouseEvent, side: 'home' | 'away', player: Player) => void
+  onQuick: (e: React.MouseEvent, side: 'home' | 'away', player: Player) => void
   dim?: boolean
 }) {
   return (
@@ -116,8 +128,9 @@ function PlayerList({
         {players.map((p) => (
           <button
             key={p.id}
-            onClick={(e) => onPlayer(e, side, p)}
+            onClick={(e) => onQuick(e, side, p)}
             onContextMenu={(e) => onPlayer(e, side, p)}
+            title="Clic = gol · clic derecho = más opciones"
             className={`w-full text-left flex items-center gap-1.5 px-1.5 py-1 rounded-md hover:bg-pitch-500/15 ${
               dim ? 'opacity-70' : ''
             }`}
