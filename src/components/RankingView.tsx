@@ -11,7 +11,7 @@ export function RankingView() {
 
   const load = () => {
     setError('')
-    fetchRanking(5)
+    fetchRanking()
       .then(setRows)
       .catch((e) => setError(e instanceof Error ? e.message : 'No se pudo cargar'))
   }
@@ -36,7 +36,7 @@ export function RankingView() {
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
-        <h2 className="font-semibold">🏆 Ranking · Top 5</h2>
+        <h2 className="font-semibold">🏆 Ranking{rows && rows.length > 0 ? ` · ${rows.length}` : ''}</h2>
         <button onClick={load} className="text-xs text-slate-400 hover:text-white px-2 py-1 rounded-lg hover:bg-white/5">
           ↻ Actualizar
         </button>

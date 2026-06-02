@@ -71,13 +71,12 @@ export async function upsertScore(
   if (error) throw error
 }
 
-export async function fetchRanking(limit = 5): Promise<RankingRow[]> {
+export async function fetchRanking(): Promise<RankingRow[]> {
   if (!supabase) return []
   const { data, error } = await supabase
     .from('scores')
     .select('user_id, display_name, accuracy')
     .order('accuracy', { ascending: false })
-    .limit(limit)
   if (error) throw error
   return (data as RankingRow[]) ?? []
 }
