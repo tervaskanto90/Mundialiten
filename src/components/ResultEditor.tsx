@@ -6,6 +6,7 @@ import type { EventType, MatchEvent, Player } from '../types'
 import type { ActiveContext } from '../hooks'
 import { Modal } from './Modal'
 import { LineupPanel } from './LineupPanel'
+import { fetchFixtureEvents } from '../engine/liveSync'
 
 interface Props {
   matchId: number
@@ -30,8 +31,29 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
   const clearResult = useStore((s) => s.clearResult)
   const addEvent = useStore((s) => s.addEvent)
   const removeEvent = useStore((s) => s.removeEvent)
+  const liveConfig = useStore((s) => s.liveConfig)
+  const fixtureId = useStore((s) => s.liveFixtureIds[matchId])
+  const applyLiveEvents = useStore((s) => s.applyLiveEvents)
 
   const { scenario } = ctx
+  const homeId = ctx.resolution.matches[matchId]?.home
+  const awayId = ctx.resolution.matches[matchId]?.away
+  const [eventsLoading, setEventsLoading] = useState(false)
+  const [eventsError, setEventsError] = useState('')
+
+  const fetchRealEvents = async () => {
+    if (fixtureId == null || !homeId || !awayId) return
+    setEventsLoading(true)
+    setEventsError('')
+    try {
+      const evs = await fetchFixtureEvents(liveConfig, fixtureId, homeId, awayId)
+      applyLiveEvents(matchId, evs)
+    } catch (e) {
+      setEventsError(e instanceof Error ? e.message : 'No se pudo traer los eventos')
+    } finally {
+      setEventsLoading(false)
+    }
+  }
   const base = ctx.results[matchId] ?? emptyResult()
   const home = sideLabelFor(matchId, match.home, 'home', ctx.resolution)
   const away = sideLabelFor(matchId, match.away, 'away', ctx.resolution)
@@ -214,9 +236,26 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
 
       {/* Eventos */}
       <div className="mb-3">
-        <h4 className="text-sm font-semibold mb-2">Eventos</h4>
-        {events.length === 0 && (
+        <div className="flex items-center justify-between mb-2">
+          <h4 className="text-sm font-semibold">Eventos</h4>
+          {isReal && liveConfig.provider === 'apifootball' && fixtureId != null && (
+            <button
+              onClick={fetchRealEvents}
+              disabled={eventsLoading}
+              className="text-xs font-medium bg-pitch-500 hover:bg-pitch-600 disabled:opacity-50 text-white px-2.5 py-1 rounded-lg"
+            >
+              {eventsLoading ? 'Trayendo…' : '↻ Traer goles/tarjetas en vivo'}
+            </button>
+          )}
+        </div>
+        {eventsError && <p className="text-[11px] text-rose-400 mb-2">{eventsError}</p>}
+        {events.length === 0 && !isReal && (
           <p className="text-xs text-slate-500 mb-2">Sin eventos. Agregá goleadores, tarjetas o VAR abajo.</p>
+        )}
+        {events.length === 0 && isReal && (
+          <p className="text-xs text-slate-500 mb-2">
+            Sin eventos cargados. {fixtureId != null ? 'Usá el botón para traerlos en vivo.' : 'Se cargarán al sincronizar el partido.'}
+          </p>
         )}
         <div className="space-y-1.5">
           {events.map((e) => {

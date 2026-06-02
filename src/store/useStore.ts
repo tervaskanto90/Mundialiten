@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { MatchEvent, MatchResult, Scenario, ScenarioType } from '../types'
-import { DEFAULT_LIVE_CONFIG, type LiveConfig, type LiveUpdate } from '../engine/liveSync'
+import { DEFAULT_LIVE_CONFIG, type LiveConfig, type LiveUpdate, type LiveEvent } from '../engine/liveSync'
 
 const REAL_ID = 'real'
 
@@ -42,6 +42,8 @@ interface State {
   syncStatus: SyncStatus
   syncMessage: string
   lastSync: string | null
+  // id de cada partido en el proveedor (para traer eventos), por nº de partido
+  liveFixtureIds: Record<number, number>
 
   setActive: (id: string) => void
   addScenario: (type: ScenarioType, name: string, predictionDate?: string) => string
@@ -58,6 +60,7 @@ interface State {
   setLiveConfig: (cfg: Partial<LiveConfig>) => void
   setSyncStatus: (status: SyncStatus, message?: string) => void
   applyLiveResults: (updates: LiveUpdate[]) => void
+  applyLiveEvents: (matchId: number, events: LiveEvent[]) => void
 
   importState: (data: { scenarios: Scenario[]; activeId?: string }) => void
 }
@@ -84,6 +87,7 @@ export const useStore = create<State>()(
       syncStatus: 'idle',
       syncMessage: '',
       lastSync: null,
+      liveFixtureIds: {},
 
       setActive: (id) => set({ activeId: id }),
 
@@ -197,23 +201,41 @@ export const useStore = create<State>()(
       setSyncStatus: (status, message = '') => set({ syncStatus: status, syncMessage: message }),
 
       applyLiveResults: (updates) =>
+        set((s) => {
+          const liveFixtureIds = { ...s.liveFixtureIds }
+          for (const u of updates) if (u.apiId != null) liveFixtureIds[u.matchId] = u.apiId
+          return {
+            lastSync: new Date().toISOString(),
+            liveFixtureIds,
+            scenarios: s.scenarios.map((sc) => {
+              if (sc.id !== REAL_ID) return sc
+              const results = { ...sc.results }
+              for (const u of updates) {
+                const prev = results[u.matchId]
+                results[u.matchId] = {
+                  played: true,
+                  homeScore: u.homeScore,
+                  awayScore: u.awayScore,
+                  homePens: prev?.homePens,
+                  awayPens: prev?.awayPens,
+                  events: prev?.events ?? [],
+                }
+              }
+              return { ...sc, results }
+            }),
+          }
+        }),
+
+      applyLiveEvents: (matchId, events) =>
         set((s) => ({
-          lastSync: new Date().toISOString(),
           scenarios: s.scenarios.map((sc) => {
             if (sc.id !== REAL_ID) return sc
-            const results = { ...sc.results }
-            for (const u of updates) {
-              const prev = results[u.matchId]
-              results[u.matchId] = {
-                played: true,
-                homeScore: u.homeScore,
-                awayScore: u.awayScore,
-                homePens: prev?.homePens,
-                awayPens: prev?.awayPens,
-                events: prev?.events ?? [],
-              }
+            const cur = sc.results[matchId] ?? emptyResult()
+            const mapped: MatchEvent[] = events.map((e) => ({ ...e, id: uid() }))
+            return {
+              ...sc,
+              results: { ...sc.results, [matchId]: { ...cur, played: true, events: mapped } },
             }
-            return { ...sc, results }
           }),
         })),
 
@@ -231,7 +253,19 @@ export const useStore = create<State>()(
     }),
     {
       name: 'mundialiten-v1',
-      version: 1,
+      version: 2,
+      // Completa valores nuevos en datos guardados con versiones anteriores.
+      migrate: (persisted: any) => {
+        if (persisted && typeof persisted === 'object') {
+          persisted.liveConfig = { ...DEFAULT_LIVE_CONFIG, ...(persisted.liveConfig ?? {}) }
+          persisted.liveFixtureIds = persisted.liveFixtureIds ?? {}
+          if (persisted.syncStatus == null) persisted.syncStatus = 'idle'
+          if (persisted.syncMessage == null) persisted.syncMessage = ''
+          if (persisted.lastSync === undefined) persisted.lastSync = null
+          if (persisted.liveEnabled == null) persisted.liveEnabled = false
+        }
+        return persisted
+      },
     },
   ),
 )

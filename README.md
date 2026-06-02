@@ -33,10 +33,16 @@ Pages, etc.
   genéricas y editables en `src/data/rosters.ts`.
 - **Resultados reales en vivo**: el escenario «Resultados reales» es la fuente
   de verdad y **no se edita a mano**: se actualiza automáticamente desde un
-  proveedor externo (TheSportsDB) con un botón «Sincronizar» y auto-refresco
-  cada 60s. El emparejado de partidos es por nombre de equipo (ver
-  `aliases` en `src/data/teams.ts`). Si el proveedor todavía no tiene datos del
-  torneo, simplemente no actualiza nada.
+  proveedor externo con un botón «Sincronizar» y auto-refresco cada 60s.
+  - Proveedor por defecto: **API-Football** (api-sports.io). Trae marcadores y,
+    por partido, **goleadores, tarjetas y VAR** (botón «Traer goles/tarjetas en
+    vivo» dentro del partido). Necesita una API key gratuita (100 pedidos/día):
+    registrate en dashboard.api-football.com y pegala en el panel ⚙. La key se
+    guarda sólo en tu navegador.
+  - Alternativa sin key: **TheSportsDB** (sólo marcadores), seleccionable en ⚙.
+  - El emparejado de partidos es por nombre de equipo (ver `aliases` en
+    `src/data/teams.ts`). Si el proveedor todavía no tiene datos del torneo,
+    simplemente no actualiza nada.
 - **Grupos**: tablas que se calculan solas (puntos, diferencia de gol, fair
   play). Marca los 2 clasificados directos y el mejor 3°.
 - **Llaves**: el cuadro de eliminación se va completando automáticamente a

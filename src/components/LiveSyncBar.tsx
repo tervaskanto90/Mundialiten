@@ -77,10 +77,40 @@ export function LiveSyncBar() {
 
       {showConfig && (
         <div className="mt-3 pt-3 border-t border-white/10 space-y-2">
-          <p className="text-[11px] text-slate-500">
-            Proveedor: TheSportsDB. Empareja los partidos por el nombre de los equipos. Ajustá el id
-            de liga y la temporada si hace falta.
-          </p>
+          <label className="block text-xs">
+            <span className="text-slate-400">Proveedor</span>
+            <select
+              value={liveConfig.provider}
+              onChange={(e) =>
+                setLiveConfig({
+                  provider: e.target.value as 'apifootball' | 'thesportsdb',
+                  // ids de liga por defecto de cada proveedor
+                  leagueId: e.target.value === 'apifootball' ? '1' : '4429',
+                })
+              }
+              className="mt-1 w-full bg-slate-900 border border-white/10 rounded-lg px-2 py-1.5 text-sm outline-none focus:border-pitch-500"
+            >
+              <option value="apifootball">API-Football (marcadores + goles/tarjetas/VAR)</option>
+              <option value="thesportsdb">TheSportsDB (sólo marcadores, sin key)</option>
+            </select>
+          </label>
+
+          {liveConfig.provider === 'apifootball' && (
+            <label className="block text-xs">
+              <span className="text-slate-400">API key</span>
+              <input
+                value={liveConfig.apiKey}
+                onChange={(e) => setLiveConfig({ apiKey: e.target.value })}
+                type="password"
+                placeholder="Pegá tu key de api-sports.io"
+                className="mt-1 w-full bg-slate-900 border border-white/10 rounded-lg px-2 py-1.5 text-sm outline-none focus:border-pitch-500"
+              />
+              <span className="text-[10px] text-slate-500">
+                Gratis en dashboard.api-football.com (100 pedidos/día). Se guarda sólo en tu navegador.
+              </span>
+            </label>
+          )}
+
           <div className="flex gap-2">
             <label className="flex-1 text-xs">
               <span className="text-slate-400">Id de liga</span>

@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react'
 import { useStore, effectiveResults, REAL_SCENARIO_ID, getScenario } from './store/useStore'
 import { resolve, type Resolution } from './engine/resolve'
-import { fetchLiveEvents, matchEventsToUpdates } from './engine/liveSync'
+import { fetchLiveFixtures, mapFixturesToUpdates } from './engine/liveSync'
 import type { MatchResult, Scenario } from './types'
 
 /** Intervalo de auto-actualización en vivo (ms). */
@@ -36,10 +36,10 @@ export async function runLiveSync(): Promise<void> {
   const st = useStore.getState()
   st.setSyncStatus('syncing')
   try {
-    const events = await fetchLiveEvents(st.liveConfig)
+    const fixtures = await fetchLiveFixtures(st.liveConfig)
     const real = getScenario(st.scenarios, REAL_SCENARIO_ID)
     const resolution = resolve(real?.results ?? {})
-    const { updates, matched, fetched } = matchEventsToUpdates(events, resolution)
+    const { updates, matched, fetched } = mapFixturesToUpdates(fixtures, resolution)
     st.applyLiveResults(updates)
     st.setSyncStatus(
       'ok',
