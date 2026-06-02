@@ -31,6 +31,7 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
   const clearResult = useStore((s) => s.clearResult)
   const addEvent = useStore((s) => s.addEvent)
   const removeEvent = useStore((s) => s.removeEvent)
+  const setVarCount = useStore((s) => s.setVarCount)
   const liveConfig = useStore((s) => s.liveConfig)
   const fixtureId = useStore((s) => s.liveFixtureIds[matchId])
   const applyLiveEvents = useStore((s) => s.applyLiveEvents)
@@ -63,10 +64,6 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
   const hasOverride = !!scenario.results[matchId]
   const inherited = isWhatif && !hasOverride
 
-  const [evTeam, setEvTeam] = useState<'home' | 'away'>('home')
-  const [evMinute, setEvMinute] = useState('')
-  const [evNote, setEvNote] = useState('')
-
   // Para what-if sin sobrescritura, sembramos el override con el resultado
   // heredado antes de modificar, para no perder los datos reales.
   const ensureOverride = () => {
@@ -85,18 +82,10 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
     patch(side === 'home' ? { homeScore: v, played: true } : { awayScore: v, played: true })
   }
 
-  // Alta manual de VAR (los goles/tarjetas se cargan tocando jugadores).
-  const addVarEvent = () => {
+  // Cantidad de intervenciones del VAR (predecible y rankeable).
+  const setVarCountHandler = (n: number) => {
     ensureOverride()
-    if (!base.played) setResult(scenario.id, matchId, { played: true })
-    addEvent(scenario.id, matchId, {
-      type: 'var',
-      team: evTeam,
-      note: evNote.trim() || undefined,
-      minute: evMinute ? Number(evMinute) : undefined,
-    })
-    setEvMinute('')
-    setEvNote('')
+    setVarCount(scenario.id, matchId, Math.max(0, n))
   }
 
   // Alta de evento desde la formación (clic en un jugador).
@@ -291,53 +280,24 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
         </div>
       </div>
 
-      {/* Alta manual: sólo VAR (los goles/tarjetas se cargan tocando jugadores) */}
-      {!isReal && (
-        <div className="bg-slate-800/40 rounded-xl p-3 space-y-2">
-          <div className="text-xs font-semibold flex items-center gap-1.5">
-            📺 Agregar intervención del VAR
+      {/* VAR: cantidad de intervenciones en el partido (pronosticable, no rankeable) */}
+      <div className="bg-slate-800/40 rounded-xl p-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="text-xs font-medium flex items-center gap-1.5">
+            📺 ¿Cuántas veces intervino el VAR en este partido?
           </div>
-          <div className="flex gap-1.5">
-            <button
-              onClick={() => setEvTeam('home')}
-              className={`flex-1 px-2 py-1.5 rounded-lg text-xs truncate ${
-                evTeam === 'home' ? 'bg-pitch-500 text-white' : 'bg-slate-700/60 text-slate-300'
-              }`}
-            >
-              {home.flag} {home.name}
-            </button>
-            <button
-              onClick={() => setEvTeam('away')}
-              className={`flex-1 px-2 py-1.5 rounded-lg text-xs truncate ${
-                evTeam === 'away' ? 'bg-pitch-500 text-white' : 'bg-slate-700/60 text-slate-300'
-              }`}
-            >
-              {away.flag} {away.name}
-            </button>
-          </div>
-          <div className="flex gap-1.5">
-            <input
-              value={evNote}
-              onChange={(e) => setEvNote(e.target.value)}
-              placeholder="Qué revisó el VAR (gol anulado, penal, roja...)"
-              className="flex-1 bg-slate-800 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:border-pitch-500"
-            />
-            <input
-              value={evMinute}
-              onChange={(e) => setEvMinute(e.target.value.replace(/\D/g, ''))}
-              placeholder="min"
-              inputMode="numeric"
-              className="w-16 bg-slate-800 border border-white/10 rounded-lg px-2 py-2 text-sm outline-none focus:border-pitch-500"
-            />
-            <button
-              onClick={addVarEvent}
-              className="px-3 py-2 rounded-lg text-sm font-medium bg-pitch-500 hover:bg-pitch-600 text-white shrink-0"
-            >
-              +
-            </button>
-          </div>
+          {isReal ? (
+            <span className="text-lg font-bold tabular-nums">{base.varCount ?? 0}</span>
+          ) : (
+            <Stepper value={base.varCount ?? 0} onChange={setVarCountHandler} small />
+          )}
         </div>
-      )}
+        <p className="text-[10px] text-slate-500 mt-1.5">
+          {isReal
+            ? 'El proveedor en vivo no trae este dato.'
+            : 'Se puede pronosticar, pero el VAR no cuenta para el ranking.'}
+        </p>
+      </div>
 
       {/* Formaciones: titulares y suplentes de ambos equipos */}
       <div className="mt-4 pt-4 border-t border-white/10">

@@ -41,6 +41,30 @@ export function RankingView() {
           ↻ Actualizar
         </button>
       </div>
+
+      <div className="bg-slate-800/50 border border-white/10 rounded-xl p-3 mb-4 text-xs text-slate-300 space-y-1.5">
+        <p className="font-semibold text-slate-200">📋 Cómo se puntúa</p>
+        <p>
+          El ranking cuenta <strong>sólo los resultados de los partidos</strong>, que es lo que la
+          app verifica automáticamente con los marcadores en vivo:
+        </p>
+        <ul className="list-disc pl-4 space-y-0.5 text-slate-400">
+          <li>
+            <strong className="text-emerald-400">Marcador exacto</strong>: 3 puntos (ej: predijiste
+            2-1 y salió 2-1).
+          </li>
+          <li>
+            <strong className="text-amber-400">Sólo el resultado</strong> (ganó/empató/perdió, sin
+            el marcador exacto): 1 punto (ej: predijiste 1-1 y salió 0-0; acertaste el empate).
+          </li>
+          <li>Errar el resultado: 0 puntos.</li>
+        </ul>
+        <p className="text-slate-400">
+          El % es sobre el máximo posible de los partidos ya jugados. <strong>Goleadores, tarjetas y
+          VAR</strong> se pueden pronosticar en cada partido, pero <strong>no suman al ranking</strong>
+          (el proveedor gratis no trae ese dato para verificarlo).
+        </p>
+      </div>
       {error && <p className="text-xs text-rose-400 mb-2">{error}</p>}
       {rows == null ? (
         <p className="text-sm text-slate-500">Cargando…</p>

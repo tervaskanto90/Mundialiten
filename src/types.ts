@@ -69,6 +69,9 @@ export interface MatchResult {
   homePens?: number
   awayPens?: number
   events: MatchEvent[]
+  // Cantidad de veces que intervino el VAR en el partido (predecible y rankeable).
+  // El proveedor en vivo no lo trae, así que en el escenario real se carga a mano.
+  varCount?: number
 }
 
 export type ScenarioType = 'real' | 'prediction' | 'whatif'
