@@ -44,12 +44,18 @@ Pages, etc.
 - **Resultados reales en vivo**: el escenario «Resultados reales» es la fuente
   de verdad y **no se edita a mano**: se actualiza automáticamente desde un
   proveedor externo con un botón «Sincronizar» y auto-refresco cada 60s.
-  - Proveedor por defecto: **API-Football** (api-sports.io). Trae marcadores y,
-    por partido, **goleadores, tarjetas y VAR** (botón «Traer goles/tarjetas en
-    vivo» dentro del partido). Necesita una API key gratuita (100 pedidos/día):
-    registrate en dashboard.api-football.com y pegala en el panel ⚙. La key se
-    guarda sólo en tu navegador.
-  - Alternativa sin key: **TheSportsDB** (sólo marcadores), seleccionable en ⚙.
+  Elegís el proveedor en el panel ⚙:
+  - **football-data.org (por defecto, gratis y cubre el Mundial 2026)** — Trae
+    marcadores en vivo. Como su API no permite llamadas desde el navegador, se
+    usa un proxy serverless propio (`api/fd.js`) en Vercel. Configuración:
+    1. Sacá un token gratis en football-data.org.
+    2. En Vercel: *Project Settings → Environment Variables* →
+       `FOOTBALL_DATA_TOKEN = <tu token>` y volvé a deployar.
+  - **TheSportsDB** — Gratis y sin key, pero sólo marcadores y con cobertura/
+    latencia limitada.
+  - **API-Football** — Trae además goleadores/tarjetas/VAR (botón «Traer
+    goles/tarjetas en vivo» en el partido), pero **su plan gratis no incluye la
+    temporada 2026** (sólo 2022–2024): para el Mundial 2026 necesita plan pago.
   - El emparejado de partidos es por nombre de equipo (ver `aliases` en
     `src/data/teams.ts`). Si el proveedor todavía no tiene datos del torneo,
     simplemente no actualiza nada.

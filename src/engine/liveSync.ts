@@ -17,7 +17,7 @@ import type { Resolution } from './resolve'
 // empareja una vez conocidos los clasificados.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type Provider = 'apifootball' | 'thesportsdb'
+export type Provider = 'apifootball' | 'thesportsdb' | 'footballdata'
 
 export interface LiveConfig {
   provider: Provider
@@ -27,9 +27,9 @@ export interface LiveConfig {
 }
 
 export const DEFAULT_LIVE_CONFIG: LiveConfig = {
-  provider: 'apifootball',
+  provider: 'footballdata',
   apiKey: '',
-  leagueId: '1', // API-Football: 1 = FIFA World Cup
+  leagueId: 'WC', // football-data.org: 'WC' = Copa del Mundo (incluida en el plan free)
   season: '2026',
 }
 
@@ -132,10 +132,30 @@ async function fetchTheSportsDb(config: LiveConfig, signal?: AbortSignal): Promi
   })
 }
 
+// football-data.org vía el proxy serverless propio (/api/fd). El plan free
+// incluye el Mundial ('WC'); devuelve marcadores (sin detalle de goleadores).
+async function fetchFootballData(config: LiveConfig, signal?: AbortSignal): Promise<NormFixture[]> {
+  const url = `/api/fd?competition=${encodeURIComponent(config.leagueId || 'WC')}&season=${encodeURIComponent(config.season)}`
+  const res = await fetch(url, { signal })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    throw new Error(data?.error || data?.message || `El proxy respondió ${res.status}`)
+  }
+  const rows: any[] = data.matches ?? []
+  return rows.map((m) => ({
+    homeName: m.homeTeam?.name ?? '',
+    awayName: m.awayTeam?.name ?? '',
+    hs: m.score?.fullTime?.home ?? null,
+    as: m.score?.fullTime?.away ?? null,
+    finished: m.status === 'FINISHED',
+    apiId: m.id,
+  }))
+}
+
 export async function fetchLiveFixtures(config: LiveConfig, signal?: AbortSignal): Promise<NormFixture[]> {
-  return config.provider === 'thesportsdb'
-    ? fetchTheSportsDb(config, signal)
-    : fetchApiFootball(config, signal)
+  if (config.provider === 'thesportsdb') return fetchTheSportsDb(config, signal)
+  if (config.provider === 'footballdata') return fetchFootballData(config, signal)
+  return fetchApiFootball(config, signal)
 }
 
 /** Empareja los partidos del proveedor con los nuestros y arma las actualizaciones. */

@@ -81,39 +81,52 @@ export function LiveSyncBar() {
             <span className="text-slate-400">Proveedor</span>
             <select
               value={liveConfig.provider}
-              onChange={(e) =>
-                setLiveConfig({
-                  provider: e.target.value as 'apifootball' | 'thesportsdb',
-                  // ids de liga por defecto de cada proveedor
-                  leagueId: e.target.value === 'apifootball' ? '1' : '4429',
-                })
-              }
+              onChange={(e) => {
+                const provider = e.target.value as 'apifootball' | 'thesportsdb' | 'footballdata'
+                const leagueId =
+                  provider === 'apifootball' ? '1' : provider === 'footballdata' ? 'WC' : '4429'
+                setLiveConfig({ provider, leagueId })
+              }}
               className="mt-1 w-full bg-slate-900 border border-white/10 rounded-lg px-2 py-1.5 text-sm outline-none focus:border-pitch-500"
             >
-              <option value="apifootball">API-Football (marcadores + goles/tarjetas/VAR)</option>
+              <option value="footballdata">football-data.org (gratis, cubre el Mundial 2026)</option>
               <option value="thesportsdb">TheSportsDB (sólo marcadores, sin key)</option>
+              <option value="apifootball">API-Football (goles/tarjetas/VAR · 2026 es de pago)</option>
             </select>
           </label>
 
+          {liveConfig.provider === 'footballdata' && (
+            <p className="text-[11px] text-slate-500 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-2.5 py-2">
+              Recomendado y gratis. Necesita un token gratuito de football-data.org cargado en Vercel
+              como variable de entorno <code className="text-emerald-300">FOOTBALL_DATA_TOKEN</code>.
+              Trae marcadores en vivo (sin detalle de goleadores). Funciona en el deploy de Vercel.
+            </p>
+          )}
+
           {liveConfig.provider === 'apifootball' && (
-            <label className="block text-xs">
-              <span className="text-slate-400">API key</span>
-              <input
-                value={liveConfig.apiKey}
-                onChange={(e) => setLiveConfig({ apiKey: e.target.value })}
-                type="password"
-                placeholder="Pegá tu key de api-sports.io"
-                className="mt-1 w-full bg-slate-900 border border-white/10 rounded-lg px-2 py-1.5 text-sm outline-none focus:border-pitch-500"
-              />
-              <span className="text-[10px] text-slate-500">
-                Gratis en dashboard.api-football.com (100 pedidos/día). Se guarda sólo en tu navegador.
-              </span>
-            </label>
+            <>
+              <label className="block text-xs">
+                <span className="text-slate-400">API key</span>
+                <input
+                  value={liveConfig.apiKey}
+                  onChange={(e) => setLiveConfig({ apiKey: e.target.value })}
+                  type="password"
+                  placeholder="Pegá tu key de api-sports.io"
+                  className="mt-1 w-full bg-slate-900 border border-white/10 rounded-lg px-2 py-1.5 text-sm outline-none focus:border-pitch-500"
+                />
+              </label>
+              <p className="text-[11px] text-amber-400/90 bg-amber-500/10 border border-amber-500/20 rounded-lg px-2.5 py-2">
+                Ojo: el plan gratis de API-Football <strong>no incluye la temporada 2026</strong>
+                (sólo 2022–2024). Para el Mundial 2026 necesitás un plan pago, o usá football-data.org.
+              </p>
+            </>
           )}
 
           <div className="flex gap-2">
             <label className="flex-1 text-xs">
-              <span className="text-slate-400">Id de liga</span>
+              <span className="text-slate-400">
+                {liveConfig.provider === 'footballdata' ? 'Competición' : 'Id de liga'}
+              </span>
               <input
                 value={liveConfig.leagueId}
                 onChange={(e) => setLiveConfig({ leagueId: e.target.value })}
