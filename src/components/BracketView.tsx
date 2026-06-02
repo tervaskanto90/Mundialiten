@@ -44,6 +44,11 @@ export function BracketView({ ctx, onEdit }: Props) {
         </div>
       </div>
 
+      <p className="text-[11px] text-slate-500 mb-2">
+        Las posiciones se actualizan en vivo con la tabla: el 1° y 2° actual de cada grupo ya
+        aparecen (provisorios) apenas juegan; los mejores terceros se ubican al cerrar la fase de
+        grupos.
+      </p>
       <div className="overflow-x-auto pb-2">
         <div className="bracket min-w-max">
           {ROUNDS.map((round) => {
