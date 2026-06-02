@@ -1,4 +1,4 @@
-import type { MatchResult } from '../types'
+import type { MatchResult, StageId } from '../types'
 import { MATCHES } from '../data/schedule'
 import { GROUPS } from '../data/teams'
 import { resolve, type Resolution } from './resolve'
@@ -22,9 +22,17 @@ function sign(a: number, b: number): number {
   return a === b ? 0 : a > b ? 1 : -1
 }
 
-// Puntos por partido para el ranking.
-export const EXACT_POINTS = 3 // marcador exacto
-export const TENDENCY_POINTS = 1 // acertó sólo el resultado (1/X/2)
+// Puntos por partido para el ranking, escalonados por fase: valen más a medida
+// que avanza el torneo, así la fase final mantiene el ranking abierto.
+export const STAGE_POINTS: Record<StageId, { exact: number; tendency: number }> = {
+  group: { exact: 3, tendency: 1 },
+  r32: { exact: 4, tendency: 2 },
+  r16: { exact: 5, tendency: 2 },
+  qf: { exact: 6, tendency: 3 },
+  sf: { exact: 8, tendency: 4 },
+  third: { exact: 10, tendency: 5 },
+  final: { exact: 10, tendency: 5 },
+}
 
 export interface RankingScore {
   points: number
@@ -58,13 +66,14 @@ export function computeRankingScore(
     // Sólo cuentan los partidos que predijiste a tiempo (antes del cierre).
     // Los que no predijiste no suman ni restan (no entran al máximo).
     if (!pred?.played) continue
+    const pts = STAGE_POINTS[m.stage]
     played++
-    max += EXACT_POINTS
+    max += pts.exact
     if (pred.homeScore === real.homeScore && pred.awayScore === real.awayScore) {
-      points += EXACT_POINTS
+      points += pts.exact
       exact++
     } else if (sign(pred.homeScore, pred.awayScore) === sign(real.homeScore, real.awayScore)) {
-      points += TENDENCY_POINTS
+      points += pts.tendency
       tendency++
     }
   }

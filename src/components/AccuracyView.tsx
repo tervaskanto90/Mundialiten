@@ -46,8 +46,8 @@ export function AccuracyView() {
       <p className="text-xs text-slate-500 mb-4">
         Se comparan tus pestañas con los <strong>resultados reales</strong> ({realPlayed} partidos
         jugados). El <strong>puntaje</strong> (que ordena el ranking) cuenta sólo los resultados de
-        los partidos que predijiste antes del cierre: marcador exacto = 3, acertar sólo el resultado
-        = 1. El resto del detalle es informativo.
+        los partidos que predijiste antes del cierre, con puntos que aumentan por fase (más detalle
+        en la pestaña Ranking). El resto es informativo.
       </p>
       <div className="space-y-4">
         {cards
