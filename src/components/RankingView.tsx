@@ -60,9 +60,14 @@ export function RankingView() {
           <li>Errar el resultado: 0 puntos.</li>
         </ul>
         <p className="text-slate-400">
-          El % es sobre el máximo posible de los partidos ya jugados. <strong>Goleadores, tarjetas y
-          VAR</strong> se pueden pronosticar en cada partido, pero <strong>no suman al ranking</strong>
-          (el proveedor gratis no trae ese dato para verificarlo).
+          ⏱️ Las predicciones de cada partido <strong>se cierran 5 minutos antes</strong> de que
+          empiece. Sólo cuentan los partidos que predijiste a tiempo: los que no, no suman ni restan.
+        </p>
+        <p className="text-slate-400">
+          El % es sobre el máximo posible de <strong>los partidos que predijiste</strong> y ya se
+          jugaron. <strong>Goleadores, tarjetas y VAR</strong> se pueden pronosticar en cada partido,
+          pero <strong>no suman al ranking</strong> (el proveedor gratis no trae ese dato para
+          verificarlo).
         </p>
       </div>
       {error && <p className="text-xs text-rose-400 mb-2">{error}</p>}

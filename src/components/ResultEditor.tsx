@@ -7,6 +7,7 @@ import type { ActiveContext } from '../hooks'
 import { Modal } from './Modal'
 import { LineupPanel } from './LineupPanel'
 import { fetchFixtureEvents } from '../engine/liveSync'
+import { isPredictionLocked } from '../utils/lock'
 
 interface Props {
   matchId: number
@@ -63,6 +64,9 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
   const isWhatif = scenario.type === 'whatif'
   const hasOverride = !!scenario.results[matchId]
   const inherited = isWhatif && !hasOverride
+  // Las predicciones se cierran 5 min antes del partido (no aplica a what-if).
+  const locked = scenario.type === 'prediction' && isPredictionLocked(match)
+  const editingDisabled = isReal || locked
 
   // Para what-if sin sobrescritura, sembramos el override con el resultado
   // heredado antes de modificar, para no perder los datos reales.
@@ -115,6 +119,7 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
             En «{scenario.name}»
             {inherited && ' · heredando del real'}
             {isReal && ' · 🔴 sólo lectura (en vivo)'}
+            {locked && ' · 🔒 cerrado'}
           </div>
           <div className="flex gap-2">
             {isWhatif && hasOverride && (
@@ -128,7 +133,7 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
                 ↺ Volver al real
               </button>
             )}
-            {!isWhatif && !isReal && base.played && (
+            {!isWhatif && !isReal && !locked && base.played && (
               <button
                 onClick={() => {
                   clearResult(scenario.id, matchId)
@@ -160,10 +165,17 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
         </div>
       )}
 
+      {locked && (
+        <div className="text-[11px] text-amber-200 bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2 mb-4">
+          🔒 Ya no se aceptan predicciones para este partido (cerró 5 minutos antes del inicio). Si no
+          lo predijiste a tiempo, no cuenta para el ranking.
+        </div>
+      )}
+
       {/* Marcador */}
       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 mb-4">
         <ScoreSide flag={home.flag} name={home.name} />
-        {isReal ? (
+        {editingDisabled ? (
           <div className="text-3xl font-bold tabular-nums px-2">
             {base.played ? `${base.homeScore} - ${base.awayScore}` : 'vs'}
           </div>
@@ -177,7 +189,7 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
         <ScoreSide flag={away.flag} name={away.name} right />
       </div>
 
-      {!base.played && !isReal && (
+      {!base.played && !editingDisabled && (
         <div className="text-center -mt-2 mb-3">
           <button
             onClick={() => patch({ played: true })}
@@ -193,7 +205,7 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
         <div className="bg-slate-800/60 rounded-xl p-3 mb-4">
           <div className="text-xs text-slate-400 mb-2">Definición por penales</div>
           <div className="flex items-center justify-center gap-2">
-            {isReal ? (
+            {editingDisabled ? (
               <span className="text-lg font-bold tabular-nums">
                 {base.homePens ?? 0} - {base.awayPens ?? 0}
               </span>
@@ -263,7 +275,7 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
                   {e.minute != null && <span className="text-slate-500"> {e.minute}'</span>}
                 </span>
                 <span className="text-[10px] text-slate-500">{meta.label}</span>
-                {!isReal && (
+                {!editingDisabled && (
                   <button
                     onClick={() => {
                       ensureOverride()
@@ -286,7 +298,7 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
           <div className="text-xs font-medium flex items-center gap-1.5">
             📺 ¿Cuántas veces intervino el VAR en este partido?
           </div>
-          {isReal ? (
+          {editingDisabled ? (
             <span className="text-lg font-bold tabular-nums">{base.varCount ?? 0}</span>
           ) : (
             <Stepper value={base.varCount ?? 0} onChange={setVarCountHandler} small />
@@ -306,7 +318,7 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
           awayId={ctx.resolution.matches[matchId]?.away}
           home={home}
           away={away}
-          readOnly={isReal}
+          readOnly={editingDisabled}
           onAction={addPlayerEvent}
         />
       </div>
