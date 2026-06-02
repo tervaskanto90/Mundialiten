@@ -12,6 +12,7 @@ import { useAuth } from './auth'
 import { useSupabaseSync } from './lib/sync'
 import { useT } from './i18n'
 import { LangToggle } from './components/LangToggle'
+import { HowToPlay } from './components/HowToPlay'
 
 type View = 'calendario' | 'grupos' | 'llaves' | 'precision' | 'ranking'
 
@@ -44,6 +45,7 @@ export default function App() {
             </p>
           </div>
           <div className="ml-auto flex items-center gap-2 text-xs">
+            <HowToPlay />
             <LangToggle />
             {enabled && user && (
               <>
@@ -100,7 +102,7 @@ export default function App() {
           {ctx.resolution.bestThirds
             ? t('fase de grupos completa', 'group stage complete')
             : t('fase de grupos en curso', 'group stage in progress')}{' '}
-          · v2.2
+          · v2.3
         </div>
         <div className="mt-1 text-slate-600">{t('hecho por', 'made by')} Octavio Boggiano</div>
       </footer>

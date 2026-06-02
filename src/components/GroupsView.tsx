@@ -2,6 +2,7 @@ import { GROUPS, TEAM_BY_ID } from '../data/teams'
 import type { ActiveContext } from '../hooks'
 import type { StandingRow } from '../engine/standings'
 import { useT } from '../i18n'
+import { teamDisplayName } from '../utils/labels'
 
 interface Props {
   ctx: ActiveContext
@@ -87,7 +88,7 @@ function GroupTable({
                   <div className="flex items-center gap-1.5 min-w-0">
                     <span className="text-slate-500 w-3">{i + 1}</span>
                     <span>{team?.flag}</span>
-                    <span className="truncate">{team?.name ?? r.teamId}</span>
+                    <span className="truncate">{team ? teamDisplayName(team) : r.teamId}</span>
                   </div>
                 </td>
                 <td className="text-center text-slate-400">{r.played}</td>
