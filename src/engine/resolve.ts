@@ -26,6 +26,40 @@ export interface Resolution {
   matches: Record<number, ResolvedMatch>
 }
 
+// Slots de tercero presentes en el cuadro (ej. '3ABCDF') y sus grupos válidos.
+const THIRD_SLOTS: { ref: string; allowed: Set<string> }[] = (() => {
+  const set = new Set<string>()
+  for (const m of MATCHES) {
+    for (const ref of [m.home, m.away]) if (/^3[A-L]{2,}$/.test(ref)) set.add(ref)
+  }
+  return [...set].map((ref) => ({ ref, allowed: new Set(ref.slice(1).split('')) }))
+})()
+
+/**
+ * Asigna los 8 mejores terceros a los 8 slots del cuadro respetando los grupos
+ * válidos de cada slot (backtracking, slots más restringidos primero).
+ */
+function assignThirds(thirds: { teamId: string; group: string }[]): Record<string, string> {
+  const slots = [...THIRD_SLOTS].sort((a, b) => a.allowed.size - b.allowed.size)
+  const used = new Array(thirds.length).fill(false)
+  const result: Record<string, string> = {}
+  const bt = (i: number): boolean => {
+    if (i === slots.length) return true
+    const { ref, allowed } = slots[i]
+    for (let j = 0; j < thirds.length; j++) {
+      if (used[j] || !allowed.has(thirds[j].group)) continue
+      used[j] = true
+      result[ref] = thirds[j].teamId
+      if (bt(i + 1)) return true
+      used[j] = false
+      delete result[ref]
+    }
+    return false
+  }
+  bt(0)
+  return result
+}
+
 function computeBestThirds(
   standings: Record<string, StandingRow[]>,
 ): { teamId: string; group: string }[] {
@@ -63,13 +97,13 @@ export function resolve(
 
   // Mejores terceros: se ubican recién cuando TODOS los grupos terminaron
   // (compararlos antes sería engañoso porque dependen de los 12 grupos).
+  // Cada cruce de dieciseisavos admite un tercero de un set de grupos (notación
+  // oficial '3ABCDF'); se asignan los 8 mejores respetando esos sets.
   let bestThirds: string[] | null = null
   if (allGroupsComplete(results)) {
     const ranked = computeBestThirds(standings)
     bestThirds = ranked.map((x) => x.teamId)
-    ranked.slice(0, 8).forEach((x, i) => {
-      slots[`3RD-${i + 1}`] = x.teamId
-    })
+    Object.assign(slots, assignThirds(ranked.slice(0, 8)))
   }
 
   // Fase final automática: si hay puestos reales, el cuadro usa esos equipos.
@@ -87,7 +121,7 @@ export function resolve(
     if (/^W\d+$/.test(ref)) return matches[Number(ref.slice(1))]?.winner
     if (/^L\d+$/.test(ref)) return matches[Number(ref.slice(1))]?.loser
     // Puesto/tercero todavía sin resolver -> desconocido.
-    if (/^[12][A-L]$/.test(ref) || ref.startsWith('3RD-')) return undefined
+    if (/^[12][A-L]$/.test(ref) || /^3[A-L]{2,}$/.test(ref)) return undefined
     // En cualquier otro caso es un id de equipo concreto.
     return ref
   }

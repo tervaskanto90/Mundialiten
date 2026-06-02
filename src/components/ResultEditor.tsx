@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { MATCH_BY_ID, STAGE_LABELS } from '../data/schedule'
 import { useStore, emptyResult } from '../store/useStore'
-import { sideLabelFor, venueName, formatDate } from '../utils/labels'
+import { sideLabelFor, venueName, matchDateLabel, matchTimeLabel } from '../utils/labels'
 import type { EventType, Player } from '../types'
 import type { ActiveContext } from '../hooks'
 import { Modal } from './Modal'
@@ -155,7 +155,7 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
       }
     >
       <div className="text-xs text-slate-500 mb-4 capitalize">
-        {formatDate(match.date)} · {match.time} · 📍 {venueName(match.venueId)}
+        {matchDateLabel(match)} · {matchTimeLabel(match)} · 📍 {venueName(match.venueId)}
       </div>
 
       {isReal && (

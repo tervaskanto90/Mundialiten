@@ -1,152 +1,166 @@
 import type { Match, StageId } from '../types'
-import { GROUPS, teamsOfGroup } from './teams'
-import { VENUES } from './venues'
+import { TEAM_BY_ID } from './teams'
 
 // ─────────────────────────────────────────────────────────────────────────────
-// CALENDARIO (104 partidos)
+// CALENDARIO OFICIAL — Mundial 2026 (104 partidos)
 //
-// La fase de grupos se genera automáticamente (round-robin de 4 equipos por
-// grupo = 6 partidos) y se reparten fechas/sedes/horarios de forma ordenada
-// dentro de la ventana real del Mundial 2026 (11–27 de junio).
-// Las eliminatorias usan las fechas reales y un cuadro estructuralmente válido.
+// Datos oficiales (sorteo del 5/12/2025 + match schedule de la FIFA).
+// Cada partido se guarda con su horario OFICIAL en hora local de la sede, y se
+// convierte a un instante UTC (`kickoff`). La app muestra la hora en la zona
+// horaria de tu dispositivo y usa ese instante para el cierre de predicciones.
 //
-// Todo es EDITABLE: para ajustar un partido a tu calendario, cambiá su entrada
-// en GROUP_MATCH_OVERRIDES (fecha/hora/sede) o editá KNOCKOUT abajo.
+// Fuente del fixture: openfootball (github.com/openfootball/worldcup).
 // ─────────────────────────────────────────────────────────────────────────────
 
-const KICKOFF_TIMES = ['13:00', '16:00', '19:00', '22:00']
-
-// Orden de enfrentamientos dentro de un grupo de 4 equipos (índices 0..3).
-const ROUND_ROBIN: Array<[number, number]> = [
-  [0, 1],
-  [2, 3], // Fecha 1
-  [0, 2],
-  [3, 1], // Fecha 2
-  [3, 0],
-  [1, 2], // Fecha 3
-]
-
-function addDays(iso: string, days: number): string {
-  const d = new Date(iso + 'T00:00:00Z')
-  d.setUTCDate(d.getUTCDate() + days)
-  return d.toISOString().slice(0, 10)
+// Offset horario de cada sede en junio/julio 2026 (horas a SUMAR a la hora local
+// para obtener UTC). México no aplica horario de verano (UTC−6).
+const VENUE_UTC_OFFSET: Record<string, number> = {
+  cdmx: 6, gdl: 6, mty: 6, // México (UTC−6)
+  tor: 4, nyc: 4, bos: 4, phi: 4, atl: 4, mia: 4, // Este (UTC−4)
+  kc: 5, dal: 5, hou: 5, // Central (UTC−5)
+  van: 7, la: 7, sf: 7, sea: 7, // Pacífico (UTC−7)
 }
 
-function buildGroupStage(): Match[] {
-  const matches: Match[] = []
-  let matchId = 1
-  let dayOffset = 0
-  let slotInDay = 0
-  const START = '2026-06-11'
-
-  // Recorremos las 3 fechas; en cada fecha, todos los grupos juegan su par.
-  for (let round = 0; round < 3; round++) {
-    for (let g = 0; g < GROUPS.length; g++) {
-      const group = GROUPS[g]
-      const teams = teamsOfGroup(group)
-      // Cada fecha aporta 2 partidos del round-robin.
-      for (let m = 0; m < 2; m++) {
-        const [hi, ai] = ROUND_ROBIN[round * 2 + m]
-        const home = teams[hi]?.id ?? `${group}${hi}`
-        const away = teams[ai]?.id ?? `${group}${ai}`
-
-        const date = addDays(START, dayOffset)
-        const time = KICKOFF_TIMES[slotInDay % KICKOFF_TIMES.length]
-        const venue = VENUES[(matchId - 1) % VENUES.length]
-
-        matches.push({
-          id: matchId,
-          stage: 'group',
-          group,
-          date,
-          time,
-          venueId: venue.id,
-          home,
-          away,
-        })
-
-        matchId++
-        slotInDay++
-        // ~6 partidos por día (para que los grupos terminen antes de los dieciseisavos).
-        if (slotInDay % 6 === 0) {
-          dayOffset++
-        }
-      }
-    }
-    // Separar las fechas dejando avanzar el calendario.
-    if (slotInDay % 6 !== 0) {
-      dayOffset++
-      slotInDay = 0
-    }
-  }
-
-  return matches
+function toUTC(date: string, time: string, venueId: string): string {
+  const off = VENUE_UTC_OFFSET[venueId] ?? 0
+  const [y, m, d] = date.split('-').map(Number)
+  const [h, min] = time.split(':').map(Number)
+  return new Date(Date.UTC(y, m - 1, d, h + off, min)).toISOString()
 }
 
-interface KnockoutDef {
-  id: number
-  stage: StageId
-  date: string
-  time: string
-  venueId: string
-  home: string
-  away: string
-}
-
-// Cuadro de eliminación. Las referencias se resuelven en runtime:
-//  1A=1° grupo A, 2B=2° grupo B, 3RD-n=enésimo mejor tercero, Wnn/Lnn=ganador/perdedor.
-// Estructuralmente válido (cada puesto aparece una vez). Editable si querés
-// replicar exactamente el sembrado oficial.
-const KNOCKOUT: KnockoutDef[] = [
-  // ── Dieciseisavos de final (Round of 32): 28/06 – 03/07 ──
-  { id: 73, stage: 'r32', date: '2026-06-28', time: '17:00', venueId: 'la', home: '1A', away: '3RD-1' },
-  { id: 74, stage: 'r32', date: '2026-06-28', time: '13:00', venueId: 'hou', home: '1B', away: '2C' },
-  { id: 75, stage: 'r32', date: '2026-06-29', time: '17:00', venueId: 'mty', home: '1C', away: '2A' },
-  { id: 76, stage: 'r32', date: '2026-06-29', time: '21:00', venueId: 'cdmx', home: '1D', away: '3RD-2' },
-  { id: 77, stage: 'r32', date: '2026-06-30', time: '17:00', venueId: 'dal', home: '1E', away: '2D' },
-  { id: 78, stage: 'r32', date: '2026-06-30', time: '21:00', venueId: 'kc', home: '1F', away: '2E' },
-  { id: 79, stage: 'r32', date: '2026-07-01', time: '17:00', venueId: 'phi', home: '1G', away: '3RD-3' },
-  { id: 80, stage: 'r32', date: '2026-07-01', time: '21:00', venueId: 'sf', home: '1H', away: '2F' },
-  { id: 81, stage: 'r32', date: '2026-07-02', time: '17:00', venueId: 'sea', home: '1I', away: '3RD-4' },
-  { id: 82, stage: 'r32', date: '2026-07-02', time: '21:00', venueId: 'atl', home: '1J', away: '2G' },
-  { id: 83, stage: 'r32', date: '2026-07-03', time: '17:00', venueId: 'mia', home: '1K', away: '2H' },
-  { id: 84, stage: 'r32', date: '2026-07-03', time: '21:00', venueId: 'nyc', home: '1L', away: '3RD-5' },
-  { id: 85, stage: 'r32', date: '2026-06-28', time: '21:00', venueId: 'tor', home: '2B', away: '3RD-6' },
-  { id: 86, stage: 'r32', date: '2026-06-29', time: '13:00', venueId: 'van', home: '2I', away: '2L' },
-  { id: 87, stage: 'r32', date: '2026-07-01', time: '13:00', venueId: 'bos', home: '2J', away: '3RD-7' },
-  { id: 88, stage: 'r32', date: '2026-07-02', time: '13:00', venueId: 'gdl', home: '2K', away: '3RD-8' },
-
-  // ── Octavos de final (Round of 16): 04/07 – 07/07 ──
-  { id: 89, stage: 'r16', date: '2026-07-04', time: '17:00', venueId: 'phi', home: 'W73', away: 'W74' },
-  { id: 90, stage: 'r16', date: '2026-07-04', time: '21:00', venueId: 'hou', home: 'W75', away: 'W76' },
-  { id: 91, stage: 'r16', date: '2026-07-05', time: '17:00', venueId: 'la', home: 'W77', away: 'W78' },
-  { id: 92, stage: 'r16', date: '2026-07-05', time: '21:00', venueId: 'cdmx', home: 'W79', away: 'W80' },
-  { id: 93, stage: 'r16', date: '2026-07-06', time: '17:00', venueId: 'sea', home: 'W81', away: 'W82' },
-  { id: 94, stage: 'r16', date: '2026-07-06', time: '21:00', venueId: 'atl', home: 'W83', away: 'W84' },
-  { id: 95, stage: 'r16', date: '2026-07-07', time: '17:00', venueId: 'dal', home: 'W85', away: 'W86' },
-  { id: 96, stage: 'r16', date: '2026-07-07', time: '21:00', venueId: 'mia', home: 'W87', away: 'W88' },
-
-  // ── Cuartos de final: 09/07 – 11/07 ──
-  { id: 97, stage: 'qf', date: '2026-07-09', time: '17:00', venueId: 'bos', home: 'W89', away: 'W90' },
-  { id: 98, stage: 'qf', date: '2026-07-10', time: '17:00', venueId: 'la', home: 'W91', away: 'W92' },
-  { id: 99, stage: 'qf', date: '2026-07-10', time: '21:00', venueId: 'kc', home: 'W93', away: 'W94' },
-  { id: 100, stage: 'qf', date: '2026-07-11', time: '17:00', venueId: 'mia', home: 'W95', away: 'W96' },
-
-  // ── Semifinales: 14/07 – 15/07 ──
-  { id: 101, stage: 'sf', date: '2026-07-14', time: '20:00', venueId: 'dal', home: 'W97', away: 'W98' },
-  { id: 102, stage: 'sf', date: '2026-07-15', time: '20:00', venueId: 'atl', home: 'W99', away: 'W100' },
-
-  // ── Tercer puesto: 18/07 ──
-  { id: 103, stage: 'third', date: '2026-07-18', time: '16:00', venueId: 'mia', home: 'L101', away: 'L102' },
-
-  // ── Final: 19/07 ──
-  { id: 104, stage: 'final', date: '2026-07-19', time: '16:00', venueId: 'nyc', home: 'W101', away: 'W102' },
+// Fase de grupos: [nº, fecha local, hora local, sede, local, visitante]
+const GROUP_ROWS: Array<[number, string, string, string, string, string]> = [
+  [1, '2026-06-11', '13:00', 'cdmx', 'MEX', 'RSA'],
+  [2, '2026-06-11', '20:00', 'gdl', 'COR', 'CZE'],
+  [3, '2026-06-12', '15:00', 'tor', 'CAN', 'BOS'],
+  [4, '2026-06-12', '18:00', 'la', 'USA', 'PAR'],
+  [5, '2026-06-13', '12:00', 'sf', 'QAT', 'SUI'],
+  [6, '2026-06-13', '18:00', 'nyc', 'BRA', 'MAR'],
+  [7, '2026-06-13', '21:00', 'bos', 'HAI', 'ESC'],
+  [8, '2026-06-13', '21:00', 'van', 'AUS', 'TUR'],
+  [9, '2026-06-14', '12:00', 'hou', 'ALE', 'CUR'],
+  [10, '2026-06-14', '15:00', 'dal', 'PBA', 'JAP'],
+  [11, '2026-06-14', '19:00', 'phi', 'CDM', 'ECU'],
+  [12, '2026-06-14', '20:00', 'mty', 'SWE', 'TUN'],
+  [13, '2026-06-15', '12:00', 'sea', 'BEL', 'EGI'],
+  [14, '2026-06-15', '12:00', 'atl', 'ESP', 'CAB'],
+  [15, '2026-06-15', '18:00', 'la', 'IRA', 'NZL'],
+  [16, '2026-06-15', '18:00', 'mia', 'ARA', 'URU'],
+  [17, '2026-06-16', '15:00', 'nyc', 'FRA', 'SEN'],
+  [18, '2026-06-16', '18:00', 'bos', 'IRK', 'NOR'],
+  [19, '2026-06-16', '20:00', 'kc', 'ARG', 'ALG'],
+  [20, '2026-06-16', '21:00', 'sf', 'AUT', 'JOR'],
+  [21, '2026-06-17', '12:00', 'hou', 'POR', 'COD'],
+  [22, '2026-06-17', '15:00', 'dal', 'ING', 'CRO'],
+  [23, '2026-06-17', '19:00', 'tor', 'GHA', 'PAN'],
+  [24, '2026-06-17', '20:00', 'cdmx', 'UZB', 'COL'],
+  [25, '2026-06-18', '12:00', 'atl', 'CZE', 'RSA'],
+  [26, '2026-06-18', '12:00', 'la', 'SUI', 'BOS'],
+  [27, '2026-06-18', '15:00', 'van', 'CAN', 'QAT'],
+  [28, '2026-06-18', '19:00', 'gdl', 'MEX', 'COR'],
+  [29, '2026-06-19', '12:00', 'sea', 'USA', 'AUS'],
+  [30, '2026-06-19', '18:00', 'bos', 'ESC', 'MAR'],
+  [31, '2026-06-19', '20:00', 'sf', 'TUR', 'PAR'],
+  [32, '2026-06-19', '20:30', 'phi', 'BRA', 'HAI'],
+  [33, '2026-06-20', '12:00', 'hou', 'PBA', 'SWE'],
+  [34, '2026-06-20', '16:00', 'tor', 'ALE', 'CDM'],
+  [35, '2026-06-20', '19:00', 'kc', 'ECU', 'CUR'],
+  [36, '2026-06-20', '22:00', 'mty', 'TUN', 'JAP'],
+  [37, '2026-06-21', '12:00', 'la', 'BEL', 'IRA'],
+  [38, '2026-06-21', '12:00', 'atl', 'ESP', 'ARA'],
+  [39, '2026-06-21', '18:00', 'van', 'NZL', 'EGI'],
+  [40, '2026-06-21', '18:00', 'mia', 'URU', 'CAB'],
+  [41, '2026-06-22', '12:00', 'dal', 'ARG', 'AUT'],
+  [42, '2026-06-22', '17:00', 'phi', 'FRA', 'IRK'],
+  [43, '2026-06-22', '20:00', 'nyc', 'NOR', 'SEN'],
+  [44, '2026-06-22', '20:00', 'sf', 'JOR', 'ALG'],
+  [45, '2026-06-23', '12:00', 'hou', 'POR', 'UZB'],
+  [46, '2026-06-23', '16:00', 'bos', 'ING', 'GHA'],
+  [47, '2026-06-23', '19:00', 'tor', 'PAN', 'CRO'],
+  [48, '2026-06-23', '20:00', 'gdl', 'COL', 'COD'],
+  [49, '2026-06-24', '18:00', 'mia', 'ESC', 'BRA'],
+  [50, '2026-06-24', '18:00', 'atl', 'MAR', 'HAI'],
+  [51, '2026-06-24', '19:00', 'cdmx', 'CZE', 'MEX'],
+  [52, '2026-06-24', '19:00', 'mty', 'RSA', 'COR'],
+  [53, '2026-06-24', '12:00', 'van', 'SUI', 'CAN'],
+  [54, '2026-06-24', '12:00', 'sea', 'BOS', 'QAT'],
+  [55, '2026-06-25', '16:00', 'phi', 'CUR', 'CDM'],
+  [56, '2026-06-25', '16:00', 'nyc', 'ECU', 'ALE'],
+  [57, '2026-06-25', '18:00', 'dal', 'JAP', 'SWE'],
+  [58, '2026-06-25', '18:00', 'kc', 'TUN', 'PBA'],
+  [59, '2026-06-25', '19:00', 'la', 'TUR', 'USA'],
+  [60, '2026-06-25', '19:00', 'sf', 'PAR', 'AUS'],
+  [61, '2026-06-26', '15:00', 'bos', 'NOR', 'FRA'],
+  [62, '2026-06-26', '15:00', 'tor', 'SEN', 'IRK'],
+  [63, '2026-06-26', '19:00', 'hou', 'CAB', 'ARA'],
+  [64, '2026-06-26', '18:00', 'gdl', 'URU', 'ESP'],
+  [65, '2026-06-26', '20:00', 'sea', 'EGI', 'IRA'],
+  [66, '2026-06-26', '20:00', 'van', 'NZL', 'BEL'],
+  [67, '2026-06-27', '19:30', 'mia', 'COL', 'POR'],
+  [68, '2026-06-27', '19:30', 'atl', 'COD', 'UZB'],
+  [69, '2026-06-27', '17:00', 'nyc', 'PAN', 'ING'],
+  [70, '2026-06-27', '17:00', 'phi', 'CRO', 'GHA'],
+  [71, '2026-06-27', '21:00', 'kc', 'ALG', 'AUT'],
+  [72, '2026-06-27', '21:00', 'dal', 'JOR', 'ARG'],
 ]
 
-export const MATCHES: Match[] = [
-  ...buildGroupStage(),
-  ...KNOCKOUT.map((k) => ({ ...k })),
+// Eliminatorias: [nº, fase, fecha local, hora local, sede, local, visitante]
+// Los terceros usan la notación oficial por combinación de grupos: '3ABCDF'.
+const KO_ROWS: Array<[number, StageId, string, string, string, string, string]> = [
+  [73, 'r32', '2026-06-28', '12:00', 'la', '2B', '2A'],
+  [74, 'r32', '2026-06-29', '16:30', 'bos', '1E', '3ABCDF'],
+  [75, 'r32', '2026-06-29', '19:00', 'mty', '1F', '2C'],
+  [76, 'r32', '2026-06-29', '12:00', 'hou', '1C', '2F'],
+  [77, 'r32', '2026-06-30', '17:00', 'nyc', '1I', '3CDFGH'],
+  [78, 'r32', '2026-06-30', '12:00', 'dal', '2E', '2I'],
+  [79, 'r32', '2026-06-30', '19:00', 'cdmx', '1A', '3CEFHI'],
+  [80, 'r32', '2026-07-01', '12:00', 'atl', '1L', '3EHIJK'],
+  [81, 'r32', '2026-07-01', '17:00', 'sf', '1D', '3BEFIJ'],
+  [82, 'r32', '2026-07-01', '13:00', 'sea', '1G', '3AEHIJ'],
+  [83, 'r32', '2026-07-02', '19:00', 'tor', '2K', '2L'],
+  [84, 'r32', '2026-07-02', '12:00', 'la', '1H', '2J'],
+  [85, 'r32', '2026-07-02', '20:00', 'van', '1B', '3EFGIJ'],
+  [86, 'r32', '2026-07-03', '18:00', 'mia', '1J', '2H'],
+  [87, 'r32', '2026-07-03', '20:30', 'kc', '1K', '3DEIJL'],
+  [88, 'r32', '2026-07-03', '13:00', 'dal', '2D', '2G'],
+  [89, 'r16', '2026-07-04', '17:00', 'phi', 'W74', 'W77'],
+  [90, 'r16', '2026-07-04', '12:00', 'hou', 'W73', 'W75'],
+  [91, 'r16', '2026-07-05', '16:00', 'nyc', 'W76', 'W78'],
+  [92, 'r16', '2026-07-05', '18:00', 'cdmx', 'W79', 'W80'],
+  [93, 'r16', '2026-07-06', '14:00', 'dal', 'W83', 'W84'],
+  [94, 'r16', '2026-07-06', '17:00', 'sea', 'W81', 'W82'],
+  [95, 'r16', '2026-07-07', '12:00', 'atl', 'W86', 'W88'],
+  [96, 'r16', '2026-07-07', '13:00', 'van', 'W85', 'W87'],
+  [97, 'qf', '2026-07-09', '16:00', 'bos', 'W89', 'W90'],
+  [98, 'qf', '2026-07-10', '12:00', 'la', 'W93', 'W94'],
+  [99, 'qf', '2026-07-11', '17:00', 'mia', 'W91', 'W92'],
+  [100, 'qf', '2026-07-11', '20:00', 'kc', 'W95', 'W96'],
+  [101, 'sf', '2026-07-14', '14:00', 'dal', 'W97', 'W98'],
+  [102, 'sf', '2026-07-15', '15:00', 'atl', 'W99', 'W100'],
+  [103, 'third', '2026-07-18', '17:00', 'mia', 'L101', 'L102'],
+  [104, 'final', '2026-07-19', '15:00', 'nyc', 'W101', 'W102'],
 ]
+
+const groupMatches: Match[] = GROUP_ROWS.map(([id, date, time, venueId, home, away]) => ({
+  id,
+  stage: 'group' as StageId,
+  group: TEAM_BY_ID[home]?.group,
+  venueId,
+  home,
+  away,
+  kickoff: toUTC(date, time, venueId),
+}))
+
+const koMatches: Match[] = KO_ROWS.map(([id, stage, date, time, venueId, home, away]) => ({
+  id,
+  stage,
+  venueId,
+  home,
+  away,
+  kickoff: toUTC(date, time, venueId),
+}))
+
+export const MATCHES: Match[] = [...groupMatches, ...koMatches]
 
 export const MATCH_BY_ID: Record<number, Match> = Object.fromEntries(
   MATCHES.map((m) => [m.id, m]),

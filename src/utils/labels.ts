@@ -1,6 +1,7 @@
 import { TEAM_BY_ID } from '../data/teams'
 import { VENUE_BY_ID } from '../data/venues'
 import type { Resolution } from '../engine/resolve'
+import type { Match } from '../types'
 
 export interface SideLabel {
   flag: string
@@ -18,8 +19,8 @@ function placeholderName(ref: string): string {
     const pos = groupPos[1] === '1' ? '1°' : '2°'
     return `${pos} Grupo ${groupPos[2]}`
   }
-  const third = /^3RD-(\d+)$/.exec(ref)
-  if (third) return `Mejor 3° (${third[1]})`
+  const third = /^3([A-L]{2,})$/.exec(ref)
+  if (third) return `3° Grupo ${third[1].split('').join('/')}`
   const w = /^W(\d+)$/.exec(ref)
   if (w) return `Ganador P${w[1]}`
   const l = /^L(\d+)$/.exec(ref)
@@ -73,4 +74,26 @@ export function formatDate(iso: string): string {
 export function formatDateShort(iso: string): string {
   const d = new Date(iso + 'T00:00:00')
   return `${d.getDate()}/${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+
+// ── Horarios de partido (en la zona horaria del dispositivo, desde el UTC) ──
+
+const pad = (n: number) => String(n).padStart(2, '0')
+
+/** Clave de fecha local 'YYYY-MM-DD' para agrupar el calendario. */
+export function matchDateKey(m: Match): string {
+  const d = new Date(m.kickoff)
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+
+/** Hora local 'HH:mm' del partido. */
+export function matchTimeLabel(m: Match): string {
+  const d = new Date(m.kickoff)
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+/** Fecha local larga, ej. 'Jueves 11 de junio'. */
+export function matchDateLabel(m: Match): string {
+  const d = new Date(m.kickoff)
+  return `${WEEKDAYS[d.getDay()]} ${d.getDate()} de ${MONTHS[d.getMonth()]}`
 }

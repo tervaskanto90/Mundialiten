@@ -74,7 +74,7 @@ export const TEAMS: Team[] = [
   { id: 'POR', name: 'Portugal', flag: '🇵🇹', group: 'K', aliases: ['Portugal'] },
   { id: 'UZB', name: 'Uzbekistán', flag: '🇺🇿', group: 'K', aliases: ['Uzbekistan'] },
   { id: 'COL', name: 'Colombia', flag: '🇨🇴', group: 'K', aliases: ['Colombia'] },
-  { id: 'JAM', name: 'Jamaica', flag: '🇯🇲', group: 'K', aliases: ['Jamaica'] },
+  { id: 'COD', name: 'RD del Congo', flag: '🇨🇩', group: 'K', aliases: ['DR Congo', 'Congo DR', 'Democratic Republic of the Congo', 'Congo'] },
 
   // Grupo L
   { id: 'ING', name: 'Inglaterra', flag: '🏴', group: 'L', aliases: ['England'] },

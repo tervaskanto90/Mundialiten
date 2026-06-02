@@ -34,7 +34,7 @@ export interface Venue {
  * Puede ser:
  *  - el id de un equipo concreto (ej. 'MEX')
  *  - un puesto de grupo: '1A' (1° del grupo A), '2B' (2° del grupo B)
- *  - un mejor tercero: '3RD-1' .. '3RD-8' (ordenados por ranking de terceros)
+ *  - un mejor tercero por combinación de grupos (notación oficial): '3ABCDF'
  *  - el ganador/perdedor de un partido: 'W73' (ganador 73), 'L101' (perdedor 101)
  */
 export type SlotRef = string
@@ -43,11 +43,10 @@ export interface Match {
   id: number // número de partido 1..104
   stage: StageId
   group?: string // sólo fase de grupos
-  date: string // 'YYYY-MM-DD'
-  time: string // 'HH:mm'
   venueId: string
   home: SlotRef
   away: SlotRef
+  kickoff: string // instante de inicio en ISO UTC (ej. '2026-06-11T19:00:00.000Z')
 }
 
 export type EventType = 'goal' | 'own_goal' | 'penalty' | 'yellow' | 'red' | 'var'

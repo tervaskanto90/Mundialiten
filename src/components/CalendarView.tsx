@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { MATCHES, STAGE_LABELS } from '../data/schedule'
 import type { StageId } from '../types'
 import { MatchRow } from './MatchRow'
-import { formatDate } from '../utils/labels'
+import { formatDate, matchDateKey } from '../utils/labels'
 import type { ActiveContext } from '../hooks'
 
 interface Props {
@@ -41,8 +41,9 @@ export function CalendarView({ ctx, onEdit }: Props) {
   const byDate = useMemo(() => {
     const map = new Map<string, typeof MATCHES>()
     for (const m of filtered) {
-      if (!map.has(m.date)) map.set(m.date, [])
-      map.get(m.date)!.push(m)
+      const key = matchDateKey(m)
+      if (!map.has(key)) map.set(key, [])
+      map.get(key)!.push(m)
     }
     return [...map.entries()].sort(([a], [b]) => a.localeCompare(b))
   }, [filtered])
