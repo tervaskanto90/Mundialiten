@@ -47,7 +47,7 @@ export function LiveSyncBar() {
             onChange={(e) => setLiveEnabled(e.target.checked)}
             className="accent-pitch-500"
           />
-          Auto (cada 60s)
+          Auto (cada 5 min)
         </label>
         <button
           onClick={() => runLiveSync()}
