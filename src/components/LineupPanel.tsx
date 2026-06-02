@@ -41,7 +41,7 @@ export function LineupPanel({ homeId, awayId, home, away, readOnly, onAction }: 
 
   const items: MenuItem[] = menu
     ? [
-        { icon: '⚽', label: 'Gol a favor', onClick: () => onAction(menu.side, menu.player, 'goal') },
+        { icon: '🥅', label: 'Gol de penal', onClick: () => onAction(menu.side, menu.player, 'penalty') },
         { icon: '🔴', label: 'Gol en contra', onClick: () => onAction(menu.side, menu.player, 'own_goal') },
         { icon: '🟨', label: 'Tarjeta amarilla', onClick: () => onAction(menu.side, menu.player, 'yellow') },
         { icon: '🟥', label: 'Tarjeta roja', onClick: () => onAction(menu.side, menu.player, 'red') },

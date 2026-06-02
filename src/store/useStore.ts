@@ -97,7 +97,7 @@ export const useStore = create<State>()(
       scenarios: [realScenario()],
       activeId: REAL_ID,
 
-      liveEnabled: false,
+      liveEnabled: true,
       liveConfig: DEFAULT_LIVE_CONFIG,
       syncStatus: 'idle',
       syncMessage: '',
@@ -317,7 +317,7 @@ export const useStore = create<State>()(
     }),
     {
       name: 'mundialiten-v1',
-      version: 2,
+      version: 3,
       // Completa valores nuevos en datos guardados con versiones anteriores.
       migrate: (persisted: any) => {
         if (persisted && typeof persisted === 'object') {
@@ -326,7 +326,10 @@ export const useStore = create<State>()(
           if (persisted.syncStatus == null) persisted.syncStatus = 'idle'
           if (persisted.syncMessage == null) persisted.syncMessage = ''
           if (persisted.lastSync === undefined) persisted.lastSync = null
-          if (persisted.liveEnabled == null) persisted.liveEnabled = false
+          // Único proveedor: football-data.org, y auto-actualización activada.
+          persisted.liveConfig.provider = 'footballdata'
+          persisted.liveConfig.leagueId = 'WC'
+          persisted.liveEnabled = true
         }
         return persisted
       },

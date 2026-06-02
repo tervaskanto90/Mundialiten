@@ -132,6 +132,8 @@ function AuthScreen({ onGuest }: { onGuest: () => void }) {
         >
           Entrar sin cuenta (sólo local, no cuenta para el ranking)
         </button>
+
+        <p className="text-center text-[11px] text-slate-600 mt-6">hecho por Octavio Boggiano</p>
       </div>
     </div>
   )
