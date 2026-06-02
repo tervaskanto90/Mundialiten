@@ -18,6 +18,16 @@ Para una versión optimizada: `npm run build` y luego `npm run preview`.
 La carpeta `dist/` resultante se puede subir gratis a Vercel, Netlify, GitHub
 Pages, etc.
 
+### Deploy en Vercel
+
+1. Importá el repo en Vercel. Detecta **Vite** automáticamente:
+   - Build command: `npm run build`
+   - Output directory: `dist`
+2. No hace falta configurar nada más (ya hay un `vercel.json` con el fallback
+   de SPA). Deploy y listo.
+3. La API key del proveedor en vivo **no** se configura en Vercel: se carga
+   desde la app (panel ⚙) y queda guardada en tu navegador.
+
 ## Qué hace
 
 - **Calendario**: los 104 partidos (grupos + eliminatorias) por fecha, con
