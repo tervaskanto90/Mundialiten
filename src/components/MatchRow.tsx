@@ -1,5 +1,5 @@
 import { MATCH_BY_ID } from '../data/schedule'
-import { sideLabelFor, venueName } from '../utils/labels'
+import { sideLabelFor, venueName, matchTimeLabel } from '../utils/labels'
 import type { ActiveContext } from '../hooks'
 
 interface Props {
@@ -25,7 +25,7 @@ export function MatchRow({ matchId, ctx, onEdit, showVenue = true }: Props) {
     >
       <div className="text-[10px] text-slate-500 w-12 shrink-0">
         <div className="font-mono">P{match.id}</div>
-        <div>{match.time}</div>
+        <div>{matchTimeLabel(match)}</div>
       </div>
 
       <div className="flex-1 min-w-0">

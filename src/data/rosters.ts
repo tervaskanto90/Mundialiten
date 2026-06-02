@@ -296,11 +296,11 @@ const SQUADS: Record<string, Entry[]> = {
     ['Luis Díaz', 'DEL'], ['Jhon Córdoba', 'DEL'], ['Jhon Arias', 'DEL'],
     ['David Ospina', 'POR'], ['Carlos Cuesta', 'DEF'], ['Kevin Castaño', 'MED'], ['Juan Fernando Quintero', 'MED'], ['Jorge Carrascal', 'DEL'], ['Luis Sinisterra', 'DEL'], ['Rafael Santos Borré', 'DEL'],
   ],
-  JAM: [
-    ['Andre Blake', 'POR'], ['Dexter Lembikisa', 'DEF'], ['Ethan Pinnock', 'DEF'], ['Damion Lowe', 'DEF'], ['Amari’i Bell', 'DEF'],
-    ['Bobby Decordova-Reid', 'MED'], ['Kasey Palmer', 'MED'], ['Joel Latibeaudiere', 'MED'],
-    ['Leon Bailey', 'DEL'], ['Michail Antonio', 'DEL'], ['Demarai Gray', 'DEL'],
-    ['Jahmali Waite', 'POR'], ['Greg Leigh', 'DEF'], ['Di’Shon Bernard', 'DEF'], ['Tyreek Magee', 'MED'], ['Renaldo Cephas', 'DEL'], ['Shamar Nicholson', 'DEL'], ['Kaheim Dixon', 'DEL'],
+  COD: [
+    ['Lionel Mpasi', 'POR'], ['Aaron Wan-Bissaka', 'DEF'], ['Chancel Mbemba', 'DEF'], ['Dylan Batubinsika', 'DEF'], ['Arthur Masuaku', 'DEF'],
+    ['Charles Pickel', 'MED'], ['Samuel Moutoussamy', 'MED'], ['Gaël Kakuta', 'MED'],
+    ['Théo Bongonda', 'DEL'], ['Yoane Wissa', 'DEL'], ['Cédric Bakambu', 'DEL'],
+    ['Timothy Fayulu', 'POR'], ['Gédéon Kalulu', 'DEF'], ['Rocky Bushiri', 'DEF'], ['Edo Kayembe', 'MED'], ['Silas Katompa', 'DEL'], ['Meschack Elia', 'DEL'], ['Fiston Mayele', 'DEL'],
   ],
 
   // ── Grupo L ──
