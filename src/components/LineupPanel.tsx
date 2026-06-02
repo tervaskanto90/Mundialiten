@@ -3,6 +3,7 @@ import { getRoster } from '../data/rosters'
 import type { EventType, Player } from '../types'
 import type { SideLabel } from '../utils/labels'
 import { ContextMenu, type MenuItem } from './ContextMenu'
+import { useT } from '../i18n'
 
 interface Props {
   homeId?: string
@@ -23,6 +24,7 @@ interface MenuState {
 
 export function LineupPanel({ homeId, awayId, home, away, readOnly, onAction }: Props) {
   const [menu, setMenu] = useState<MenuState | null>(null)
+  const { t } = useT()
   const homeRoster = getRoster(homeId)
   const awayRoster = getRoster(awayId)
 
@@ -41,20 +43,22 @@ export function LineupPanel({ homeId, awayId, home, away, readOnly, onAction }: 
 
   const items: MenuItem[] = menu
     ? [
-        { icon: '🥅', label: 'Gol de penal', onClick: () => onAction(menu.side, menu.player, 'penalty') },
-        { icon: '🔴', label: 'Gol en contra', onClick: () => onAction(menu.side, menu.player, 'own_goal') },
-        { icon: '🟨', label: 'Tarjeta amarilla', onClick: () => onAction(menu.side, menu.player, 'yellow') },
-        { icon: '🟥', label: 'Tarjeta roja', onClick: () => onAction(menu.side, menu.player, 'red') },
+        { icon: '🥅', label: t('Gol de penal', 'Penalty goal'), onClick: () => onAction(menu.side, menu.player, 'penalty') },
+        { icon: '🔴', label: t('Gol en contra', 'Own goal'), onClick: () => onAction(menu.side, menu.player, 'own_goal') },
+        { icon: '🟨', label: t('Tarjeta amarilla', 'Yellow card'), onClick: () => onAction(menu.side, menu.player, 'yellow') },
+        { icon: '🟥', label: t('Tarjeta roja', 'Red card'), onClick: () => onAction(menu.side, menu.player, 'red') },
       ]
     : []
 
   return (
     <div>
-      <h4 className="text-sm font-semibold mb-1">Formaciones</h4>
+      <h4 className="text-sm font-semibold mb-1">{t('Formaciones', 'Line-ups')}</h4>
       {!readOnly && (
         <p className="text-[11px] text-slate-500 mb-2">
-          <strong>Clic</strong> en un jugador = gol. <strong>Clic derecho</strong> (o mantené
-          apretado en el celu) = gol en contra, amarilla o roja.
+          {t(
+            'Clic en un jugador = gol. Clic derecho (o mantené apretado en el celu) = gol en contra, amarilla o roja.',
+            'Click a player = goal. Right-click (or long-press on mobile) = own goal, yellow or red card.',
+          )}
         </p>
       )}
       <div className="grid grid-cols-2 gap-3">
@@ -88,6 +92,7 @@ function TeamColumn({
   onPlayer: (e: React.MouseEvent, side: 'home' | 'away', player: Player) => void
   onQuick: (e: React.MouseEvent, side: 'home' | 'away', player: Player) => void
 }) {
+  const { t } = useT()
   return (
     <div className="min-w-0">
       <div className="flex items-center gap-1.5 mb-1.5">
@@ -95,11 +100,11 @@ function TeamColumn({
         <span className="text-xs font-medium truncate">{label.name}</span>
       </div>
       {!roster || !label.resolved ? (
-        <p className="text-[11px] text-slate-600 italic">Equipo por definir</p>
+        <p className="text-[11px] text-slate-600 italic">{t('Equipo por definir', 'Team to be decided')}</p>
       ) : (
         <div className="space-y-2">
-          <PlayerList title="Titulares" players={roster.starters} side={side} onPlayer={onPlayer} onQuick={onQuick} />
-          <PlayerList title="Suplentes" players={roster.subs} side={side} onPlayer={onPlayer} onQuick={onQuick} dim />
+          <PlayerList title={t('Titulares', 'Starters')} players={roster.starters} side={side} onPlayer={onPlayer} onQuick={onQuick} />
+          <PlayerList title={t('Suplentes', 'Substitutes')} players={roster.subs} side={side} onPlayer={onPlayer} onQuick={onQuick} dim />
         </div>
       )}
     </div>
@@ -121,6 +126,7 @@ function PlayerList({
   onQuick: (e: React.MouseEvent, side: 'home' | 'away', player: Player) => void
   dim?: boolean
 }) {
+  const { t } = useT()
   return (
     <div>
       <div className="text-[10px] uppercase tracking-wide text-slate-500 mb-0.5">{title}</div>
@@ -130,7 +136,7 @@ function PlayerList({
             key={p.id}
             onClick={(e) => onQuick(e, side, p)}
             onContextMenu={(e) => onPlayer(e, side, p)}
-            title="Clic = gol · clic derecho = más opciones"
+            title={t('Clic = gol · clic derecho = más opciones', 'Click = goal · right-click = more options')}
             className={`w-full text-left flex items-center gap-1.5 px-1.5 py-1 rounded-md hover:bg-pitch-500/15 ${
               dim ? 'opacity-70' : ''
             }`}

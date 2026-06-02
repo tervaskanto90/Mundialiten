@@ -176,4 +176,14 @@ export const STAGE_LABELS: Record<StageId, string> = {
   final: 'Final',
 }
 
+export const STAGE_I18N: Record<StageId, { es: string; en: string }> = {
+  group: { es: 'Fase de grupos', en: 'Group stage' },
+  r32: { es: 'Dieciseisavos', en: 'Round of 32' },
+  r16: { es: 'Octavos', en: 'Round of 16' },
+  qf: { es: 'Cuartos', en: 'Quarter-finals' },
+  sf: { es: 'Semifinal', en: 'Semi-final' },
+  third: { es: 'Tercer puesto', en: 'Third place' },
+  final: { es: 'Final', en: 'Final' },
+}
+
 export const STAGE_ORDER: StageId[] = ['group', 'r32', 'r16', 'qf', 'sf', 'third', 'final']

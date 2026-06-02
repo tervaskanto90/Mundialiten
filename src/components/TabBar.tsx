@@ -1,14 +1,15 @@
 import { useRef, useState } from 'react'
 import { useStore, ACCOUNT_PRED_ID } from '../store/useStore'
-import type { ScenarioType } from '../types'
+import type { Scenario, ScenarioType } from '../types'
 import { Modal } from './Modal'
 import { formatDateShort } from '../utils/labels'
 import { useAuth } from '../auth'
+import { useT } from '../i18n'
 
-const TYPE_BADGE: Record<ScenarioType, string> = {
-  real: 'EN VIVO',
-  prediction: 'PREDICCIÓN',
-  whatif: 'WHAT-IF',
+const TYPE_BADGE: Record<ScenarioType, { es: string; en: string }> = {
+  real: { es: 'EN VIVO', en: 'LIVE' },
+  prediction: { es: 'PREDICCIÓN', en: 'PREDICTION' },
+  whatif: { es: 'WHAT-IF', en: 'WHAT-IF' },
 }
 
 export function TabBar() {
@@ -20,7 +21,12 @@ export function TabBar() {
   const renameScenario = useStore((s) => s.renameScenario)
   const importState = useStore((s) => s.importState)
   const { enabled, user } = useAuth()
+  const { t } = useT()
   const loggedIn = enabled && !!user
+
+  // Nombre visible: el escenario real se traduce; el resto usa su nombre propio.
+  const tabName = (sc: Scenario) =>
+    sc.type === 'real' ? t('Resultados reales', 'Real results') : sc.name
 
   const [dialog, setDialog] = useState<null | { mode: 'new'; type: ScenarioType } | { mode: 'edit'; id: string }>(null)
   const [name, setName] = useState('')
@@ -28,7 +34,7 @@ export function TabBar() {
   const fileRef = useRef<HTMLInputElement>(null)
 
   const openNew = (type: ScenarioType) => {
-    setName(type === 'prediction' ? 'Mi predicción' : 'Escenario what-if')
+    setName(type === 'prediction' ? t('Mi predicción', 'My prediction') : t('Escenario what-if', 'What-if scenario'))
     setDate(new Date().toISOString().slice(0, 10))
     setDialog({ mode: 'new', type })
   }
@@ -71,7 +77,7 @@ export function TabBar() {
         const data = JSON.parse(String(reader.result))
         importState(data)
       } catch {
-        alert('Archivo inválido')
+        alert(t('Archivo inválido', 'Invalid file'))
       }
     }
     reader.readAsText(file)
@@ -104,10 +110,10 @@ export function TabBar() {
                   {sc.type === 'real' && '🔴'}
                   {sc.type === 'prediction' && '🔮'}
                   {sc.type === 'whatif' && '🧪'}
-                  {sc.name}
+                  {tabName(sc)}
                 </div>
                 <div className={`text-[10px] ${active ? 'text-white/80' : 'text-slate-500'}`}>
-                  {TYPE_BADGE[sc.type]}
+                  {t(TYPE_BADGE[sc.type].es, TYPE_BADGE[sc.type].en)}
                   {sc.type === 'prediction' && sc.predictionDate
                     ? ` · ${formatDateShort(sc.predictionDate)}`
                     : ''}
@@ -116,7 +122,7 @@ export function TabBar() {
               {sc.type !== 'real' && (
                 <div className="flex items-center gap-1">
                   <button
-                    title="Renombrar"
+                    title={t('Renombrar', 'Rename')}
                     onClick={(e) => {
                       e.stopPropagation()
                       openEdit(sc.id)
@@ -127,10 +133,10 @@ export function TabBar() {
                   </button>
                   {sc.id !== ACCOUNT_PRED_ID && (
                     <button
-                      title="Eliminar"
+                      title={t('Eliminar', 'Delete')}
                       onClick={(e) => {
                         e.stopPropagation()
-                        if (confirm(`¿Eliminar "${sc.name}"?`)) removeScenario(sc.id)
+                        if (confirm(t(`¿Eliminar "${sc.name}"?`, `Delete "${sc.name}"?`))) removeScenario(sc.id)
                       }}
                       className={`text-xs ${active ? 'text-white/80 hover:text-white' : 'text-slate-500 hover:text-rose-400'}`}
                     >
@@ -148,7 +154,7 @@ export function TabBar() {
             onClick={() => openNew('prediction')}
             className="shrink-0 rounded-xl border border-dashed border-white/20 px-3 py-1.5 text-sm text-slate-300 hover:bg-white/5 whitespace-nowrap"
           >
-            🔮 + Predicción
+            🔮 + {t('Predicción', 'Prediction')}
           </button>
         )}
         <button
@@ -161,14 +167,14 @@ export function TabBar() {
         <div className="shrink-0 ml-auto flex items-center gap-1 pl-2">
           <button
             onClick={exportData}
-            title="Exportar datos"
+            title={t('Exportar datos', 'Export data')}
             className="text-xs text-slate-400 hover:text-white px-2 py-1 rounded-lg hover:bg-white/5"
           >
             ⤓
           </button>
           <button
             onClick={() => fileRef.current?.click()}
-            title="Importar datos"
+            title={t('Importar datos', 'Import data')}
             className="text-xs text-slate-400 hover:text-white px-2 py-1 rounded-lg hover:bg-white/5"
           >
             ⤒
@@ -179,7 +185,7 @@ export function TabBar() {
 
       {dialog && (
         <Modal
-          title={dialog.mode === 'new' ? 'Nueva pestaña' : 'Editar pestaña'}
+          title={dialog.mode === 'new' ? t('Nueva pestaña', 'New tab') : t('Editar pestaña', 'Edit tab')}
           onClose={() => setDialog(null)}
           footer={
             <div className="flex justify-end gap-2">
@@ -187,13 +193,13 @@ export function TabBar() {
                 onClick={() => setDialog(null)}
                 className="px-3 py-2 rounded-lg text-sm text-slate-300 hover:bg-white/5"
               >
-                Cancelar
+                {t('Cancelar', 'Cancel')}
               </button>
               <button
                 onClick={confirmDialog}
                 className="px-4 py-2 rounded-lg text-sm font-medium bg-pitch-500 hover:bg-pitch-600 text-white"
               >
-                Guardar
+                {t('Guardar', 'Save')}
               </button>
             </div>
           }
@@ -201,11 +207,17 @@ export function TabBar() {
           <div className="space-y-4">
             <p className="text-sm text-slate-400">
               {dialogType === 'prediction'
-                ? 'Una predicción es independiente: cargás vos todos los resultados que pronosticás y después se compara con la realidad.'
-                : 'Un escenario what-if parte de los resultados reales y se actualiza solo a medida que se juegan los partidos. Sobrescribí los partidos que quieras para simular escenarios.'}
+                ? t(
+                    'Una predicción es independiente: cargás vos todos los resultados que pronosticás y después se compara con la realidad.',
+                    'A prediction is independent: you enter all the results you forecast and then it is compared with reality.',
+                  )
+                : t(
+                    'Un escenario what-if parte de los resultados reales y se actualiza solo a medida que se juegan los partidos. Sobrescribí los partidos que quieras para simular escenarios.',
+                    'A what-if scenario starts from the real results and updates itself as matches are played. Override any matches to simulate scenarios.',
+                  )}
             </p>
             <label className="block">
-              <span className="text-xs text-slate-400">Nombre</span>
+              <span className="text-xs text-slate-400">{t('Nombre', 'Name')}</span>
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -215,7 +227,7 @@ export function TabBar() {
             </label>
             {dialogType === 'prediction' && (
               <label className="block">
-                <span className="text-xs text-slate-400">Fecha de la predicción</span>
+                <span className="text-xs text-slate-400">{t('Fecha de la predicción', 'Prediction date')}</span>
                 <input
                   type="date"
                   value={date}

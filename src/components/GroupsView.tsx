@@ -1,6 +1,7 @@
 import { GROUPS, TEAM_BY_ID } from '../data/teams'
 import type { ActiveContext } from '../hooks'
 import type { StandingRow } from '../engine/standings'
+import { useT } from '../i18n'
 
 interface Props {
   ctx: ActiveContext
@@ -9,12 +10,13 @@ interface Props {
 export function GroupsView({ ctx }: Props) {
   const { standings, bestThirds } = ctx.resolution
   const qualifiedThirds = new Set((bestThirds ?? []).slice(0, 8))
+  const { t } = useT()
 
   return (
     <div>
       <div className="flex flex-wrap gap-3 text-[11px] text-slate-400 mb-3">
-        <Legend color="bg-emerald-500" label="Clasifican directo (1° y 2°)" />
-        <Legend color="bg-amber-500" label="Mejor 3° clasificado" />
+        <Legend color="bg-emerald-500" label={t('Clasifican directo (1° y 2°)', 'Qualify directly (1st & 2nd)')} />
+        <Legend color="bg-amber-500" label={t('Mejor 3° clasificado', 'Best 3rd place')} />
       </div>
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {GROUPS.map((g) => (
@@ -24,6 +26,7 @@ export function GroupsView({ ctx }: Props) {
             rows={standings[g]}
             qualifiedThirds={qualifiedThirds}
             thirdsKnown={bestThirds != null}
+            t={t}
           />
         ))}
       </div>
@@ -45,22 +48,24 @@ function GroupTable({
   rows,
   qualifiedThirds,
   thirdsKnown,
+  t,
 }: {
   group: string
   rows: StandingRow[]
   qualifiedThirds: Set<string>
   thirdsKnown: boolean
+  t: (es: string, en: string) => string
 }) {
   return (
     <div className="bg-slate-800/40 rounded-xl overflow-hidden border border-white/5">
-      <div className="px-3 py-2 bg-pitch-900/60 font-semibold text-sm">Grupo {group}</div>
+      <div className="px-3 py-2 bg-pitch-900/60 font-semibold text-sm">{t('Grupo', 'Group')} {group}</div>
       <table className="w-full text-xs">
         <thead>
           <tr className="text-slate-500">
-            <th className="text-left font-medium px-2 py-1.5">Equipo</th>
-            <th className="px-1 py-1.5 w-6" title="Partidos jugados">PJ</th>
-            <th className="px-1 py-1.5 w-6" title="Diferencia de gol">DG</th>
-            <th className="px-1.5 py-1.5 w-7" title="Puntos">Pts</th>
+            <th className="text-left font-medium px-2 py-1.5">{t('Equipo', 'Team')}</th>
+            <th className="px-1 py-1.5 w-6" title={t('Partidos jugados', 'Played')}>{t('PJ', 'P')}</th>
+            <th className="px-1 py-1.5 w-6" title={t('Diferencia de gol', 'Goal difference')}>{t('DG', 'GD')}</th>
+            <th className="px-1.5 py-1.5 w-7" title={t('Puntos', 'Points')}>{t('Pts', 'Pts')}</th>
           </tr>
         </thead>
         <tbody>

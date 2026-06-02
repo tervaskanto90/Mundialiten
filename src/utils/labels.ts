@@ -12,19 +12,30 @@ export interface SideLabel {
 
 const PLACEHOLDER_FLAG = '⚪'
 
+// Idioma actual para las etiquetas que se generan fuera de componentes React.
+let labelLang: 'es' | 'en' = 'es'
+export function setLabelLang(l: 'es' | 'en') {
+  labelLang = l
+}
+
 /** Texto humano para una referencia de puesto no resuelta. */
 function placeholderName(ref: string): string {
+  const en = labelLang === 'en'
   const groupPos = /^([12])([A-L])$/.exec(ref)
   if (groupPos) {
-    const pos = groupPos[1] === '1' ? '1°' : '2°'
-    return `${pos} Grupo ${groupPos[2]}`
+    const g = groupPos[2]
+    if (groupPos[1] === '1') return en ? `1st Group ${g}` : `1° Grupo ${g}`
+    return en ? `2nd Group ${g}` : `2° Grupo ${g}`
   }
   const third = /^3([A-L]{2,})$/.exec(ref)
-  if (third) return `3° Grupo ${third[1].split('').join('/')}`
+  if (third) {
+    const set = third[1].split('').join('/')
+    return en ? `3rd Group ${set}` : `3° Grupo ${set}`
+  }
   const w = /^W(\d+)$/.exec(ref)
-  if (w) return `Ganador P${w[1]}`
+  if (w) return en ? `Winner M${w[1]}` : `Ganador P${w[1]}`
   const l = /^L(\d+)$/.exec(ref)
-  if (l) return `Perdedor P${l[1]}`
+  if (l) return en ? `Loser M${l[1]}` : `Perdedor P${l[1]}`
   return ref
 }
 
@@ -60,15 +71,16 @@ export function venueName(venueId: string): string {
   return VENUE_BY_ID[venueId]?.name ?? venueId
 }
 
-const WEEKDAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
-const MONTHS = [
-  'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
-  'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
-]
+type Lng = 'es' | 'en'
+const locale = (lang: Lng) => (lang === 'en' ? 'en-GB' : 'es-ES')
 
-export function formatDate(iso: string): string {
+export function formatDate(iso: string, lang: Lng = 'es'): string {
   const d = new Date(iso + 'T00:00:00')
-  return `${WEEKDAYS[d.getDay()]} ${d.getDate()} de ${MONTHS[d.getMonth()]}`
+  return new Intl.DateTimeFormat(locale(lang), {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  }).format(d)
 }
 
 export function formatDateShort(iso: string): string {
@@ -92,8 +104,11 @@ export function matchTimeLabel(m: Match): string {
   return `${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
-/** Fecha local larga, ej. 'Jueves 11 de junio'. */
-export function matchDateLabel(m: Match): string {
-  const d = new Date(m.kickoff)
-  return `${WEEKDAYS[d.getDay()]} ${d.getDate()} de ${MONTHS[d.getMonth()]}`
+/** Fecha local larga, ej. 'jueves, 11 de junio' / 'Thursday, 11 June'. */
+export function matchDateLabel(m: Match, lang: Lng = 'es'): string {
+  return new Intl.DateTimeFormat(locale(lang), {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  }).format(new Date(m.kickoff))
 }

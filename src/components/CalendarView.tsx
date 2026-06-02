@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react'
-import { MATCHES, STAGE_LABELS } from '../data/schedule'
+import { MATCHES, STAGE_I18N } from '../data/schedule'
 import type { StageId } from '../types'
 import { MatchRow } from './MatchRow'
 import { formatDate, matchDateKey } from '../utils/labels'
 import type { ActiveContext } from '../hooks'
+import { useT } from '../i18n'
 
 interface Props {
   ctx: ActiveContext
@@ -12,19 +13,20 @@ interface Props {
 
 type Filter = 'all' | StageId
 
-const FILTERS: { id: Filter; label: string }[] = [
-  { id: 'all', label: 'Todos' },
-  { id: 'group', label: 'Grupos' },
-  { id: 'r32', label: 'Dieciseisavos' },
-  { id: 'r16', label: 'Octavos' },
-  { id: 'qf', label: 'Cuartos' },
-  { id: 'sf', label: 'Semis' },
-  { id: 'final', label: 'Final' },
+const FILTERS: { id: Filter; es: string; en: string }[] = [
+  { id: 'all', es: 'Todos', en: 'All' },
+  { id: 'group', es: 'Grupos', en: 'Groups' },
+  { id: 'r32', es: 'Dieciseisavos', en: 'Round of 32' },
+  { id: 'r16', es: 'Octavos', en: 'Round of 16' },
+  { id: 'qf', es: 'Cuartos', en: 'Quarters' },
+  { id: 'sf', es: 'Semis', en: 'Semis' },
+  { id: 'final', es: 'Final', en: 'Final' },
 ]
 
 export function CalendarView({ ctx, onEdit }: Props) {
   const [filter, setFilter] = useState<Filter>('all')
   const [onlyPending, setOnlyPending] = useState(false)
+  const { t, lang } = useT()
 
   const filtered = useMemo(() => {
     return MATCHES.filter((m) => {
@@ -61,7 +63,7 @@ export function CalendarView({ ctx, onEdit }: Props) {
               filter === f.id ? 'bg-pitch-500 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
             }`}
           >
-            {f.label}
+            {lang === 'en' ? f.en : f.es}
           </button>
         ))}
         <button
@@ -70,21 +72,22 @@ export function CalendarView({ ctx, onEdit }: Props) {
             onlyPending ? 'bg-amber-500 text-black' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
           }`}
         >
-          {onlyPending ? '⏳ Sólo pendientes' : 'Mostrar todos'}
+          {onlyPending ? t('⏳ Sólo pendientes', '⏳ Only pending') : t('Mostrar todos', 'Show all')}
         </button>
       </div>
 
       <div className="text-xs text-slate-500 mb-3">
-        {playedCount}/{MATCHES.length} partidos cargados en «{ctx.scenario.name}»
+        {playedCount}/{MATCHES.length}{' '}
+        {t(`partidos cargados en «${ctx.scenario.name}»`, `matches set in “${ctx.scenario.name}”`)}
       </div>
 
       <div className="space-y-5">
         {byDate.map(([date, matches]) => (
           <div key={date}>
             <div className="flex items-center gap-2 mb-2">
-              <h3 className="text-sm font-semibold text-slate-300 capitalize">{formatDate(date)}</h3>
+              <h3 className="text-sm font-semibold text-slate-300 capitalize">{formatDate(date, lang)}</h3>
               <span className="text-[10px] text-slate-500 bg-slate-800 px-1.5 py-0.5 rounded">
-                {STAGE_LABELS[matches[0].stage]}
+                {t(STAGE_I18N[matches[0].stage].es, STAGE_I18N[matches[0].stage].en)}
               </span>
             </div>
             <div className="space-y-1.5">
@@ -95,7 +98,9 @@ export function CalendarView({ ctx, onEdit }: Props) {
           </div>
         ))}
         {byDate.length === 0 && (
-          <p className="text-center text-slate-500 py-10 text-sm">No hay partidos para este filtro.</p>
+          <p className="text-center text-slate-500 py-10 text-sm">
+            {t('No hay partidos para este filtro.', 'No matches for this filter.')}
+          </p>
         )}
       </div>
     </div>
