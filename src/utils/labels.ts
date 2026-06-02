@@ -1,7 +1,13 @@
 import { TEAM_BY_ID } from '../data/teams'
 import { VENUE_BY_ID } from '../data/venues'
 import type { Resolution } from '../engine/resolve'
-import type { Match } from '../types'
+import type { Match, Team } from '../types'
+
+/** Nombre del equipo en el idioma activo (inglés: usa el alias en inglés). */
+export function teamDisplayName(team: Team): string {
+  if (labelLang === 'en' && team.aliases && team.aliases.length > 0) return team.aliases[0]
+  return team.name
+}
 
 export interface SideLabel {
   flag: string
@@ -50,7 +56,7 @@ export function sideLabel(
   const teamId = resolvedTeamId ?? (TEAM_BY_ID[ref] ? ref : undefined)
   if (teamId && TEAM_BY_ID[teamId]) {
     const t = TEAM_BY_ID[teamId]
-    return { flag: t.flag, name: t.name, short: t.id, resolved: true }
+    return { flag: t.flag, name: teamDisplayName(t), short: t.id, resolved: true }
   }
   const name = placeholderName(ref)
   return { flag: PLACEHOLDER_FLAG, name, short: name, resolved: false }

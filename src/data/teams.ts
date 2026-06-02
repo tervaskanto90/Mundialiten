@@ -1,5 +1,12 @@
 import type { Team } from '../types'
 
+// Banderas de subdivisión (Escocia/Inglaterra) como secuencia de etiquetas
+// Unicode. La fuente "Twemoji Country Flags" las renderiza correctamente.
+const tagFlag = (region: string): string =>
+  '\u{1F3F4}' + [...region].map((c) => String.fromCodePoint(0xe0000 + c.charCodeAt(0))).join('') + '\u{E007F}'
+const SCOTLAND = tagFlag('gbsct')
+const ENGLAND = tagFlag('gbeng')
+
 // ─────────────────────────────────────────────────────────────────────────────
 // EQUIPOS POR GRUPO
 //
@@ -25,7 +32,7 @@ export const TEAMS: Team[] = [
   // Grupo C
   { id: 'BRA', name: 'Brasil', flag: '🇧🇷', group: 'C', aliases: ['Brazil'] },
   { id: 'MAR', name: 'Marruecos', flag: '🇲🇦', group: 'C', aliases: ['Morocco'] },
-  { id: 'ESC', name: 'Escocia', flag: '🏴', group: 'C', aliases: ['Scotland'] },
+  { id: 'ESC', name: 'Escocia', flag: SCOTLAND, group: 'C', aliases: ['Scotland'] },
   { id: 'HAI', name: 'Haití', flag: '🇭🇹', group: 'C', aliases: ['Haiti'] },
 
   // Grupo D
@@ -77,7 +84,7 @@ export const TEAMS: Team[] = [
   { id: 'COD', name: 'RD del Congo', flag: '🇨🇩', group: 'K', aliases: ['DR Congo', 'Congo DR', 'Democratic Republic of the Congo', 'Congo'] },
 
   // Grupo L
-  { id: 'ING', name: 'Inglaterra', flag: '🏴', group: 'L', aliases: ['England'] },
+  { id: 'ING', name: 'Inglaterra', flag: ENGLAND, group: 'L', aliases: ['England'] },
   { id: 'CRO', name: 'Croacia', flag: '🇭🇷', group: 'L', aliases: ['Croatia'] },
   { id: 'GHA', name: 'Ghana', flag: '🇬🇭', group: 'L', aliases: ['Ghana'] },
   { id: 'PAN', name: 'Panamá', flag: '🇵🇦', group: 'L', aliases: ['Panama'] },
