@@ -56,12 +56,17 @@ export default function App() {
       </nav>
 
       <main className="max-w-5xl w-full mx-auto px-2 sm:px-4 py-4 flex-1">
-        {ctx.scenario.type === 'real' && <LiveSyncBar />}
         {view === 'calendario' && <CalendarView ctx={ctx} onEdit={setEditingMatch} />}
         {view === 'grupos' && <GroupsView ctx={ctx} />}
         {view === 'llaves' && <BracketView ctx={ctx} onEdit={setEditingMatch} />}
         {view === 'precision' && <AccuracyView />}
       </main>
+
+      {ctx.scenario.type === 'real' && (
+        <div className="max-w-5xl w-full mx-auto px-2 sm:px-4 mt-2">
+          <LiveSyncBar />
+        </div>
+      )}
 
       <footer className="max-w-5xl w-full mx-auto px-4 py-6 text-center text-xs text-slate-500">
         Datos guardados en este navegador · {ctx.resolution.bestThirds ? 'fase de grupos completa' : 'fase de grupos en curso'}
