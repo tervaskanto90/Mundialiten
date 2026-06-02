@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { MATCH_BY_ID, STAGE_LABELS } from '../data/schedule'
+import { MATCH_BY_ID, STAGE_I18N } from '../data/schedule'
 import { useStore, emptyResult } from '../store/useStore'
 import { sideLabelFor, venueName, matchDateLabel, matchTimeLabel } from '../utils/labels'
 import type { EventType, Player } from '../types'
@@ -8,6 +8,7 @@ import { Modal } from './Modal'
 import { LineupPanel } from './LineupPanel'
 import { fetchFixtureEvents } from '../engine/liveSync'
 import { isPredictionLocked } from '../utils/lock'
+import { useT } from '../i18n'
 
 interface Props {
   matchId: number
@@ -15,19 +16,20 @@ interface Props {
   onClose: () => void
 }
 
-const EVENT_META: Record<EventType, { icon: string; label: string }> = {
-  goal: { icon: '⚽', label: 'Gol' },
-  penalty: { icon: '🥅', label: 'Gol de penal' },
-  own_goal: { icon: '🔴', label: 'Gol en contra' },
-  yellow: { icon: '🟨', label: 'Amarilla' },
-  red: { icon: '🟥', label: 'Roja' },
-  var: { icon: '📺', label: 'VAR' },
+const EVENT_META: Record<EventType, { icon: string; es: string; en: string }> = {
+  goal: { icon: '⚽', es: 'Gol', en: 'Goal' },
+  penalty: { icon: '🥅', es: 'Gol de penal', en: 'Penalty goal' },
+  own_goal: { icon: '🔴', es: 'Gol en contra', en: 'Own goal' },
+  yellow: { icon: '🟨', es: 'Amarilla', en: 'Yellow' },
+  red: { icon: '🟥', es: 'Roja', en: 'Red' },
+  var: { icon: '📺', es: 'VAR', en: 'VAR' },
 }
 
 const GOAL_TYPES: EventType[] = ['goal', 'penalty', 'own_goal']
 
 export function ResultEditor({ matchId, ctx, onClose }: Props) {
   const match = MATCH_BY_ID[matchId]
+  const { t, lang } = useT()
   const setResult = useStore((s) => s.setResult)
   const clearResult = useStore((s) => s.clearResult)
   const addEvent = useStore((s) => s.addEvent)
@@ -110,16 +112,16 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
 
   return (
     <Modal
-      title={`Partido ${match.id} · ${STAGE_LABELS[match.stage]}${match.group ? ` ${match.group}` : ''}`}
+      title={`${t('Partido', 'Match')} ${match.id} · ${t(STAGE_I18N[match.stage].es, STAGE_I18N[match.stage].en)}${match.group ? ` ${match.group}` : ''}`}
       onClose={onClose}
       wide
       footer={
         <div className="flex items-center justify-between gap-2">
           <div className="text-xs text-slate-500">
-            En «{scenario.name}»
-            {inherited && ' · heredando del real'}
-            {isReal && ' · 🔴 sólo lectura (en vivo)'}
-            {locked && ' · 🔒 cerrado'}
+            {t('En', 'In')} «{scenario.type === 'real' ? t('Resultados reales', 'Real results') : scenario.name}»
+            {inherited && t(' · heredando del real', ' · inheriting from real')}
+            {isReal && t(' · 🔴 sólo lectura (en vivo)', ' · 🔴 read-only (live)')}
+            {locked && t(' · 🔒 cerrado', ' · 🔒 closed')}
           </div>
           <div className="flex gap-2">
             {isWhatif && hasOverride && (
@@ -130,7 +132,7 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
                 }}
                 className="px-3 py-2 rounded-lg text-sm text-amber-300 hover:bg-amber-500/10"
               >
-                ↺ Volver al real
+                ↺ {t('Volver al real', 'Back to real')}
               </button>
             )}
             {!isWhatif && !isReal && !locked && base.played && (
@@ -141,34 +143,38 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
                 }}
                 className="px-3 py-2 rounded-lg text-sm text-rose-300 hover:bg-rose-500/10"
               >
-                🗑 Borrar
+                🗑 {t('Borrar', 'Clear')}
               </button>
             )}
             <button
               onClick={onClose}
               className="px-4 py-2 rounded-lg text-sm font-medium bg-pitch-500 hover:bg-pitch-600 text-white"
             >
-              Listo
+              {t('Listo', 'Done')}
             </button>
           </div>
         </div>
       }
     >
       <div className="text-xs text-slate-500 mb-4 capitalize">
-        {matchDateLabel(match)} · {matchTimeLabel(match)} · 📍 {venueName(match.venueId)}
+        {matchDateLabel(match, lang)} · {matchTimeLabel(match)} · 📍 {venueName(match.venueId)}
       </div>
 
       {isReal && (
         <div className="text-[11px] text-slate-400 bg-rose-500/10 border border-rose-500/20 rounded-lg px-3 py-2 mb-4">
-          🔴 Los resultados reales son la fuente de verdad y no se editan a mano: se actualizan
-          automáticamente en vivo. Para simular escenarios, cloná esta pestaña como «What-if».
+          {t(
+            '🔴 Los resultados reales son la fuente de verdad y no se editan a mano: se actualizan automáticamente en vivo. Para simular escenarios, cloná esta pestaña como «What-if».',
+            '🔴 The real results are the source of truth and are not edited by hand: they update automatically live. To simulate scenarios, clone this tab as “What-if”.',
+          )}
         </div>
       )}
 
       {locked && (
         <div className="text-[11px] text-amber-200 bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2 mb-4">
-          🔒 Ya no se aceptan predicciones para este partido (cerró 5 minutos antes del inicio). Si no
-          lo predijiste a tiempo, no cuenta para el ranking.
+          {t(
+            '🔒 Ya no se aceptan predicciones para este partido (cerró 5 minutos antes del inicio). Si no lo predijiste a tiempo, no cuenta para el ranking.',
+            '🔒 Predictions for this match are closed (they closed 5 minutes before kick-off). If you did not predict it in time, it does not count for the ranking.',
+          )}
         </div>
       )}
 
@@ -195,7 +201,7 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
             onClick={() => patch({ played: true })}
             className="text-xs text-pitch-500 hover:underline"
           >
-            Marcar como jugado (0-0)
+            {t('Marcar como jugado (0-0)', 'Mark as played (0-0)')}
           </button>
         </div>
       )}
@@ -203,7 +209,7 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
       {/* Penales en eliminatorias empatadas */}
       {isKnockout && base.played && base.homeScore === base.awayScore && (
         <div className="bg-slate-800/60 rounded-xl p-3 mb-4">
-          <div className="text-xs text-slate-400 mb-2">Definición por penales</div>
+          <div className="text-xs text-slate-400 mb-2">{t('Definición por penales', 'Penalty shoot-out')}</div>
           <div className="flex items-center justify-center gap-2">
             {editingDisabled ? (
               <span className="text-lg font-bold tabular-nums">
@@ -212,7 +218,7 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
             ) : (
               <>
                 <Stepper value={base.homePens ?? 0} onChange={(v) => patch({ homePens: Math.max(0, v) })} small />
-                <span className="text-slate-500 text-sm">penales</span>
+                <span className="text-slate-500 text-sm">{t('penales', 'penalties')}</span>
                 <Stepper value={base.awayPens ?? 0} onChange={(v) => patch({ awayPens: Math.max(0, v) })} small />
               </>
             )}
@@ -225,40 +231,49 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
         (goalCount('home') !== base.homeScore || goalCount('away') !== base.awayScore) &&
         events.some((e) => GOAL_TYPES.includes(e.type)) && (
           <div className="text-[11px] text-amber-400/90 bg-amber-500/10 rounded-lg px-3 py-1.5 mb-3">
-            Ojo: los goleadores cargados ({goalCount('home')}-{goalCount('away')}) no coinciden con el
-            marcador ({base.homeScore}-{base.awayScore}).
+            {t(
+              `Ojo: los goleadores cargados (${goalCount('home')}-${goalCount('away')}) no coinciden con el marcador (${base.homeScore}-${base.awayScore}).`,
+              `Heads up: the scorers entered (${goalCount('home')}-${goalCount('away')}) don't match the score (${base.homeScore}-${base.awayScore}).`,
+            )}
           </div>
         )}
 
       {/* Eventos */}
       <div className="mb-3">
         <div className="flex items-center justify-between mb-2">
-          <h4 className="text-sm font-semibold">Eventos</h4>
+          <h4 className="text-sm font-semibold">{t('Eventos', 'Events')}</h4>
           {isReal && liveConfig.provider === 'apifootball' && fixtureId != null && (
             <button
               onClick={fetchRealEvents}
               disabled={eventsLoading}
               className="text-xs font-medium bg-pitch-500 hover:bg-pitch-600 disabled:opacity-50 text-white px-2.5 py-1 rounded-lg"
             >
-              {eventsLoading ? 'Trayendo…' : '↻ Traer goles/tarjetas en vivo'}
+              {eventsLoading ? t('Trayendo…', 'Fetching…') : t('↻ Traer goles/tarjetas en vivo', '↻ Fetch goals/cards live')}
             </button>
           )}
         </div>
         {eventsError && <p className="text-[11px] text-rose-400 mb-2">{eventsError}</p>}
         {events.length === 0 && !isReal && (
           <p className="text-xs text-slate-500 mb-2">
-            Sin eventos. Cargá goles y tarjetas tocando jugadores en Formaciones; el VAR se agrega abajo.
+            {t(
+              'Sin eventos. Cargá goles y tarjetas tocando jugadores en Formaciones; el VAR se agrega abajo.',
+              'No events. Add goals and cards by tapping players in Line-ups; VAR is added below.',
+            )}
           </p>
         )}
         {events.length === 0 && isReal && (
           <p className="text-xs text-slate-500 mb-2">
-            Sin eventos cargados. {fixtureId != null ? 'Usá el botón para traerlos en vivo.' : 'Se cargarán al sincronizar el partido.'}
+            {t('Sin eventos cargados.', 'No events loaded.')}{' '}
+            {fixtureId != null
+              ? t('Usá el botón para traerlos en vivo.', 'Use the button to fetch them live.')
+              : t('Se cargarán al sincronizar el partido.', 'They will load when the match is synced.')}
           </p>
         )}
         <div className="space-y-1.5">
           {events.map((e) => {
             const side = e.team === 'home' ? home : away
             const meta = EVENT_META[e.type]
+            const metaLabel = t(meta.es, meta.en)
             return (
               <div
                 key={e.id}
@@ -268,13 +283,13 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
                 <span className="text-slate-400">{side.flag}</span>
                 <span className="flex-1 truncate">
                   {e.type === 'var' ? (
-                    <span className="text-slate-300">{e.note || 'Revisión VAR'}</span>
+                    <span className="text-slate-300">{e.note || t('Revisión VAR', 'VAR review')}</span>
                   ) : (
-                    <span>{e.player || meta.label}</span>
+                    <span>{e.player || metaLabel}</span>
                   )}
                   {e.minute != null && <span className="text-slate-500"> {e.minute}'</span>}
                 </span>
-                <span className="text-[10px] text-slate-500">{meta.label}</span>
+                <span className="text-[10px] text-slate-500">{metaLabel}</span>
                 {!editingDisabled && (
                   <button
                     onClick={() => {
@@ -296,7 +311,7 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
       <div className="bg-slate-800/40 rounded-xl p-3">
         <div className="flex items-center justify-between gap-3">
           <div className="text-xs font-medium flex items-center gap-1.5">
-            📺 ¿Cuántas veces intervino el VAR en este partido?
+            📺 {t('¿Cuántas veces intervino el VAR en este partido?', 'How many times did VAR intervene in this match?')}
           </div>
           {editingDisabled ? (
             <span className="text-lg font-bold tabular-nums">{base.varCount ?? 0}</span>
@@ -306,8 +321,8 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
         </div>
         <p className="text-[10px] text-slate-500 mt-1.5">
           {isReal
-            ? 'El proveedor en vivo no trae este dato.'
-            : 'Se puede pronosticar, pero el VAR no cuenta para el ranking.'}
+            ? t('El proveedor en vivo no trae este dato.', 'The live provider does not bring this data.')
+            : t('Se puede pronosticar, pero el VAR no cuenta para el ranking.', 'It can be predicted, but VAR does not count for the ranking.')}
         </p>
       </div>
 

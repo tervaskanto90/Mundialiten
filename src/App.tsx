@@ -10,15 +10,17 @@ import { RankingView } from './components/RankingView'
 import { useActiveContext, useLiveSyncPolling } from './hooks'
 import { useAuth } from './auth'
 import { useSupabaseSync } from './lib/sync'
+import { useT } from './i18n'
+import { LangToggle } from './components/LangToggle'
 
 type View = 'calendario' | 'grupos' | 'llaves' | 'precision' | 'ranking'
 
-const NAV: { id: View; label: string; icon: string }[] = [
-  { id: 'calendario', label: 'Calendario', icon: '📅' },
-  { id: 'grupos', label: 'Grupos', icon: '📊' },
-  { id: 'llaves', label: 'Llaves', icon: '🏆' },
-  { id: 'precision', label: 'Precisión', icon: '🎯' },
-  { id: 'ranking', label: 'Ranking', icon: '🏅' },
+const NAV: { id: View; es: string; en: string; icon: string }[] = [
+  { id: 'calendario', es: 'Calendario', en: 'Calendar', icon: '📅' },
+  { id: 'grupos', es: 'Grupos', en: 'Groups', icon: '📊' },
+  { id: 'llaves', es: 'Llaves', en: 'Bracket', icon: '🏆' },
+  { id: 'precision', es: 'Precisión', en: 'Accuracy', icon: '🎯' },
+  { id: 'ranking', es: 'Ranking', en: 'Ranking', icon: '🏅' },
 ]
 
 export default function App() {
@@ -26,6 +28,7 @@ export default function App() {
   const [editingMatch, setEditingMatch] = useState<number | null>(null)
   const ctx = useActiveContext()
   const { enabled, user, displayName, signOut } = useAuth()
+  const { t, lang } = useT()
   useLiveSyncPolling()
   useSupabaseSync()
 
@@ -36,19 +39,24 @@ export default function App() {
           <span className="text-2xl">⚽</span>
           <div className="leading-tight">
             <h1 className="font-bold text-lg">Mundialiten</h1>
-            <p className="text-xs text-slate-400">Mundial 2026 · calendario y predicciones</p>
+            <p className="text-xs text-slate-400">
+              {t('Mundial 2026 · calendario y predicciones', 'World Cup 2026 · calendar & predictions')}
+            </p>
           </div>
-          {enabled && user && (
-            <div className="ml-auto flex items-center gap-2 text-xs">
-              <span className="text-slate-300 hidden sm:inline">👤 {displayName}</span>
-              <button
-                onClick={() => signOut()}
-                className="text-slate-400 hover:text-white px-2 py-1 rounded-lg hover:bg-white/10"
-              >
-                Salir
-              </button>
-            </div>
-          )}
+          <div className="ml-auto flex items-center gap-2 text-xs">
+            <LangToggle />
+            {enabled && user && (
+              <>
+                <span className="text-slate-300 hidden sm:inline">👤 {displayName}</span>
+                <button
+                  onClick={() => signOut()}
+                  className="text-slate-400 hover:text-white px-2 py-1 rounded-lg hover:bg-white/10"
+                >
+                  {t('Salir', 'Sign out')}
+                </button>
+              </>
+            )}
+          </div>
         </div>
         <TabBar />
       </header>
@@ -66,7 +74,7 @@ export default function App() {
               }`}
             >
               <span className="mr-1">{n.icon}</span>
-              <span className="hidden xs:inline sm:inline">{n.label}</span>
+              <span className="hidden xs:inline sm:inline">{lang === 'en' ? n.en : n.es}</span>
             </button>
           ))}
         </div>
@@ -88,9 +96,13 @@ export default function App() {
 
       <footer className="max-w-5xl w-full mx-auto px-4 py-6 text-center text-xs text-slate-500">
         <div>
-          Datos guardados en este navegador · {ctx.resolution.bestThirds ? 'fase de grupos completa' : 'fase de grupos en curso'} · v2.1
+          {t('Datos guardados en este navegador', 'Data saved in this browser')} ·{' '}
+          {ctx.resolution.bestThirds
+            ? t('fase de grupos completa', 'group stage complete')
+            : t('fase de grupos en curso', 'group stage in progress')}{' '}
+          · v2.2
         </div>
-        <div className="mt-1 text-slate-600">hecho por Octavio Boggiano</div>
+        <div className="mt-1 text-slate-600">{t('hecho por', 'made by')} Octavio Boggiano</div>
       </footer>
 
       {editingMatch != null && (

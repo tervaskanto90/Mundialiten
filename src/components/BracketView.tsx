@@ -1,22 +1,18 @@
-import { MATCHES } from '../data/schedule'
+import { MATCHES, STAGE_I18N } from '../data/schedule'
 import type { StageId } from '../types'
 import { sideLabelFor } from '../utils/labels'
 import type { ActiveContext } from '../hooks'
+import { useT } from '../i18n'
 
 interface Props {
   ctx: ActiveContext
   onEdit: (matchId: number) => void
 }
 
-const ROUNDS: { stage: StageId; label: string }[] = [
-  { stage: 'r32', label: 'Dieciseisavos' },
-  { stage: 'r16', label: 'Octavos' },
-  { stage: 'qf', label: 'Cuartos' },
-  { stage: 'sf', label: 'Semifinal' },
-  { stage: 'final', label: 'Final' },
-]
+const ROUNDS: StageId[] = ['r32', 'r16', 'qf', 'sf', 'final']
 
 export function BracketView({ ctx, onEdit }: Props) {
+  const { t } = useT()
   const finalMatch = ctx.resolution.matches[104]
   const champLabel = finalMatch?.winner
     ? sideLabelFor(104, finalMatch.winner, 'home', ctx.resolution)
@@ -32,34 +28,35 @@ export function BracketView({ ctx, onEdit }: Props) {
             : 'bg-slate-800/40 border-white/5'
         }`}
       >
-        <div className="text-xs text-amber-300/80 tracking-wide">🏆 CAMPEÓN</div>
+        <div className="text-xs text-amber-300/80 tracking-wide">🏆 {t('CAMPEÓN', 'CHAMPION')}</div>
         <div className="text-xl font-bold flex items-center justify-center gap-2 mt-0.5">
           {champLabel?.resolved ? (
             <>
               <span>{champLabel.flag}</span> {champLabel.name}
             </>
           ) : (
-            <span className="text-slate-500 text-base font-medium">Por definir</span>
+            <span className="text-slate-500 text-base font-medium">{t('Por definir', 'To be decided')}</span>
           )}
         </div>
       </div>
 
       <p className="text-[11px] text-slate-500 mb-2">
-        Las posiciones se actualizan en vivo con la tabla: el 1° y 2° actual de cada grupo aparecen
-        (provisorios) apenas juegan. Al cerrar la fase de grupos, las predicciones arman la fase
-        final con los equipos que realmente clasificaron.
+        {t(
+          'Las posiciones se actualizan en vivo con la tabla: el 1° y 2° actual de cada grupo aparecen (provisorios) apenas juegan. Al cerrar la fase de grupos, las predicciones arman la fase final con los equipos que realmente clasificaron.',
+          'Positions update live with the standings: the current 1st and 2nd of each group appear (provisional) as soon as they play. When the group stage ends, predictions build the knockouts with the teams that actually qualified.',
+        )}
       </p>
       <div className="overflow-x-auto pb-2">
         <div className="bracket min-w-max">
-          {ROUNDS.map((round) => {
-            const matches = MATCHES.filter((m) => m.stage === round.stage)
+          {ROUNDS.map((stage) => {
+            const matches = MATCHES.filter((m) => m.stage === stage)
             return (
-              <div key={round.stage} className="bracket-round">
-                <div className="bracket-round-title">{round.label}</div>
+              <div key={stage} className="bracket-round">
+                <div className="bracket-round-title">{t(STAGE_I18N[stage].es, STAGE_I18N[stage].en)}</div>
                 <div className="bracket-col">
                   {matches.map((m) => (
                     <div key={m.id} className="bracket-match">
-                      <BracketCard matchId={m.id} ctx={ctx} onEdit={onEdit} highlight={round.stage === 'final'} />
+                      <BracketCard matchId={m.id} ctx={ctx} onEdit={onEdit} highlight={stage === 'final'} />
                     </div>
                   ))}
                 </div>
@@ -72,7 +69,7 @@ export function BracketView({ ctx, onEdit }: Props) {
       {thirdMatch && (
         <div className="mt-5 max-w-xs">
           <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5">
-            🥉 Tercer puesto
+            🥉 {t('Tercer puesto', 'Third place')}
           </div>
           <BracketCard matchId={thirdMatch.id} ctx={ctx} onEdit={onEdit} />
         </div>
