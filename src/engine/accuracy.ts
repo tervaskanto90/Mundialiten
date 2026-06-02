@@ -54,10 +54,12 @@ export function computeRankingScore(
   for (const m of MATCHES) {
     const real = realResults[m.id]
     if (!real?.played) continue
+    const pred = predResults[m.id]
+    // Sólo cuentan los partidos que predijiste a tiempo (antes del cierre).
+    // Los que no predijiste no suman ni restan (no entran al máximo).
+    if (!pred?.played) continue
     played++
     max += EXACT_POINTS
-    const pred = predResults[m.id]
-    if (!pred?.played) continue
     if (pred.homeScore === real.homeScore && pred.awayScore === real.awayScore) {
       points += EXACT_POINTS
       exact++
