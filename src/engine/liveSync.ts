@@ -39,6 +39,8 @@ export interface LiveUpdate {
   awayScore: number
   finished: boolean
   apiId?: number // id del partido en el proveedor (para traer eventos)
+  homePens?: number // tanda de penales (sólo eliminatorias definidas por penales)
+  awayPens?: number
 }
 
 export interface SyncResult {
@@ -83,6 +85,8 @@ interface NormFixture {
   as: number | null
   finished: boolean
   apiId?: number
+  hpens?: number | null // tanda de penales (si la hubo)
+  apens?: number | null
 }
 
 const APIF_BASE = 'https://v3.football.api-sports.io'
@@ -149,6 +153,8 @@ async function fetchFootballData(config: LiveConfig, signal?: AbortSignal): Prom
     as: m.score?.fullTime?.away ?? null,
     finished: m.status === 'FINISHED',
     apiId: m.id,
+    hpens: m.score?.penalties?.home ?? null,
+    apens: m.score?.penalties?.away ?? null,
   }))
 }
 
@@ -180,12 +186,15 @@ export function mapFixturesToUpdates(fixtures: NormFixture[], resolution: Resolu
     if (!slot) continue
     matched++
     const sameOrientation = slot.home === h
+    const hasPens = f.hpens != null && f.apens != null
     updates.push({
       matchId: slot.matchId,
       homeScore: sameOrientation ? f.hs : f.as,
       awayScore: sameOrientation ? f.as : f.hs,
       finished: f.finished,
       apiId: f.apiId,
+      homePens: hasPens ? (sameOrientation ? f.hpens! : f.apens!) : undefined,
+      awayPens: hasPens ? (sameOrientation ? f.apens! : f.hpens!) : undefined,
     })
   }
   return { updates, fetched: fixtures.length, matched }

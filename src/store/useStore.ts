@@ -266,8 +266,8 @@ export const useStore = create<State>()(
                   played: true,
                   homeScore: u.homeScore,
                   awayScore: u.awayScore,
-                  homePens: prev?.homePens,
-                  awayPens: prev?.awayPens,
+                  homePens: u.homePens ?? prev?.homePens,
+                  awayPens: u.awayPens ?? prev?.awayPens,
                   events: prev?.events ?? [],
                   varCount: prev?.varCount, // preservar el VAR cargado a mano
                 }

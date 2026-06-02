@@ -1,6 +1,6 @@
-import { MATCHES, STAGE_I18N } from '../data/schedule'
+import { MATCHES, MATCH_BY_ID, STAGE_I18N } from '../data/schedule'
 import type { StageId } from '../types'
-import { sideLabelFor } from '../utils/labels'
+import { sideLabel, sideLabelFor } from '../utils/labels'
 import type { ActiveContext } from '../hooks'
 import { useT } from '../i18n'
 
@@ -11,12 +11,58 @@ interface Props {
 
 const ROUNDS: StageId[] = ['r32', 'r16', 'qf', 'sf', 'final']
 
+// ── Orden del cuadro como árbol real ──
+// Cada cruce de eliminación se alimenta de Wnn (ganador del partido nn). Para
+// que las líneas conecten con la caja correcta, ordenamos cada ronda según el
+// árbol (no por número de partido), partiendo de la final hacia atrás.
+const feederId = (ref: string): number | null => {
+  const m = /^W(\d+)$/.exec(ref)
+  return m ? Number(m[1]) : null
+}
+const KO_PARENT: Record<number, number> = (() => {
+  const p: Record<number, number> = {}
+  for (const m of MATCHES) {
+    for (const ref of [m.home, m.away]) {
+      const f = feederId(ref)
+      if (f != null) p[f] = m.id
+    }
+  }
+  return p
+})()
+function collectLeaves(id: number, out: number[]) {
+  const m = MATCH_BY_ID[id]
+  const hf = feederId(m.home)
+  const af = feederId(m.away)
+  if (hf == null && af == null) {
+    out.push(id)
+    return
+  }
+  if (hf != null) collectLeaves(hf, out)
+  if (af != null) collectLeaves(af, out)
+}
+const dedupe = (ids: number[]): number[] => [...new Set(ids)]
+const R32_ORDER: number[] = (() => {
+  const o: number[] = []
+  collectLeaves(104, o)
+  return o
+})()
+const R16_ORDER = dedupe(R32_ORDER.map((id) => KO_PARENT[id]))
+const QF_ORDER = dedupe(R16_ORDER.map((id) => KO_PARENT[id]))
+const SF_ORDER = dedupe(QF_ORDER.map((id) => KO_PARENT[id]))
+const FINAL_ORDER = dedupe(SF_ORDER.map((id) => KO_PARENT[id]))
+const STAGE_ORDERED: Record<string, number[]> = {
+  r32: R32_ORDER,
+  r16: R16_ORDER,
+  qf: QF_ORDER,
+  sf: SF_ORDER,
+  final: FINAL_ORDER,
+}
+
 export function BracketView({ ctx, onEdit }: Props) {
   const { t } = useT()
   const finalMatch = ctx.resolution.matches[104]
-  const champLabel = finalMatch?.winner
-    ? sideLabelFor(104, finalMatch.winner, 'home', ctx.resolution)
-    : null
+  // El campeón es el GANADOR de la final (no el local).
+  const champLabel = finalMatch?.winner ? sideLabel(finalMatch.winner, finalMatch.winner) : null
   const thirdMatch = MATCHES.find((m) => m.stage === 'third')
 
   return (
@@ -49,7 +95,7 @@ export function BracketView({ ctx, onEdit }: Props) {
       <div className="overflow-x-auto pb-2">
         <div className="bracket min-w-max">
           {ROUNDS.map((stage) => {
-            const matches = MATCHES.filter((m) => m.stage === stage)
+            const matches = STAGE_ORDERED[stage].map((id) => MATCH_BY_ID[id])
             return (
               <div key={stage} className="bracket-round">
                 <div className="bracket-round-title">{t(STAGE_I18N[stage].es, STAGE_I18N[stage].en)}</div>

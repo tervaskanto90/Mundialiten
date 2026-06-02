@@ -38,14 +38,14 @@ body {
 .bracket {
   display: flex;
   align-items: stretch;
-  min-height: 820px;
-  --bl: rgba(148, 163, 184, 0.28); /* color de las líneas conectoras */
+  min-height: 780px;
+  --bl: rgba(148, 163, 184, 0.45); /* color de las líneas conectoras */
 }
 .bracket-round {
   display: flex;
   flex-direction: column;
-  flex: 0 0 13rem;
-  padding: 0 1.1rem;
+  flex: 0 0 13.5rem;
+  padding: 0 1.25rem;
 }
 .bracket-round-title {
   height: 1.75rem;
@@ -69,6 +69,7 @@ body {
   display: flex;
   align-items: center;
   position: relative;
+  padding: 4px 0;
 }
 .bracket-match > * {
   width: 100%;
@@ -79,7 +80,7 @@ body {
   position: absolute;
   left: 100%;
   top: 50%;
-  width: 1.1rem;
+  width: 1.25rem;
   height: 2px;
   background: var(--bl);
 }
@@ -90,11 +91,11 @@ body {
   right: 100%;
   top: 25%;
   height: 50%;
-  width: 1.1rem;
+  width: 1.25rem;
   border: 2px solid var(--bl);
   border-right: 0;
-  border-top-left-radius: 6px;
-  border-bottom-left-radius: 6px;
+  border-top-left-radius: 8px;
+  border-bottom-left-radius: 8px;
 }
 
 .auth-input {
