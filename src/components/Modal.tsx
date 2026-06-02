@@ -1,4 +1,5 @@
 import { type ReactNode, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 
 interface Props {
   title: string
@@ -17,15 +18,17 @@ export function Modal({ title, onClose, children, footer, wide }: Props) {
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
 
-  return (
+  // Portal al body: evita que un ancestro con transform/backdrop-filter (el
+  // header) rompa el position:fixed y mande el modal fuera de la pantalla.
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 bg-black/60 flex items-end sm:items-center justify-center p-0 sm:p-4"
+      className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-3 sm:p-4"
       onClick={onClose}
     >
       <div
         className={`bg-slate-900 border border-white/10 w-full ${
           wide ? 'sm:max-w-2xl' : 'sm:max-w-md'
-        } sm:rounded-2xl rounded-t-2xl max-h-[92vh] flex flex-col shadow-2xl`}
+        } rounded-2xl max-h-[88vh] flex flex-col shadow-2xl`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
@@ -40,6 +43,7 @@ export function Modal({ title, onClose, children, footer, wide }: Props) {
         <div className="overflow-y-auto px-4 py-4 flex-1">{children}</div>
         {footer && <div className="px-4 py-3 border-t border-white/10">{footer}</div>}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
