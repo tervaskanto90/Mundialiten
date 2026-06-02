@@ -5,7 +5,8 @@ import { GroupsView } from './components/GroupsView'
 import { BracketView } from './components/BracketView'
 import { AccuracyView } from './components/AccuracyView'
 import { ResultEditor } from './components/ResultEditor'
-import { useActiveContext } from './hooks'
+import { LiveSyncBar } from './components/LiveSyncBar'
+import { useActiveContext, useLiveSyncPolling } from './hooks'
 
 type View = 'calendario' | 'grupos' | 'llaves' | 'precision'
 
@@ -20,6 +21,7 @@ export default function App() {
   const [view, setView] = useState<View>('calendario')
   const [editingMatch, setEditingMatch] = useState<number | null>(null)
   const ctx = useActiveContext()
+  useLiveSyncPolling()
 
   return (
     <div className="min-h-full flex flex-col">
@@ -54,6 +56,7 @@ export default function App() {
       </nav>
 
       <main className="max-w-5xl w-full mx-auto px-2 sm:px-4 py-4 flex-1">
+        {ctx.scenario.type === 'real' && <LiveSyncBar />}
         {view === 'calendario' && <CalendarView ctx={ctx} onEdit={setEditingMatch} />}
         {view === 'grupos' && <GroupsView ctx={ctx} />}
         {view === 'llaves' && <BracketView ctx={ctx} onEdit={setEditingMatch} />}

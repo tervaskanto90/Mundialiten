@@ -7,6 +7,19 @@ export interface Team {
   name: string // nombre para mostrar, ej. 'México'
   flag: string // emoji de bandera
   group: string // 'A' .. 'L' (vacío si no aplica)
+  aliases?: string[] // otros nombres (ej. en inglés) para emparejar resultados en vivo
+}
+
+export interface Player {
+  id: string // único dentro del equipo, ej. 'MEX-1'
+  name: string
+  number?: number
+  position?: 'POR' | 'DEF' | 'MED' | 'DEL'
+}
+
+export interface Roster {
+  starters: Player[] // titulares (XI)
+  subs: Player[] // suplentes
 }
 
 export interface Venue {

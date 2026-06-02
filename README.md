@@ -25,7 +25,18 @@ Pages, etc.
 - **Carga de resultados con eventos**: marcador, definición por penales en
   eliminatorias, y eventos de **goles** (incluye en contra y de penal),
   **amarillas**, **rojas** e **intervenciones del VAR**, eligiendo jugador y
-  minuto.
+  minuto. *(Disponible en pestañas de predicción y what-if; el escenario real
+  es de sólo lectura.)*
+- **Formaciones**: al abrir un partido se ven **titulares y suplentes** de
+  ambos equipos. Tocá (o clic derecho) un jugador para asignarle **gol a
+  favor**, **gol en contra**, **amarilla** o **roja**. Las plantillas son
+  genéricas y editables en `src/data/rosters.ts`.
+- **Resultados reales en vivo**: el escenario «Resultados reales» es la fuente
+  de verdad y **no se edita a mano**: se actualiza automáticamente desde un
+  proveedor externo (TheSportsDB) con un botón «Sincronizar» y auto-refresco
+  cada 60s. El emparejado de partidos es por nombre de equipo (ver
+  `aliases` en `src/data/teams.ts`). Si el proveedor todavía no tiene datos del
+  torneo, simplemente no actualiza nada.
 - **Grupos**: tablas que se calculan solas (puntos, diferencia de gol, fair
   play). Marca los 2 clasificados directos y el mejor 3°.
 - **Llaves**: el cuadro de eliminación se va completando automáticamente a

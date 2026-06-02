@@ -3,83 +3,84 @@ import type { Team } from '../types'
 // ─────────────────────────────────────────────────────────────────────────────
 // EQUIPOS POR GRUPO
 //
-// Transcripción de los grupos de tu calendario. Varios eran "placeholders"
-// (Repesca Europa / Repesca FIFA, etc.) porque el calendario es previo al sorteo.
-// Es totalmente EDITABLE: cambiá nombre, bandera o grupo a gusto. El resto de la
-// app trabaja por `id`, así que mantené los id únicos si agregás equipos.
+// Las 6 repescas del calendario se reemplazaron por los países correspondientes.
+// `aliases` son nombres alternativos (en inglés, etc.) que se usan para emparejar
+// los resultados que llegan en vivo desde proveedores externos.
+//
+// Editable: cambiá nombre, bandera, grupo o aliases a gusto. Mantené ids únicos.
 // ─────────────────────────────────────────────────────────────────────────────
 export const TEAMS: Team[] = [
-  // Grupo A — México, Sudáfrica, Rep. de Corea, Repesca Europa
-  { id: 'MEX', name: 'México', flag: '🇲🇽', group: 'A' },
-  { id: 'RSA', name: 'Sudáfrica', flag: '🇿🇦', group: 'A' },
-  { id: 'COR', name: 'Rep. de Corea', flag: '🇰🇷', group: 'A' },
-  { id: 'CZE', name: 'Repesca Europa (A)', flag: '🇪🇺', group: 'A' },
+  // Grupo A
+  { id: 'MEX', name: 'México', flag: '🇲🇽', group: 'A', aliases: ['Mexico'] },
+  { id: 'RSA', name: 'Sudáfrica', flag: '🇿🇦', group: 'A', aliases: ['South Africa'] },
+  { id: 'COR', name: 'Rep. de Corea', flag: '🇰🇷', group: 'A', aliases: ['South Korea', 'Korea Republic'] },
+  { id: 'CZE', name: 'Chequia', flag: '🇨🇿', group: 'A', aliases: ['Czechia', 'Czech Republic'] },
 
-  // Grupo B — Canadá, Qatar, Suiza, Repesca Europa
-  { id: 'CAN', name: 'Canadá', flag: '🇨🇦', group: 'B' },
-  { id: 'QAT', name: 'Qatar', flag: '🇶🇦', group: 'B' },
-  { id: 'SUI', name: 'Suiza', flag: '🇨🇭', group: 'B' },
-  { id: 'BOS', name: 'Repesca Europa (B)', flag: '🇪🇺', group: 'B' },
+  // Grupo B
+  { id: 'CAN', name: 'Canadá', flag: '🇨🇦', group: 'B', aliases: ['Canada'] },
+  { id: 'QAT', name: 'Qatar', flag: '🇶🇦', group: 'B', aliases: ['Qatar'] },
+  { id: 'SUI', name: 'Suiza', flag: '🇨🇭', group: 'B', aliases: ['Switzerland'] },
+  { id: 'BOS', name: 'Bosnia y Herzegovina', flag: '🇧🇦', group: 'B', aliases: ['Bosnia and Herzegovina', 'Bosnia'] },
 
-  // Grupo C — Brasil, Marruecos, Escocia, Haití
-  { id: 'BRA', name: 'Brasil', flag: '🇧🇷', group: 'C' },
-  { id: 'MAR', name: 'Marruecos', flag: '🇲🇦', group: 'C' },
-  { id: 'ESC', name: 'Escocia', flag: '🏴', group: 'C' },
-  { id: 'HAI', name: 'Haití', flag: '🇭🇹', group: 'C' },
+  // Grupo C
+  { id: 'BRA', name: 'Brasil', flag: '🇧🇷', group: 'C', aliases: ['Brazil'] },
+  { id: 'MAR', name: 'Marruecos', flag: '🇲🇦', group: 'C', aliases: ['Morocco'] },
+  { id: 'ESC', name: 'Escocia', flag: '🏴', group: 'C', aliases: ['Scotland'] },
+  { id: 'HAI', name: 'Haití', flag: '🇭🇹', group: 'C', aliases: ['Haiti'] },
 
-  // Grupo D — EE.UU., Paraguay, Australia, Repesca Europa
-  { id: 'USA', name: 'Estados Unidos', flag: '🇺🇸', group: 'D' },
-  { id: 'PAR', name: 'Paraguay', flag: '🇵🇾', group: 'D' },
-  { id: 'AUS', name: 'Australia', flag: '🇦🇺', group: 'D' },
-  { id: 'TUR', name: 'Repesca Europa (D)', flag: '🇪🇺', group: 'D' },
+  // Grupo D
+  { id: 'USA', name: 'Estados Unidos', flag: '🇺🇸', group: 'D', aliases: ['United States', 'USA'] },
+  { id: 'PAR', name: 'Paraguay', flag: '🇵🇾', group: 'D', aliases: ['Paraguay'] },
+  { id: 'AUS', name: 'Australia', flag: '🇦🇺', group: 'D', aliases: ['Australia'] },
+  { id: 'TUR', name: 'Turquía', flag: '🇹🇷', group: 'D', aliases: ['Turkey', 'Türkiye', 'Turkiye'] },
 
-  // Grupo E — Alemania, Ecuador, Costa de Marfil, Curazao
-  { id: 'ALE', name: 'Alemania', flag: '🇩🇪', group: 'E' },
-  { id: 'ECU', name: 'Ecuador', flag: '🇪🇨', group: 'E' },
-  { id: 'CDM', name: 'Costa de Marfil', flag: '🇨🇮', group: 'E' },
-  { id: 'CUR', name: 'Curazao', flag: '🇨🇼', group: 'E' },
+  // Grupo E
+  { id: 'ALE', name: 'Alemania', flag: '🇩🇪', group: 'E', aliases: ['Germany'] },
+  { id: 'ECU', name: 'Ecuador', flag: '🇪🇨', group: 'E', aliases: ['Ecuador'] },
+  { id: 'CDM', name: 'Costa de Marfil', flag: '🇨🇮', group: 'E', aliases: ['Ivory Coast', "Cote d'Ivoire", 'Côte d’Ivoire'] },
+  { id: 'CUR', name: 'Curazao', flag: '🇨🇼', group: 'E', aliases: ['Curacao', 'Curaçao'] },
 
-  // Grupo F — Países Bajos, Japón, Túnez, Repesca Europa
-  { id: 'PBA', name: 'Países Bajos', flag: '🇳🇱', group: 'F' },
-  { id: 'JAP', name: 'Japón', flag: '🇯🇵', group: 'F' },
-  { id: 'TUN', name: 'Túnez', flag: '🇹🇳', group: 'F' },
-  { id: 'SWE', name: 'Repesca Europa (F)', flag: '🇪🇺', group: 'F' },
+  // Grupo F
+  { id: 'PBA', name: 'Países Bajos', flag: '🇳🇱', group: 'F', aliases: ['Netherlands', 'Holland'] },
+  { id: 'JAP', name: 'Japón', flag: '🇯🇵', group: 'F', aliases: ['Japan'] },
+  { id: 'TUN', name: 'Túnez', flag: '🇹🇳', group: 'F', aliases: ['Tunisia'] },
+  { id: 'SWE', name: 'Suecia', flag: '🇸🇪', group: 'F', aliases: ['Sweden'] },
 
-  // Grupo G — Bélgica, Irán, Egipto, Nueva Zelanda
-  { id: 'BEL', name: 'Bélgica', flag: '🇧🇪', group: 'G' },
-  { id: 'IRA', name: 'Irán', flag: '🇮🇷', group: 'G' },
-  { id: 'EGI', name: 'Egipto', flag: '🇪🇬', group: 'G' },
-  { id: 'NZL', name: 'Nueva Zelanda', flag: '🇳🇿', group: 'G' },
+  // Grupo G
+  { id: 'BEL', name: 'Bélgica', flag: '🇧🇪', group: 'G', aliases: ['Belgium'] },
+  { id: 'IRA', name: 'Irán', flag: '🇮🇷', group: 'G', aliases: ['Iran', 'IR Iran'] },
+  { id: 'EGI', name: 'Egipto', flag: '🇪🇬', group: 'G', aliases: ['Egypt'] },
+  { id: 'NZL', name: 'Nueva Zelanda', flag: '🇳🇿', group: 'G', aliases: ['New Zealand'] },
 
-  // Grupo H — España, Uruguay, Arabia Saudí, Cabo Verde
-  { id: 'ESP', name: 'España', flag: '🇪🇸', group: 'H' },
-  { id: 'URU', name: 'Uruguay', flag: '🇺🇾', group: 'H' },
-  { id: 'ARA', name: 'Arabia Saudí', flag: '🇸🇦', group: 'H' },
-  { id: 'CAB', name: 'Cabo Verde', flag: '🇨🇻', group: 'H' },
+  // Grupo H
+  { id: 'ESP', name: 'España', flag: '🇪🇸', group: 'H', aliases: ['Spain'] },
+  { id: 'URU', name: 'Uruguay', flag: '🇺🇾', group: 'H', aliases: ['Uruguay'] },
+  { id: 'ARA', name: 'Arabia Saudí', flag: '🇸🇦', group: 'H', aliases: ['Saudi Arabia'] },
+  { id: 'CAB', name: 'Cabo Verde', flag: '🇨🇻', group: 'H', aliases: ['Cape Verde', 'Cabo Verde'] },
 
-  // Grupo I — Francia, Senegal, Noruega, Repesca FIFA
-  { id: 'FRA', name: 'Francia', flag: '🇫🇷', group: 'I' },
-  { id: 'SEN', name: 'Senegal', flag: '🇸🇳', group: 'I' },
-  { id: 'NOR', name: 'Noruega', flag: '🇳🇴', group: 'I' },
-  { id: 'IRK', name: 'Repesca FIFA (I)', flag: '🏳️', group: 'I' },
+  // Grupo I
+  { id: 'FRA', name: 'Francia', flag: '🇫🇷', group: 'I', aliases: ['France'] },
+  { id: 'SEN', name: 'Senegal', flag: '🇸🇳', group: 'I', aliases: ['Senegal'] },
+  { id: 'NOR', name: 'Noruega', flag: '🇳🇴', group: 'I', aliases: ['Norway'] },
+  { id: 'IRK', name: 'Irak', flag: '🇮🇶', group: 'I', aliases: ['Iraq'] },
 
-  // Grupo J — Argentina, Argelia, Austria, Jordania
-  { id: 'ARG', name: 'Argentina', flag: '🇦🇷', group: 'J' },
-  { id: 'ALG', name: 'Argelia', flag: '🇩🇿', group: 'J' },
-  { id: 'AUT', name: 'Austria', flag: '🇦🇹', group: 'J' },
-  { id: 'JOR', name: 'Jordania', flag: '🇯🇴', group: 'J' },
+  // Grupo J
+  { id: 'ARG', name: 'Argentina', flag: '🇦🇷', group: 'J', aliases: ['Argentina'] },
+  { id: 'ALG', name: 'Argelia', flag: '🇩🇿', group: 'J', aliases: ['Algeria'] },
+  { id: 'AUT', name: 'Austria', flag: '🇦🇹', group: 'J', aliases: ['Austria'] },
+  { id: 'JOR', name: 'Jordania', flag: '🇯🇴', group: 'J', aliases: ['Jordan'] },
 
-  // Grupo K — Portugal, Uzbekistán, Colombia, Repesca Concacaf
-  { id: 'POR', name: 'Portugal', flag: '🇵🇹', group: 'K' },
-  { id: 'UZB', name: 'Uzbekistán', flag: '🇺🇿', group: 'K' },
-  { id: 'COL', name: 'Colombia', flag: '🇨🇴', group: 'K' },
-  { id: 'CON', name: 'Repesca Concacaf (K)', flag: '🌎', group: 'K' },
+  // Grupo K
+  { id: 'POR', name: 'Portugal', flag: '🇵🇹', group: 'K', aliases: ['Portugal'] },
+  { id: 'UZB', name: 'Uzbekistán', flag: '🇺🇿', group: 'K', aliases: ['Uzbekistan'] },
+  { id: 'COL', name: 'Colombia', flag: '🇨🇴', group: 'K', aliases: ['Colombia'] },
+  { id: 'JAM', name: 'Jamaica', flag: '🇯🇲', group: 'K', aliases: ['Jamaica'] },
 
-  // Grupo L — Inglaterra, Croacia, Ghana, Panamá
-  { id: 'ING', name: 'Inglaterra', flag: '🏴', group: 'L' },
-  { id: 'CRO', name: 'Croacia', flag: '🇭🇷', group: 'L' },
-  { id: 'GHA', name: 'Ghana', flag: '🇬🇭', group: 'L' },
-  { id: 'PAN', name: 'Panamá', flag: '🇵🇦', group: 'L' },
+  // Grupo L
+  { id: 'ING', name: 'Inglaterra', flag: '🏴', group: 'L', aliases: ['England'] },
+  { id: 'CRO', name: 'Croacia', flag: '🇭🇷', group: 'L', aliases: ['Croatia'] },
+  { id: 'GHA', name: 'Ghana', flag: '🇬🇭', group: 'L', aliases: ['Ghana'] },
+  { id: 'PAN', name: 'Panamá', flag: '🇵🇦', group: 'L', aliases: ['Panama'] },
 ]
 
 export const TEAM_BY_ID: Record<string, Team> = Object.fromEntries(

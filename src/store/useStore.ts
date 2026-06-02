@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { MatchEvent, MatchResult, Scenario, ScenarioType } from '../types'
+import { DEFAULT_LIVE_CONFIG, type LiveConfig, type LiveUpdate } from '../engine/liveSync'
 
 const REAL_ID = 'real'
 
@@ -29,9 +30,18 @@ export function emptyResult(): MatchResult {
   return { played: false, homeScore: 0, awayScore: 0, events: [] }
 }
 
+export type SyncStatus = 'idle' | 'syncing' | 'ok' | 'error'
+
 interface State {
   scenarios: Scenario[]
   activeId: string
+
+  // Sincronización en vivo del escenario real
+  liveEnabled: boolean
+  liveConfig: LiveConfig
+  syncStatus: SyncStatus
+  syncMessage: string
+  lastSync: string | null
 
   setActive: (id: string) => void
   addScenario: (type: ScenarioType, name: string, predictionDate?: string) => string
@@ -43,6 +53,11 @@ interface State {
 
   addEvent: (scenarioId: string, matchId: number, ev: Omit<MatchEvent, 'id'>) => void
   removeEvent: (scenarioId: string, matchId: number, eventId: string) => void
+
+  setLiveEnabled: (on: boolean) => void
+  setLiveConfig: (cfg: Partial<LiveConfig>) => void
+  setSyncStatus: (status: SyncStatus, message?: string) => void
+  applyLiveResults: (updates: LiveUpdate[]) => void
 
   importState: (data: { scenarios: Scenario[]; activeId?: string }) => void
 }
@@ -63,6 +78,12 @@ export const useStore = create<State>()(
     (set, get) => ({
       scenarios: [realScenario()],
       activeId: REAL_ID,
+
+      liveEnabled: false,
+      liveConfig: DEFAULT_LIVE_CONFIG,
+      syncStatus: 'idle',
+      syncMessage: '',
+      lastSync: null,
 
       setActive: (id) => set({ activeId: id }),
 
@@ -105,7 +126,10 @@ export const useStore = create<State>()(
           ),
         })),
 
-      setResult: (scenarioId, matchId, patch) =>
+      // El escenario real es de SÓLO LECTURA: se actualiza únicamente en vivo
+      // (vía applyLiveResults). Las acciones manuales lo ignoran.
+      setResult: (scenarioId, matchId, patch) => {
+        if (scenarioId === REAL_ID) return
         set((s) => ({
           scenarios: s.scenarios.map((sc) => {
             if (sc.id !== scenarioId) return sc
@@ -115,9 +139,11 @@ export const useStore = create<State>()(
               results: { ...sc.results, [matchId]: { ...cur, ...patch } },
             }
           }),
-        })),
+        }))
+      },
 
-      clearResult: (scenarioId, matchId) =>
+      clearResult: (scenarioId, matchId) => {
+        if (scenarioId === REAL_ID) return
         set((s) => ({
           scenarios: s.scenarios.map((sc) => {
             if (sc.id !== scenarioId) return sc
@@ -125,9 +151,11 @@ export const useStore = create<State>()(
             delete results[matchId]
             return { ...sc, results }
           }),
-        })),
+        }))
+      },
 
-      addEvent: (scenarioId, matchId, ev) =>
+      addEvent: (scenarioId, matchId, ev) => {
+        if (scenarioId === REAL_ID) return
         set((s) => ({
           scenarios: s.scenarios.map((sc) => {
             if (sc.id !== scenarioId) return sc
@@ -141,9 +169,11 @@ export const useStore = create<State>()(
               },
             }
           }),
-        })),
+        }))
+      },
 
-      removeEvent: (scenarioId, matchId, eventId) =>
+      removeEvent: (scenarioId, matchId, eventId) => {
+        if (scenarioId === REAL_ID) return
         set((s) => ({
           scenarios: s.scenarios.map((sc) => {
             if (sc.id !== scenarioId) return sc
@@ -156,6 +186,34 @@ export const useStore = create<State>()(
                 [matchId]: { ...cur, events: cur.events.filter((e) => e.id !== eventId) },
               },
             }
+          }),
+        }))
+      },
+
+      setLiveEnabled: (on) => set({ liveEnabled: on }),
+
+      setLiveConfig: (cfg) => set((s) => ({ liveConfig: { ...s.liveConfig, ...cfg } })),
+
+      setSyncStatus: (status, message = '') => set({ syncStatus: status, syncMessage: message }),
+
+      applyLiveResults: (updates) =>
+        set((s) => ({
+          lastSync: new Date().toISOString(),
+          scenarios: s.scenarios.map((sc) => {
+            if (sc.id !== REAL_ID) return sc
+            const results = { ...sc.results }
+            for (const u of updates) {
+              const prev = results[u.matchId]
+              results[u.matchId] = {
+                played: true,
+                homeScore: u.homeScore,
+                awayScore: u.awayScore,
+                homePens: prev?.homePens,
+                awayPens: prev?.awayPens,
+                events: prev?.events ?? [],
+              }
+            }
+            return { ...sc, results }
           }),
         })),
 

@@ -2,9 +2,10 @@ import { useState } from 'react'
 import { MATCH_BY_ID, STAGE_LABELS } from '../data/schedule'
 import { useStore, emptyResult } from '../store/useStore'
 import { sideLabelFor, venueName, formatDate } from '../utils/labels'
-import type { EventType, MatchEvent } from '../types'
+import type { EventType, MatchEvent, Player } from '../types'
 import type { ActiveContext } from '../hooks'
 import { Modal } from './Modal'
+import { LineupPanel } from './LineupPanel'
 
 interface Props {
   matchId: number
@@ -35,6 +36,7 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
   const home = sideLabelFor(matchId, match.home, 'home', ctx.resolution)
   const away = sideLabelFor(matchId, match.away, 'away', ctx.resolution)
   const isKnockout = match.stage !== 'group'
+  const isReal = scenario.type === 'real'
   const isWhatif = scenario.type === 'whatif'
   const hasOverride = !!scenario.results[matchId]
   const inherited = isWhatif && !hasOverride
@@ -80,9 +82,21 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
     setEvNote('')
   }
 
+  // Alta de evento desde la formación (clic en un jugador).
+  const addPlayerEvent = (side: 'home' | 'away', player: Player, type: EventType) => {
+    ensureOverride()
+    if (!base.played) setResult(scenario.id, matchId, { played: true })
+    addEvent(scenario.id, matchId, { type, team: side, player: player.name })
+  }
+
   const events = base.events
-  const goalCount = (side: 'home' | 'away') =>
-    events.filter((e) => e.team === side && GOAL_TYPES.includes(e.type)).length
+  // Goles a favor de un lado = sus goles/penales + los goles EN CONTRA del rival.
+  const goalCount = (side: 'home' | 'away') => {
+    const other = side === 'home' ? 'away' : 'home'
+    const own = events.filter((e) => e.team === side && (e.type === 'goal' || e.type === 'penalty')).length
+    const rivalOwnGoals = events.filter((e) => e.team === other && e.type === 'own_goal').length
+    return own + rivalOwnGoals
+  }
 
   return (
     <Modal
@@ -94,6 +108,7 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
           <div className="text-xs text-slate-500">
             En «{scenario.name}»
             {inherited && ' · heredando del real'}
+            {isReal && ' · 🔴 sólo lectura (en vivo)'}
           </div>
           <div className="flex gap-2">
             {isWhatif && hasOverride && (
@@ -107,7 +122,7 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
                 ↺ Volver al real
               </button>
             )}
-            {!isWhatif && base.played && (
+            {!isWhatif && !isReal && base.played && (
               <button
                 onClick={() => {
                   clearResult(scenario.id, matchId)
@@ -132,18 +147,31 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
         {formatDate(match.date)} · {match.time} · 📍 {venueName(match.venueId)}
       </div>
 
+      {isReal && (
+        <div className="text-[11px] text-slate-400 bg-rose-500/10 border border-rose-500/20 rounded-lg px-3 py-2 mb-4">
+          🔴 Los resultados reales son la fuente de verdad y no se editan a mano: se actualizan
+          automáticamente en vivo. Para simular escenarios, cloná esta pestaña como «What-if».
+        </div>
+      )}
+
       {/* Marcador */}
       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 mb-4">
         <ScoreSide flag={home.flag} name={home.name} />
-        <div className="flex items-center gap-2">
-          <Stepper value={base.played ? base.homeScore : 0} onChange={(v) => setScore('home', v)} />
-          <span className="text-slate-500">-</span>
-          <Stepper value={base.played ? base.awayScore : 0} onChange={(v) => setScore('away', v)} />
-        </div>
+        {isReal ? (
+          <div className="text-3xl font-bold tabular-nums px-2">
+            {base.played ? `${base.homeScore} - ${base.awayScore}` : 'vs'}
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <Stepper value={base.played ? base.homeScore : 0} onChange={(v) => setScore('home', v)} />
+            <span className="text-slate-500">-</span>
+            <Stepper value={base.played ? base.awayScore : 0} onChange={(v) => setScore('away', v)} />
+          </div>
+        )}
         <ScoreSide flag={away.flag} name={away.name} right />
       </div>
 
-      {!base.played && (
+      {!base.played && !isReal && (
         <div className="text-center -mt-2 mb-3">
           <button
             onClick={() => patch({ played: true })}
@@ -159,9 +187,17 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
         <div className="bg-slate-800/60 rounded-xl p-3 mb-4">
           <div className="text-xs text-slate-400 mb-2">Definición por penales</div>
           <div className="flex items-center justify-center gap-2">
-            <Stepper value={base.homePens ?? 0} onChange={(v) => patch({ homePens: Math.max(0, v) })} small />
-            <span className="text-slate-500 text-sm">penales</span>
-            <Stepper value={base.awayPens ?? 0} onChange={(v) => patch({ awayPens: Math.max(0, v) })} small />
+            {isReal ? (
+              <span className="text-lg font-bold tabular-nums">
+                {base.homePens ?? 0} - {base.awayPens ?? 0}
+              </span>
+            ) : (
+              <>
+                <Stepper value={base.homePens ?? 0} onChange={(v) => patch({ homePens: Math.max(0, v) })} small />
+                <span className="text-slate-500 text-sm">penales</span>
+                <Stepper value={base.awayPens ?? 0} onChange={(v) => patch({ awayPens: Math.max(0, v) })} small />
+              </>
+            )}
           </div>
         </div>
       )}
@@ -202,22 +238,25 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
                   {e.minute != null && <span className="text-slate-500"> {e.minute}'</span>}
                 </span>
                 <span className="text-[10px] text-slate-500">{meta.label}</span>
-                <button
-                  onClick={() => {
-                    ensureOverride()
-                    removeEvent(scenario.id, matchId, e.id)
-                  }}
-                  className="text-slate-500 hover:text-rose-400"
-                >
-                  ✕
-                </button>
+                {!isReal && (
+                  <button
+                    onClick={() => {
+                      ensureOverride()
+                      removeEvent(scenario.id, matchId, e.id)
+                    }}
+                    className="text-slate-500 hover:text-rose-400"
+                  >
+                    ✕
+                  </button>
+                )}
               </div>
             )
           })}
         </div>
       </div>
 
-      {/* Alta de evento */}
+      {/* Alta de evento (manual) — oculto en el escenario real */}
+      {!isReal && (
       <div className="bg-slate-800/40 rounded-xl p-3 space-y-2">
         <div className="flex flex-wrap gap-1.5">
           {(Object.keys(EVENT_META) as EventType[]).map((t) => (
@@ -282,6 +321,19 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
             +
           </button>
         </div>
+      </div>
+      )}
+
+      {/* Formaciones: titulares y suplentes de ambos equipos */}
+      <div className="mt-4 pt-4 border-t border-white/10">
+        <LineupPanel
+          homeId={ctx.resolution.matches[matchId]?.home}
+          awayId={ctx.resolution.matches[matchId]?.away}
+          home={home}
+          away={away}
+          readOnly={isReal}
+          onAction={addPlayerEvent}
+        />
       </div>
     </Modal>
   )
