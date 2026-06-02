@@ -40,7 +40,15 @@ function computeBestThirds(
  * Resuelve tablas, clasificados y el cuadro de eliminación para un conjunto de
  * resultados (ya "efectivos", es decir con la herencia de what-if aplicada).
  */
-export function resolve(results: Record<number, MatchResult>): Resolution {
+export function resolve(
+  results: Record<number, MatchResult>,
+  /**
+   * Puestos de grupo reales (1A/2B/3RD-n) para armar la fase final con los
+   * equipos que realmente clasificaron. Cuando se pasa, el cuadro de eliminación
+   * usa estos en lugar de los puestos predichos por este escenario.
+   */
+  overrideGroupSlots?: Record<string, string>,
+): Resolution {
   const standings = computeAllStandings(results)
 
   // Puestos de grupo (1° y 2°) PROVISORIOS según la tabla actual.
@@ -62,6 +70,12 @@ export function resolve(results: Record<number, MatchResult>): Resolution {
     ranked.slice(0, 8).forEach((x, i) => {
       slots[`3RD-${i + 1}`] = x.teamId
     })
+  }
+
+  // Fase final automática: si hay puestos reales, el cuadro usa esos equipos.
+  if (overrideGroupSlots) {
+    for (const k of Object.keys(slots)) delete slots[k]
+    Object.assign(slots, overrideGroupSlots)
   }
 
   const matches: Record<number, ResolvedMatch> = {}

@@ -50,15 +50,22 @@ export function RankingView() {
         </p>
         <ul className="list-disc pl-4 space-y-0.5 text-slate-400">
           <li>
-            <strong className="text-emerald-400">Marcador exacto</strong>: 3 puntos (ej: predijiste
-            2-1 y salió 2-1).
-          </li>
-          <li>
-            <strong className="text-amber-400">Sólo el resultado</strong> (ganó/empató/perdió, sin
-            el marcador exacto): 1 punto (ej: predijiste 1-1 y salió 0-0; acertaste el empate).
+            <strong className="text-emerald-400">Marcador exacto</strong> (ej: predijiste 2-1 y salió
+            2-1) o <strong className="text-amber-400">sólo el resultado</strong> (ganó/empató/perdió,
+            sin el marcador; ej: predijiste 1-1 y salió 0-0).
           </li>
           <li>Errar el resultado: 0 puntos.</li>
         </ul>
+        <p className="text-slate-400">
+          Los puntos <strong>valen más a medida que avanza el torneo</strong> (exacto / sólo
+          resultado): Grupos 3/1 · 16avos 4/2 · 8vos 5/2 · 4tos 6/3 · Semis 8/4 · Final y 3º 10/5. Así
+          la fase final mantiene el ranking abierto.
+        </p>
+        <p className="text-slate-400">
+          🏟️ Al terminar la fase de grupos, la <strong>fase final se arma con los equipos que
+          realmente clasificaron</strong> (no con los que predijiste), así todos pronostican los
+          cruces correctos.
+        </p>
         <p className="text-slate-400">
           ⏱️ Las predicciones de cada partido <strong>se cierran 5 minutos antes</strong> de que
           empiece. Sólo cuentan los partidos que predijiste a tiempo: los que no, no suman ni restan.

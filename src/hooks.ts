@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react'
 import { useStore, effectiveResults, REAL_SCENARIO_ID, getScenario } from './store/useStore'
 import { resolve, type Resolution } from './engine/resolve'
+import { allGroupsComplete } from './engine/standings'
 import { fetchLiveFixtures, mapFixturesToUpdates } from './engine/liveSync'
 import type { MatchResult, Scenario } from './types'
 
@@ -23,7 +24,19 @@ export function useActiveContext(): ActiveContext {
   const scenario = getScenario(scenarios, activeId) ?? real
   const results = effectiveResults(scenario, real)
 
-  const resolution = useMemo(() => resolve(results), [results])
+  // Resolución del REAL: de ahí salen los clasificados reales para la fase final.
+  const realResolution = useMemo(() => resolve(real.results), [real.results])
+
+  // Cuando la fase de grupos real terminó, las PREDICCIONES arman su fase final
+  // con los equipos que realmente clasificaron (automático para todos).
+  const overrideSlots = useMemo(() => {
+    if (scenario.type === 'prediction' && allGroupsComplete(real.results)) {
+      return realResolution.slots
+    }
+    return undefined
+  }, [scenario.type, real.results, realResolution])
+
+  const resolution = useMemo(() => resolve(results, overrideSlots), [results, overrideSlots])
   return { scenario, real, results, resolution }
 }
 

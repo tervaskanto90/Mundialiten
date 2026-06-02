@@ -88,7 +88,7 @@ export default function App() {
 
       <footer className="max-w-5xl w-full mx-auto px-4 py-6 text-center text-xs text-slate-500">
         <div>
-          Datos guardados en este navegador · {ctx.resolution.bestThirds ? 'fase de grupos completa' : 'fase de grupos en curso'} · v1.9
+          Datos guardados en este navegador · {ctx.resolution.bestThirds ? 'fase de grupos completa' : 'fase de grupos en curso'} · v2.0
         </div>
         <div className="mt-1 text-slate-600">hecho por Octavio Boggiano</div>
       </footer>
