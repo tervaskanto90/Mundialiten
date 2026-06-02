@@ -30,6 +30,14 @@ export function emptyResult(): MatchResult {
   return { played: false, homeScore: 0, awayScore: 0, events: [] }
 }
 
+// Cuánto suma un evento al marcador: gol/penal suma a su equipo; el gol en
+// contra suma al rival. El resto (tarjetas/VAR) no afecta el marcador.
+function goalDelta(type: MatchEvent['type'], team: 'home' | 'away'): [number, number] {
+  if (type === 'goal' || type === 'penalty') return team === 'home' ? [1, 0] : [0, 1]
+  if (type === 'own_goal') return team === 'home' ? [0, 1] : [1, 0]
+  return [0, 0]
+}
+
 export type SyncStatus = 'idle' | 'syncing' | 'ok' | 'error'
 
 interface State {
@@ -165,11 +173,18 @@ export const useStore = create<State>()(
             if (sc.id !== scenarioId) return sc
             const cur = sc.results[matchId] ?? emptyResult()
             const event: MatchEvent = { ...ev, id: uid() }
+            const [dh, da] = goalDelta(ev.type, ev.team)
             return {
               ...sc,
               results: {
                 ...sc.results,
-                [matchId]: { ...cur, events: [...cur.events, event] },
+                [matchId]: {
+                  ...cur,
+                  played: true,
+                  homeScore: cur.homeScore + dh,
+                  awayScore: cur.awayScore + da,
+                  events: [...cur.events, event],
+                },
               },
             }
           }),
@@ -183,11 +198,18 @@ export const useStore = create<State>()(
             if (sc.id !== scenarioId) return sc
             const cur = sc.results[matchId]
             if (!cur) return sc
+            const ev = cur.events.find((e) => e.id === eventId)
+            const [dh, da] = ev ? goalDelta(ev.type, ev.team) : [0, 0]
             return {
               ...sc,
               results: {
                 ...sc.results,
-                [matchId]: { ...cur, events: cur.events.filter((e) => e.id !== eventId) },
+                [matchId]: {
+                  ...cur,
+                  homeScore: Math.max(0, cur.homeScore - dh),
+                  awayScore: Math.max(0, cur.awayScore - da),
+                  events: cur.events.filter((e) => e.id !== eventId),
+                },
               },
             }
           }),
