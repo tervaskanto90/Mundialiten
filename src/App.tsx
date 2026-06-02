@@ -6,22 +6,28 @@ import { BracketView } from './components/BracketView'
 import { AccuracyView } from './components/AccuracyView'
 import { ResultEditor } from './components/ResultEditor'
 import { LiveSyncBar } from './components/LiveSyncBar'
+import { RankingView } from './components/RankingView'
 import { useActiveContext, useLiveSyncPolling } from './hooks'
+import { useAuth } from './auth'
+import { useSupabaseSync } from './lib/sync'
 
-type View = 'calendario' | 'grupos' | 'llaves' | 'precision'
+type View = 'calendario' | 'grupos' | 'llaves' | 'precision' | 'ranking'
 
 const NAV: { id: View; label: string; icon: string }[] = [
   { id: 'calendario', label: 'Calendario', icon: '📅' },
   { id: 'grupos', label: 'Grupos', icon: '📊' },
   { id: 'llaves', label: 'Llaves', icon: '🏆' },
   { id: 'precision', label: 'Precisión', icon: '🎯' },
+  { id: 'ranking', label: 'Ranking', icon: '🏅' },
 ]
 
 export default function App() {
   const [view, setView] = useState<View>('calendario')
   const [editingMatch, setEditingMatch] = useState<number | null>(null)
   const ctx = useActiveContext()
+  const { enabled, user, displayName, signOut } = useAuth()
   useLiveSyncPolling()
+  useSupabaseSync()
 
   return (
     <div className="min-h-full flex flex-col">
@@ -32,6 +38,17 @@ export default function App() {
             <h1 className="font-bold text-lg">Mundialiten</h1>
             <p className="text-xs text-slate-400">Mundial 2026 · calendario y predicciones</p>
           </div>
+          {enabled && user && (
+            <div className="ml-auto flex items-center gap-2 text-xs">
+              <span className="text-slate-300 hidden sm:inline">👤 {displayName}</span>
+              <button
+                onClick={() => signOut()}
+                className="text-slate-400 hover:text-white px-2 py-1 rounded-lg hover:bg-white/10"
+              >
+                Salir
+              </button>
+            </div>
+          )}
         </div>
         <TabBar />
       </header>
@@ -60,6 +77,7 @@ export default function App() {
         {view === 'grupos' && <GroupsView ctx={ctx} />}
         {view === 'llaves' && <BracketView ctx={ctx} onEdit={setEditingMatch} />}
         {view === 'precision' && <AccuracyView />}
+        {view === 'ranking' && <RankingView />}
       </main>
 
       {ctx.scenario.type === 'real' && (
@@ -69,7 +87,7 @@ export default function App() {
       )}
 
       <footer className="max-w-5xl w-full mx-auto px-4 py-6 text-center text-xs text-slate-500">
-        Datos guardados en este navegador · {ctx.resolution.bestThirds ? 'fase de grupos completa' : 'fase de grupos en curso'} · v1.3
+        Datos guardados en este navegador · {ctx.resolution.bestThirds ? 'fase de grupos completa' : 'fase de grupos en curso'} · v1.4
       </footer>
 
       {editingMatch != null && (

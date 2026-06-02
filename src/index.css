@@ -97,6 +97,20 @@ body {
   border-bottom-left-radius: 6px;
 }
 
+.auth-input {
+  width: 100%;
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  color: #e2e8f0;
+  outline: none;
+}
+.auth-input:focus {
+  border-color: #2f6df0;
+}
+
 /* Scrollbars discretas */
 ::-webkit-scrollbar {
   height: 8px;

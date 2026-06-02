@@ -18,6 +18,30 @@ Para una versión optimizada: `npm run build` y luego `npm run preview`.
 La carpeta `dist/` resultante se puede subir gratis a Vercel, Netlify, GitHub
 Pages, etc.
 
+### Cuentas y ranking (Supabase) — opcional
+
+La app funciona sin login (modo local). Para tener **login por usuario,
+predicción única por cuenta y ranking compartido**, configurá Supabase (gratis):
+
+1. Creá un proyecto en [supabase.com](https://supabase.com) (no pide tarjeta).
+2. **SQL Editor → New query** → pegá y ejecutá el contenido de
+   [`supabase/schema.sql`](supabase/schema.sql).
+3. **Authentication → Providers → Email**: desactivá *"Confirm email"* (así el
+   alta es instantánea, sin servidor de mails).
+4. **Project Settings → API**: copiá *Project URL* y *anon public key*.
+5. En Vercel (*Project Settings → Environment Variables*) agregá:
+   - `VITE_SUPABASE_URL = <tu Project URL>`
+   - `VITE_SUPABASE_ANON_KEY = <tu anon public key>`
+   y volvé a deployar.
+
+Listo: aparece la pantalla de login (email + contraseña + nombre). Cada usuario
+tiene **una** predicción (privada), los **what-if** son locales y no cuentan, y
+el **ranking** (pestaña 🏅) muestra el top-5 por % de acierto. La *anon key* es
+pública a propósito; los datos están protegidos por las reglas (RLS) del SQL.
+
+> Si las variables no están cargadas, la app sigue funcionando como antes
+> (local, sin login).
+
 ### Deploy en Vercel
 
 1. Importá el repo en Vercel. Detecta **Vite** automáticamente:
