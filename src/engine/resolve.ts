@@ -3,7 +3,6 @@ import { GROUPS } from '../data/teams'
 import { MATCHES } from '../data/schedule'
 import {
   computeAllStandings,
-  groupComplete,
   allGroupsComplete,
   sortStanding,
   type StandingRow,
@@ -44,17 +43,18 @@ function computeBestThirds(
 export function resolve(results: Record<number, MatchResult>): Resolution {
   const standings = computeAllStandings(results)
 
-  // Puestos de grupo (1° y 2°) cuando el grupo terminó.
+  // Puestos de grupo (1° y 2°) PROVISORIOS según la tabla actual.
+  // Se ubica al líder/escolta apenas tienen ≥1 partido jugado; si el equipo de
+  // esa posición no jugó nada todavía, se deja el puesto sin asignar (por definir).
   const slots: Record<string, string> = {}
   for (const g of GROUPS) {
-    if (groupComplete(g, results)) {
-      const table = standings[g]
-      if (table[0]) slots[`1${g}`] = table[0].teamId
-      if (table[1]) slots[`2${g}`] = table[1].teamId
-    }
+    const table = standings[g]
+    if (table[0] && table[0].played > 0) slots[`1${g}`] = table[0].teamId
+    if (table[1] && table[1].played > 0) slots[`2${g}`] = table[1].teamId
   }
 
-  // Mejores terceros (necesita que TODOS los grupos hayan terminado).
+  // Mejores terceros: se ubican recién cuando TODOS los grupos terminaron
+  // (compararlos antes sería engañoso porque dependen de los 12 grupos).
   let bestThirds: string[] | null = null
   if (allGroupsComplete(results)) {
     const ranked = computeBestThirds(standings)
