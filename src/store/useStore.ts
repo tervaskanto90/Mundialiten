@@ -4,6 +4,8 @@ import type { MatchEvent, MatchResult, Scenario, ScenarioType } from '../types'
 import { DEFAULT_LIVE_CONFIG, type LiveConfig, type LiveUpdate, type LiveEvent } from '../engine/liveSync'
 
 const REAL_ID = 'real'
+// Id fijo de la predicción única atada a la cuenta (cuando hay login).
+export const ACCOUNT_PRED_ID = 'account-pred'
 
 const SCENARIO_COLORS = [
   '#2f6df0',
@@ -69,6 +71,11 @@ interface State {
   setSyncStatus: (status: SyncStatus, message?: string) => void
   applyLiveResults: (updates: LiveUpdate[]) => void
   applyLiveEvents: (matchId: number, events: LiveEvent[]) => void
+
+  // Hidratación desde Supabase (cuando hay sesión iniciada)
+  hydrateReal: (results: Record<number, MatchResult>) => void
+  hydratePrediction: (results: Record<number, MatchResult>, name?: string) => void
+  removeAccountPrediction: () => void
 
   importState: (data: { scenarios: Scenario[]; activeId?: string }) => void
 }
@@ -259,6 +266,41 @@ export const useStore = create<State>()(
               results: { ...sc.results, [matchId]: { ...cur, played: true, events: mapped } },
             }
           }),
+        })),
+
+      hydrateReal: (results) =>
+        set((s) => ({
+          scenarios: s.scenarios.map((sc) => (sc.id === REAL_ID ? { ...sc, results } : sc)),
+        })),
+
+      hydratePrediction: (results, name) =>
+        set((s) => {
+          const exists = s.scenarios.some((x) => x.id === ACCOUNT_PRED_ID)
+          if (exists) {
+            return {
+              scenarios: s.scenarios.map((sc) =>
+                sc.id === ACCOUNT_PRED_ID
+                  ? { ...sc, results, name: name?.trim() || sc.name }
+                  : sc,
+              ),
+            }
+          }
+          const scenario: Scenario = {
+            id: ACCOUNT_PRED_ID,
+            name: name?.trim() || 'Mi predicción',
+            type: 'prediction',
+            color: SCENARIO_COLORS[1],
+            createdAt: new Date().toISOString(),
+            predictionDate: todayISO(),
+            results,
+          }
+          return { scenarios: [...s.scenarios, scenario] }
+        }),
+
+      removeAccountPrediction: () =>
+        set((s) => ({
+          scenarios: s.scenarios.filter((x) => x.id !== ACCOUNT_PRED_ID),
+          activeId: s.activeId === ACCOUNT_PRED_ID ? REAL_ID : s.activeId,
         })),
 
       importState: (data) =>

@@ -1,8 +1,9 @@
 import { useRef, useState } from 'react'
-import { useStore } from '../store/useStore'
+import { useStore, ACCOUNT_PRED_ID } from '../store/useStore'
 import type { ScenarioType } from '../types'
 import { Modal } from './Modal'
 import { formatDateShort } from '../utils/labels'
+import { useAuth } from '../auth'
 
 const TYPE_BADGE: Record<ScenarioType, string> = {
   real: 'EN VIVO',
@@ -18,6 +19,8 @@ export function TabBar() {
   const removeScenario = useStore((s) => s.removeScenario)
   const renameScenario = useStore((s) => s.renameScenario)
   const importState = useStore((s) => s.importState)
+  const { enabled, user } = useAuth()
+  const loggedIn = enabled && !!user
 
   const [dialog, setDialog] = useState<null | { mode: 'new'; type: ScenarioType } | { mode: 'edit'; id: string }>(null)
   const [name, setName] = useState('')
@@ -122,28 +125,32 @@ export function TabBar() {
                   >
                     ✎
                   </button>
-                  <button
-                    title="Eliminar"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      if (confirm(`¿Eliminar "${sc.name}"?`)) removeScenario(sc.id)
-                    }}
-                    className={`text-xs ${active ? 'text-white/80 hover:text-white' : 'text-slate-500 hover:text-rose-400'}`}
-                  >
-                    ✕
-                  </button>
+                  {sc.id !== ACCOUNT_PRED_ID && (
+                    <button
+                      title="Eliminar"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (confirm(`¿Eliminar "${sc.name}"?`)) removeScenario(sc.id)
+                      }}
+                      className={`text-xs ${active ? 'text-white/80 hover:text-white' : 'text-slate-500 hover:text-rose-400'}`}
+                    >
+                      ✕
+                    </button>
+                  )}
                 </div>
               )}
             </div>
           )
         })}
 
-        <button
-          onClick={() => openNew('prediction')}
-          className="shrink-0 rounded-xl border border-dashed border-white/20 px-3 py-1.5 text-sm text-slate-300 hover:bg-white/5 whitespace-nowrap"
-        >
-          🔮 + Predicción
-        </button>
+        {!loggedIn && (
+          <button
+            onClick={() => openNew('prediction')}
+            className="shrink-0 rounded-xl border border-dashed border-white/20 px-3 py-1.5 text-sm text-slate-300 hover:bg-white/5 whitespace-nowrap"
+          >
+            🔮 + Predicción
+          </button>
+        )}
         <button
           onClick={() => openNew('whatif')}
           className="shrink-0 rounded-xl border border-dashed border-white/20 px-3 py-1.5 text-sm text-slate-300 hover:bg-white/5 whitespace-nowrap"
