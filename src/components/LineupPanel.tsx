@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { getRoster } from '../data/rosters'
 import type { EventType, Player } from '../types'
 import type { SideLabel } from '../utils/labels'
@@ -22,24 +22,75 @@ interface MenuState {
   player: Player
 }
 
+// Handlers que enlazan a cada jugador: clic = gol, clic derecho / mantener
+// apretado = menú con el resto de opciones.
+type PlayerBinder = (
+  side: 'home' | 'away',
+  player: Player,
+) => {
+  onClick: (e: React.MouseEvent) => void
+  onContextMenu: (e: React.MouseEvent) => void
+  onTouchStart: (e: React.TouchEvent) => void
+  onTouchMove: (e: React.TouchEvent) => void
+  onTouchEnd: () => void
+}
+
+const LONG_PRESS_MS = 450
+
 export function LineupPanel({ homeId, awayId, home, away, readOnly, onAction }: Props) {
   const [menu, setMenu] = useState<MenuState | null>(null)
   const { t } = useT()
   const homeRoster = getRoster(homeId)
   const awayRoster = getRoster(awayId)
 
-  const open = (e: React.MouseEvent, side: 'home' | 'away', player: Player) => {
+  // Estado del gesto táctil (long-press).
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const startPos = useRef<{ x: number; y: number }>({ x: 0, y: 0 })
+  const suppressClick = useRef(false) // evita que el toque tras un long-press cargue un gol
+
+  const openMenu = (x: number, y: number, side: 'home' | 'away', player: Player) => {
     if (readOnly) return
-    e.preventDefault()
-    setMenu({ x: e.clientX, y: e.clientY, side, player })
+    setMenu({ x, y, side, player })
   }
 
-  // Clic izquierdo: gol directo. (El resto de opciones, por clic derecho.)
-  const quickGoal = (e: React.MouseEvent, side: 'home' | 'away', player: Player) => {
-    if (readOnly) return
-    e.preventDefault()
-    onAction(side, player, 'goal')
-  }
+  const bind: PlayerBinder = (side, player) => ({
+    onClick: (e) => {
+      e.preventDefault()
+      if (readOnly) return
+      if (suppressClick.current) {
+        suppressClick.current = false
+        return
+      }
+      onAction(side, player, 'goal')
+    },
+    onContextMenu: (e) => {
+      if (readOnly) return
+      e.preventDefault()
+      openMenu(e.clientX, e.clientY, side, player)
+    },
+    onTouchStart: (e) => {
+      if (readOnly) return
+      const t0 = e.touches[0]
+      startPos.current = { x: t0.clientX, y: t0.clientY }
+      if (timer.current) clearTimeout(timer.current)
+      timer.current = setTimeout(() => {
+        suppressClick.current = true
+        openMenu(t0.clientX, t0.clientY, side, player)
+      }, LONG_PRESS_MS)
+    },
+    onTouchMove: (e) => {
+      const t0 = e.touches[0]
+      if (
+        Math.abs(t0.clientX - startPos.current.x) > 10 ||
+        Math.abs(t0.clientY - startPos.current.y) > 10
+      ) {
+        if (timer.current) clearTimeout(timer.current)
+      }
+    },
+    onTouchEnd: () => {
+      if (timer.current) clearTimeout(timer.current)
+    },
+  })
 
   const items: MenuItem[] = menu
     ? [
@@ -56,14 +107,14 @@ export function LineupPanel({ homeId, awayId, home, away, readOnly, onAction }: 
       {!readOnly && (
         <p className="text-[11px] text-slate-500 mb-2">
           {t(
-            'Clic en un jugador = gol. Clic derecho (o mantené apretado en el celu) = gol en contra, amarilla o roja.',
-            'Click a player = goal. Right-click (or long-press on mobile) = own goal, yellow or red card.',
+            'Tocá un jugador = gol. Mantené apretado (o clic derecho en la compu) = gol de penal, gol en contra, amarilla o roja.',
+            'Tap a player = goal. Long-press (or right-click on desktop) = penalty goal, own goal, yellow or red card.',
           )}
         </p>
       )}
       <div className="grid grid-cols-2 gap-3">
-        <TeamColumn side="home" label={home} roster={homeRoster} onPlayer={open} onQuick={quickGoal} />
-        <TeamColumn side="away" label={away} roster={awayRoster} onPlayer={open} onQuick={quickGoal} />
+        <TeamColumn side="home" label={home} roster={homeRoster} bind={bind} />
+        <TeamColumn side="away" label={away} roster={awayRoster} bind={bind} />
       </div>
 
       {menu && (
@@ -83,14 +134,12 @@ function TeamColumn({
   side,
   label,
   roster,
-  onPlayer,
-  onQuick,
+  bind,
 }: {
   side: 'home' | 'away'
   label: SideLabel
   roster: ReturnType<typeof getRoster>
-  onPlayer: (e: React.MouseEvent, side: 'home' | 'away', player: Player) => void
-  onQuick: (e: React.MouseEvent, side: 'home' | 'away', player: Player) => void
+  bind: PlayerBinder
 }) {
   const { t } = useT()
   return (
@@ -103,8 +152,8 @@ function TeamColumn({
         <p className="text-[11px] text-slate-600 italic">{t('Equipo por definir', 'Team to be decided')}</p>
       ) : (
         <div className="space-y-2">
-          <PlayerList title={t('Titulares', 'Starters')} players={roster.starters} side={side} onPlayer={onPlayer} onQuick={onQuick} />
-          <PlayerList title={t('Suplentes', 'Substitutes')} players={roster.subs} side={side} onPlayer={onPlayer} onQuick={onQuick} dim />
+          <PlayerList title={t('Titulares', 'Starters')} players={roster.starters} side={side} bind={bind} />
+          <PlayerList title={t('Suplentes', 'Substitutes')} players={roster.subs} side={side} bind={bind} dim />
         </div>
       )}
     </div>
@@ -115,15 +164,13 @@ function PlayerList({
   title,
   players,
   side,
-  onPlayer,
-  onQuick,
+  bind,
   dim,
 }: {
   title: string
   players: Player[]
   side: 'home' | 'away'
-  onPlayer: (e: React.MouseEvent, side: 'home' | 'away', player: Player) => void
-  onQuick: (e: React.MouseEvent, side: 'home' | 'away', player: Player) => void
+  bind: PlayerBinder
   dim?: boolean
 }) {
   const { t } = useT()
@@ -134,10 +181,9 @@ function PlayerList({
         {players.map((p) => (
           <button
             key={p.id}
-            onClick={(e) => onQuick(e, side, p)}
-            onContextMenu={(e) => onPlayer(e, side, p)}
-            title={t('Clic = gol · clic derecho = más opciones', 'Click = goal · right-click = more options')}
-            className={`w-full text-left flex items-center gap-1.5 px-1.5 py-1 rounded-md hover:bg-pitch-500/15 ${
+            {...bind(side, p)}
+            title={t('Tocá = gol · mantené apretado / clic derecho = más opciones', 'Tap = goal · long-press / right-click = more options')}
+            className={`w-full text-left flex items-center gap-1.5 px-1.5 py-1 rounded-md hover:bg-pitch-500/15 select-none ${
               dim ? 'opacity-70' : ''
             }`}
           >

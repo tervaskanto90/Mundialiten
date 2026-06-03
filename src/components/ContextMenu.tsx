@@ -18,14 +18,19 @@ export function ContextMenu({ x, y, items, onClose, title }: Props) {
   useEffect(() => {
     const close = () => onClose()
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
-    window.addEventListener('click', close)
-    window.addEventListener('contextmenu', close)
     window.addEventListener('keydown', onKey)
-    window.addEventListener('scroll', close, true)
+    // Demoramos los listeners de cierre por click/contextmenu/scroll para que el
+    // mismo gesto que abre el menú (toque o clic derecho) no lo cierre al instante.
+    const id = setTimeout(() => {
+      window.addEventListener('click', close)
+      window.addEventListener('contextmenu', close)
+      window.addEventListener('scroll', close, true)
+    }, 0)
     return () => {
+      clearTimeout(id)
+      window.removeEventListener('keydown', onKey)
       window.removeEventListener('click', close)
       window.removeEventListener('contextmenu', close)
-      window.removeEventListener('keydown', onKey)
       window.removeEventListener('scroll', close, true)
     }
   }, [onClose])
