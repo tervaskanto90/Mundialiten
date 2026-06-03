@@ -297,26 +297,32 @@ export const useStore = create<State>()(
 
       hydratePrediction: (results, name) =>
         set((s) => {
-          const exists = s.scenarios.some((x) => x.id === ACCOUNT_PRED_ID)
+          // Una sola predicción por cuenta: descartamos cualquier predicción
+          // local previa (creada como invitado) y dejamos sólo la de la cuenta.
+          const base = s.scenarios.filter(
+            (x) => x.type !== 'prediction' || x.id === ACCOUNT_PRED_ID,
+          )
+          const exists = base.some((x) => x.id === ACCOUNT_PRED_ID)
+          let scenarios: Scenario[]
           if (exists) {
-            return {
-              scenarios: s.scenarios.map((sc) =>
-                sc.id === ACCOUNT_PRED_ID
-                  ? { ...sc, results, name: name?.trim() || sc.name }
-                  : sc,
-              ),
+            scenarios = base.map((sc) =>
+              sc.id === ACCOUNT_PRED_ID ? { ...sc, results, name: name?.trim() || sc.name } : sc,
+            )
+          } else {
+            const scenario: Scenario = {
+              id: ACCOUNT_PRED_ID,
+              name: name?.trim() || 'Mi predicción',
+              type: 'prediction',
+              color: SCENARIO_COLORS[1],
+              createdAt: new Date().toISOString(),
+              predictionDate: todayISO(),
+              results,
             }
+            scenarios = [...base, scenario]
           }
-          const scenario: Scenario = {
-            id: ACCOUNT_PRED_ID,
-            name: name?.trim() || 'Mi predicción',
-            type: 'prediction',
-            color: SCENARIO_COLORS[1],
-            createdAt: new Date().toISOString(),
-            predictionDate: todayISO(),
-            results,
-          }
-          return { scenarios: [...s.scenarios, scenario] }
+          // Si la pestaña activa era una predicción local que sacamos, reubicamos.
+          const activeId = scenarios.some((x) => x.id === s.activeId) ? s.activeId : ACCOUNT_PRED_ID
+          return { scenarios, activeId }
         }),
 
       removeAccountPrediction: () =>
