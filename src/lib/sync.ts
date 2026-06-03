@@ -107,9 +107,9 @@ async function pushScore(userId: string, displayName: string): Promise<void> {
   const st = useStore.getState()
   const pred = getScenario(st.scenarios, ACCOUNT_PRED_ID)
   const real = getScenario(st.scenarios, REAL_SCENARIO_ID)
-  // El ranking se ordena por el puntaje de resultados (exacto/resultado).
+  // El ranking se ordena por PUNTOS acumulados (exacto/resultado, escalonado por
+  // fase). Guardamos también el % y el desglose por factores como info.
   const score = computeRankingScore(pred?.results ?? {}, real?.results ?? {})
-  // Guardamos también el desglose informativo por factores.
   const report = computeAccuracy(pred?.results ?? {}, real?.results ?? {})
-  await upsertScore(userId, displayName, Number(score.pct.toFixed(2)), report.factors)
+  await upsertScore(userId, displayName, Number(score.pct.toFixed(2)), score.points, report.factors)
 }

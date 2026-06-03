@@ -1,5 +1,6 @@
 import { MATCH_BY_ID } from '../data/schedule'
 import { sideLabelFor, venueName, matchTimeLabel } from '../utils/labels'
+import { canPredict } from '../utils/stage'
 import type { ActiveContext } from '../hooks'
 
 interface Props {
@@ -17,14 +18,18 @@ export function MatchRow({ matchId, ctx, onEdit, showVenue = true }: Props) {
   const away = sideLabelFor(matchId, match.away, 'away', ctx.resolution)
   const played = res?.played
   const rm = ctx.resolution.matches[matchId]
+  // En una predicción, marcamos los partidos que todavía no se pueden predecir.
+  const lockedForPrediction = ctx.scenario.type === 'prediction' && !canPredict(match)
 
   return (
     <button
       onClick={() => onEdit(matchId)}
-      className="w-full text-left bg-slate-800/60 hover:bg-slate-800 border border-white/5 rounded-xl px-3 py-2.5 flex items-center gap-3 transition"
+      className={`w-full text-left border border-white/5 rounded-xl px-3 py-2.5 flex items-center gap-3 transition ${
+        lockedForPrediction ? 'bg-slate-800/30 hover:bg-slate-800/50' : 'bg-slate-800/60 hover:bg-slate-800'
+      }`}
     >
       <div className="text-[10px] text-slate-500 w-12 shrink-0">
-        <div className="font-mono">P{match.id}</div>
+        <div className="font-mono">{lockedForPrediction ? '🔒' : ''}P{match.id}</div>
         <div>{matchTimeLabel(match)}</div>
       </div>
 

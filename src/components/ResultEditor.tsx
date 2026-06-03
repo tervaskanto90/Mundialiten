@@ -7,7 +7,7 @@ import type { ActiveContext } from '../hooks'
 import { Modal } from './Modal'
 import { LineupPanel } from './LineupPanel'
 import { fetchFixtureEvents } from '../engine/liveSync'
-import { isPredictionLocked } from '../utils/lock'
+import { predictReason } from '../utils/stage'
 import { useT } from '../i18n'
 
 interface Props {
@@ -66,8 +66,10 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
   const isWhatif = scenario.type === 'whatif'
   const hasOverride = !!scenario.results[matchId]
   const inherited = isWhatif && !hasOverride
-  // Las predicciones se cierran 5 min antes del partido (no aplica a what-if).
-  const locked = scenario.type === 'prediction' && isPredictionLocked(match)
+  // Predicciones: se habilitan por etapa y se cierran 5 min antes del partido.
+  // (No aplica al what-if, que es sandbox.)
+  const reason = scenario.type === 'prediction' ? predictReason(match) : 'open'
+  const locked = reason !== 'open'
   const editingDisabled = isReal || locked
 
   // Para what-if sin sobrescritura, sembramos el override con el resultado
@@ -171,10 +173,20 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
 
       {locked && (
         <div className="text-[11px] text-amber-200 bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2 mb-4">
-          {t(
-            '🔒 Ya no se aceptan predicciones para este partido (cerró 5 minutos antes del inicio). Si no lo predijiste a tiempo, no cuenta para el ranking.',
-            '🔒 Predictions for this match are closed (they closed 5 minutes before kick-off). If you did not predict it in time, it does not count for the ranking.',
-          )}
+          {reason === 'future'
+            ? t(
+                `🔒 Las predicciones de ${STAGE_I18N[match.stage].es} se abren cuando empiece esa fase.`,
+                `🔒 Predictions for the ${STAGE_I18N[match.stage].en} open when that stage begins.`,
+              )
+            : reason === 'past'
+              ? t(
+                  `🔒 Las predicciones de ${STAGE_I18N[match.stage].es} ya cerraron.`,
+                  `🔒 Predictions for the ${STAGE_I18N[match.stage].en} are closed.`,
+                )
+              : t(
+                  '🔒 Ya no se aceptan predicciones para este partido (cerró 5 minutos antes del inicio).',
+                  '🔒 Predictions for this match are closed (they closed 5 minutes before kick-off).',
+                )}
         </div>
       )}
 

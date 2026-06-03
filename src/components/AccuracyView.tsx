@@ -67,7 +67,7 @@ export function AccuracyView() {
       <div className="space-y-4">
         {cards
           .slice()
-          .sort((a, b) => b.score.pct - a.score.pct)
+          .sort((a, b) => b.score.points - a.score.points)
           .map(({ scenario, score, report }) => (
             <AccuracyCard key={scenario.id} scenario={scenario} score={score} report={report} />
           ))}
@@ -101,9 +101,11 @@ function AccuracyCard({
         </div>
         <div className="text-right">
           <div className="text-2xl font-bold" style={{ color: scenario.color }}>
-            {score.pct.toFixed(0)}%
+            {Math.round(score.points)} {t('pts', 'pts')}
           </div>
-          <div className="text-[10px] text-slate-500">{t('puntaje del ranking', 'ranking score')}</div>
+          <div className="text-[10px] text-slate-500">
+            {t('puntos del ranking', 'ranking points')} · {score.pct.toFixed(0)}%
+          </div>
         </div>
       </div>
 

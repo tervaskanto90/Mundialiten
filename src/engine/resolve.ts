@@ -77,12 +77,18 @@ function computeBestThirds(
 export function resolve(
   results: Record<number, MatchResult>,
   /**
-   * Puestos de grupo reales (1A/2B/3RD-n) para armar la fase final con los
-   * equipos que realmente clasificaron. Cuando se pasa, el cuadro de eliminación
-   * usa estos en lugar de los puestos predichos por este escenario.
+   * Overrides para armar la fase final con la REALIDAD (sólo en predicciones):
+   *  - realSlots: puestos de grupo reales (1A/2B/3RD-n) cuando terminó la fase de grupos.
+   *  - realMatches: resolución real, para que los cruces (Wnn/Lnn) usen los ganadores
+   *    REALES de la ronda anterior donde ya se jugó (y caigan a los predichos si no).
    */
-  overrideGroupSlots?: Record<string, string>,
+  opts?: {
+    realSlots?: Record<string, string>
+    realMatches?: Record<number, ResolvedMatch>
+  },
 ): Resolution {
+  const overrideGroupSlots = opts?.realSlots
+  const realMatches = opts?.realMatches
   const standings = computeAllStandings(results)
 
   // Puestos de grupo (1° y 2°) PROVISORIOS según la tabla actual.
@@ -117,9 +123,16 @@ export function resolve(
   const resolveRef = (ref: string): string | undefined => {
     // Puesto de grupo (1A/2B) o mejor tercero (3RD-n) ya resuelto.
     if (ref in slots) return slots[ref]
-    // Ganador / perdedor de un partido previo.
-    if (/^W\d+$/.test(ref)) return matches[Number(ref.slice(1))]?.winner
-    if (/^L\d+$/.test(ref)) return matches[Number(ref.slice(1))]?.loser
+    // Ganador / perdedor de un partido previo. Si hay resultado REAL de ese
+    // partido, se usa ese equipo (reacomodo por ronda); si no, el predicho.
+    if (/^W\d+$/.test(ref)) {
+      const n = Number(ref.slice(1))
+      return realMatches?.[n]?.winner ?? matches[n]?.winner
+    }
+    if (/^L\d+$/.test(ref)) {
+      const n = Number(ref.slice(1))
+      return realMatches?.[n]?.loser ?? matches[n]?.loser
+    }
     // Puesto/tercero todavía sin resolver -> desconocido.
     if (/^[12][A-L]$/.test(ref) || /^3[A-L]{2,}$/.test(ref)) return undefined
     // En cualquier otro caso es un id de equipo concreto.

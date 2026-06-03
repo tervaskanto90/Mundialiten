@@ -102,7 +102,7 @@ export default function App() {
           {ctx.resolution.bestThirds
             ? t('fase de grupos completa', 'group stage complete')
             : t('fase de grupos en curso', 'group stage in progress')}{' '}
-          · v2.9
+          · v3.0
         </div>
         <div className="mt-1 text-slate-600">{t('hecho por', 'made by')} Octavio Boggiano</div>
       </footer>

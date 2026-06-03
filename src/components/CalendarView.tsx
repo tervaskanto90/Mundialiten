@@ -5,6 +5,15 @@ import { MatchRow } from './MatchRow'
 import { formatDate, matchDateKey } from '../utils/labels'
 import type { ActiveContext } from '../hooks'
 import { useT } from '../i18n'
+import { activeBucket, type BucketId } from '../utils/stage'
+
+const BUCKET_LABEL: Record<BucketId, { es: string; en: string }> = {
+  group: { es: 'Fase de grupos', en: 'Group stage' },
+  r32: { es: 'Dieciseisavos', en: 'Round of 32' },
+  r16: { es: 'Octavos', en: 'Round of 16' },
+  qf: { es: 'Cuartos', en: 'Quarter-finals' },
+  finals: { es: 'Semifinal, final y 3er puesto', en: 'Semi-finals, final & third place' },
+}
 
 interface Props {
   ctx: ActiveContext
@@ -51,9 +60,30 @@ export function CalendarView({ ctx, onEdit }: Props) {
   }, [filtered])
 
   const playedCount = MATCHES.filter((m) => ctx.results[m.id]?.played).length
+  const openBucket = activeBucket()
 
   return (
     <div>
+      {ctx.scenario.type === 'prediction' && (
+        <div className="bg-pitch-500/10 border border-pitch-500/30 rounded-xl px-3 py-2 mb-3 text-xs text-slate-200">
+          {openBucket ? (
+            <>
+              📣 {t('Etapa abierta para predecir:', 'Open stage to predict:')}{' '}
+              <strong>{t(BUCKET_LABEL[openBucket].es, BUCKET_LABEL[openBucket].en)}</strong>.{' '}
+              <span className="text-slate-400">
+                {t(
+                  'Sólo se predice la etapa en curso (cada partido, hasta 5 min antes). Las demás se abren a medida que avanza el Mundial.',
+                  'Only the current stage can be predicted (each match, until 5 min before). The others open as the World Cup advances.',
+                )}
+              </span>
+            </>
+          ) : (
+            <span className="text-slate-400">
+              {t('El Mundial terminó: ya no se aceptan predicciones.', 'The World Cup is over: predictions are closed.')}
+            </span>
+          )}
+        </div>
+      )}
       <div className="flex flex-wrap gap-1.5 mb-3">
         {FILTERS.map((f) => (
           <button
