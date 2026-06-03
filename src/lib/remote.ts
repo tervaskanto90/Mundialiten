@@ -8,7 +8,8 @@ import type { AccuracyFactor } from '../engine/accuracy'
 export interface RankingRow {
   user_id: string
   display_name: string
-  accuracy: number
+  accuracy: number // % de acierto (dato secundario)
+  points: number // puntos acumulados (ordena el ranking)
 }
 
 export async function fetchRealResults(): Promise<Record<number, MatchResult> | null> {
@@ -58,6 +59,7 @@ export async function upsertScore(
   userId: string,
   displayName: string,
   accuracy: number,
+  points: number,
   factors: AccuracyFactor[],
 ): Promise<void> {
   if (!supabase) return
@@ -65,6 +67,7 @@ export async function upsertScore(
     user_id: userId,
     display_name: displayName,
     accuracy,
+    points,
     factors,
     updated_at: new Date().toISOString(),
   })
@@ -75,8 +78,8 @@ export async function fetchRanking(): Promise<RankingRow[]> {
   if (!supabase) return []
   const { data, error } = await supabase
     .from('scores')
-    .select('user_id, display_name, accuracy')
-    .order('accuracy', { ascending: false })
+    .select('user_id, display_name, accuracy, points')
+    .order('points', { ascending: false })
   if (error) throw error
   return (data as RankingRow[]) ?? []
 }

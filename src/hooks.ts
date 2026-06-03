@@ -24,19 +24,21 @@ export function useActiveContext(): ActiveContext {
   const scenario = getScenario(scenarios, activeId) ?? real
   const results = effectiveResults(scenario, real)
 
-  // Resolución del REAL: de ahí salen los clasificados reales para la fase final.
+  // Resolución del REAL: de ahí salen los clasificados y ganadores reales.
   const realResolution = useMemo(() => resolve(real.results), [real.results])
 
-  // Cuando la fase de grupos real terminó, las PREDICCIONES arman su fase final
-  // con los equipos que realmente clasificaron (automático para todos).
-  const overrideSlots = useMemo(() => {
-    if (scenario.type === 'prediction' && allGroupsComplete(real.results)) {
-      return realResolution.slots
+  // En las PREDICCIONES, la fase final se arma con la realidad: los puestos de
+  // grupo (cuando terminan los grupos) y los ganadores reales de cada ronda
+  // (reacomodo por ronda). El what-if y el real no usan estos overrides.
+  const opts = useMemo(() => {
+    if (scenario.type !== 'prediction') return undefined
+    return {
+      realSlots: allGroupsComplete(real.results) ? realResolution.slots : undefined,
+      realMatches: realResolution.matches,
     }
-    return undefined
   }, [scenario.type, real.results, realResolution])
 
-  const resolution = useMemo(() => resolve(results, overrideSlots), [results, overrideSlots])
+  const resolution = useMemo(() => resolve(results, opts), [results, opts])
   return { scenario, real, results, resolution }
 }
 

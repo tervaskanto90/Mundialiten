@@ -64,22 +64,17 @@ export function RankingView() {
             </ul>
             <p className="text-slate-400">
               Points are <strong>worth more as the tournament advances</strong> (exact / result):
-              Groups 3/1 · R32 4/2 · R16 5/2 · QF 6/3 · SF 8/4 · Final & 3rd 10/5. So the knockouts
-              keep the ranking open.
+              Groups 3/1 · R32 4/2 · R16 5/2 · QF 6/3 · SF 8/4 · Final & 3rd 10/5. The ranking is
+              ordered by <strong>total points accumulated over the whole World Cup</strong>.
             </p>
             <p className="text-slate-400">
-              🏟️ When the group stage ends, the <strong>knockouts are built with the teams that
-              actually qualified</strong> (not the ones you predicted), so everyone forecasts the
-              correct ties.
+              📣 You predict <strong>one stage at a time</strong>: only the current stage is open
+              (groups → R32 → R16 → QF → semis+final+3rd). Each knockout stage shows the teams that
+              <strong> actually qualified</strong>, and you can <strong>join at any stage</strong>.
             </p>
             <p className="text-slate-400">
-              ⏱️ Each match's prediction <strong>closes 5 minutes before</strong> kick-off. Only the
-              matches you predicted in time count: the others neither add nor subtract.
-            </p>
-            <p className="text-slate-400">
-              The % is over the maximum possible of <strong>the matches you predicted</strong> that
-              have been played. <strong>Scorers, cards and VAR</strong> can be predicted per match but
-              <strong>do not count</strong> (the free provider does not give that data to verify it).
+              ⏱️ Each match <strong>closes 5 minutes before</strong> kick-off. <strong>Scorers, cards
+              and VAR</strong> can be predicted but <strong>do not count</strong> for the ranking.
             </p>
           </>
         ) : (
@@ -100,23 +95,18 @@ export function RankingView() {
             <p className="text-slate-400">
               Los puntos <strong>valen más a medida que avanza el torneo</strong> (exacto / sólo
               resultado): Grupos 3/1 · 16avos 4/2 · 8vos 5/2 · 4tos 6/3 · Semis 8/4 · Final y 3º 10/5.
-              Así la fase final mantiene el ranking abierto.
+              El ranking se ordena por el <strong>total de puntos acumulados en todo el Mundial</strong>.
             </p>
             <p className="text-slate-400">
-              🏟️ Al terminar la fase de grupos, la <strong>fase final se arma con los equipos que
-              realmente clasificaron</strong> (no con los que predijiste), así todos pronostican los
-              cruces correctos.
+              📣 Se predice <strong>una etapa por vez</strong>: sólo está abierta la etapa en curso
+              (grupos → 16avos → 8avos → 4tos → semis+final+3º). Cada etapa de eliminatoria muestra los
+              equipos que <strong>realmente clasificaron</strong>, y podés <strong>entrar en cualquier
+              instancia</strong>.
             </p>
             <p className="text-slate-400">
-              ⏱️ Las predicciones de cada partido <strong>se cierran 5 minutos antes</strong> de que
-              empiece. Sólo cuentan los partidos que predijiste a tiempo: los que no, no suman ni
-              restan.
-            </p>
-            <p className="text-slate-400">
-              El % es sobre el máximo posible de <strong>los partidos que predijiste</strong> y ya se
-              jugaron. <strong>Goleadores, tarjetas y VAR</strong> se pueden pronosticar en cada
-              partido, pero <strong>no suman al ranking</strong> (el proveedor gratis no trae ese dato
-              para verificarlo).
+              ⏱️ Cada partido <strong>se cierra 5 minutos antes</strong> de empezar.
+              <strong> Goleadores, tarjetas y VAR</strong> se pueden pronosticar pero <strong>no suman
+              al ranking</strong>.
             </p>
           </>
         )}
@@ -142,7 +132,12 @@ export function RankingView() {
                   {r.display_name}
                   {mine && <span className="text-[10px] text-pitch-500 ml-1">{t('(vos)', '(you)')}</span>}
                 </span>
-                <span className="font-bold tabular-nums">{Number(r.accuracy).toFixed(0)}%</span>
+                <div className="text-right">
+                  <div className="font-bold tabular-nums">
+                    {Math.round(Number(r.points))} {t('pts', 'pts')}
+                  </div>
+                  <div className="text-[10px] text-slate-500 tabular-nums">{Number(r.accuracy).toFixed(0)}%</div>
+                </div>
               </div>
             )
           })}
