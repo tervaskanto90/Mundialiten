@@ -11,9 +11,9 @@ import { LangToggle } from './LangToggle'
 export function AuthGate({ children }: { children: ReactNode }) {
   const { enabled, loading, user } = useAuth()
   const { t } = useT()
-  const [guest, setGuest] = useState(false)
 
-  if (!enabled || user || guest) return <>{children}</>
+  // Si Supabase no está configurado, la app funciona local (sin login).
+  if (!enabled || user) return <>{children}</>
 
   if (loading) {
     return (
@@ -23,10 +23,10 @@ export function AuthGate({ children }: { children: ReactNode }) {
     )
   }
 
-  return <AuthScreen onGuest={() => setGuest(true)} />
+  return <AuthScreen />
 }
 
-function AuthScreen({ onGuest }: { onGuest: () => void }) {
+function AuthScreen() {
   const { signIn, signUp } = useAuth()
   const { t } = useT()
   const [mode, setMode] = useState<'login' | 'signup'>('login')
@@ -132,13 +132,6 @@ function AuthScreen({ onGuest }: { onGuest: () => void }) {
             </button>
           </form>
         </div>
-
-        <button
-          onClick={onGuest}
-          className="w-full text-center text-xs text-slate-500 hover:text-slate-300 mt-4"
-        >
-          {t('Entrar sin cuenta (sólo local, no cuenta para el ranking)', 'Continue without an account (local only, does not count for the ranking)')}
-        </button>
 
         <p className="text-center text-[11px] text-slate-600 mt-6">{t('hecho por', 'made by')} Octavio Boggiano</p>
       </div>
