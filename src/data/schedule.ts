@@ -107,7 +107,7 @@ const GROUP_ROWS: Array<[number, string, string, string, string, string]> = [
 // Eliminatorias: [nº, fase, fecha local, hora local, sede, local, visitante]
 // Los terceros usan la notación oficial por combinación de grupos: '3ABCDF'.
 const KO_ROWS: Array<[number, StageId, string, string, string, string, string]> = [
-  [73, 'r32', '2026-06-28', '12:00', 'la', '2B', '2A'],
+  [73, 'r32', '2026-06-28', '12:00', 'la', '2A', '2B'],
   [74, 'r32', '2026-06-29', '16:30', 'bos', '1E', '3ABCDF'],
   [75, 'r32', '2026-06-29', '19:00', 'mty', '1F', '2C'],
   [76, 'r32', '2026-06-29', '12:00', 'hou', '1C', '2F'],
