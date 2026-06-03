@@ -51,3 +51,17 @@ create policy "real_insert_auth" on public.real_results
   for insert to authenticated with check (true);
 create policy "real_update_auth" on public.real_results
   for update to authenticated using (true);
+
+-- Recordatorios por mail ya enviados (para no repetir). La usa SÓLO el cron con
+-- la service role key (que saltea RLS), así que no hace falta ninguna policy:
+-- con RLS activado y sin policies, ningún usuario común puede leerla/escribirla.
+--   bucket: group | r32 | r16 | qf | finals
+--   kind:   'open' (se abrió la etapa) | 'lastcall' (último aviso antes del 1er partido)
+create table if not exists public.reminders (
+  user_id uuid not null references auth.users on delete cascade,
+  bucket text not null,
+  kind text not null,
+  sent_at timestamptz not null default now(),
+  primary key (user_id, bucket, kind)
+);
+alter table public.reminders enable row level security;
