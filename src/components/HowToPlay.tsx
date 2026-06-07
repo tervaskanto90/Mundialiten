@@ -119,6 +119,7 @@ function GuideES() {
         <li>Para <strong>goleadores</strong>, abrí <strong>Formaciones</strong> y <strong>tocá un jugador</strong>: suma un gol (y se actualiza el marcador solo).</li>
         <li><strong>Mantené apretado</strong> el jugador (celular) o <strong>clic derecho</strong> (compu) para elegir <strong>gol de penal, gol en contra, amarilla o roja</strong>.</li>
         <li>También podés pronosticar <strong>cuántas veces interviene el VAR</strong> en el partido.</li>
+        <li>Arriba podés cambiar entre <strong>🗓️ Calendario</strong> (partidos por fecha) y <strong>🗂️ Grupos</strong> (ordenados por grupo, como los prodes de siempre).</li>
       </ul>
 
       <H>📊 Tablas y 🏆 Llaves (automáticas)</H>
@@ -222,6 +223,7 @@ function GuideEN() {
         <li>For <strong>scorers</strong>, open <strong>Line-ups</strong> and <strong>tap a player</strong>: it adds a goal (and updates the score automatically).</li>
         <li><strong>Long-press</strong> the player (phone) or <strong>right-click</strong> (computer) to pick <strong>penalty goal, own goal, yellow or red card</strong>.</li>
         <li>You can also predict <strong>how many times VAR intervenes</strong> in the match.</li>
+        <li>At the top you can switch between <strong>🗓️ Calendar</strong> (matches by date) and <strong>🗂️ Groups</strong> (organized by group, like classic pools).</li>
       </ul>
 
       <H>📊 Standings and 🏆 Bracket (automatic)</H>

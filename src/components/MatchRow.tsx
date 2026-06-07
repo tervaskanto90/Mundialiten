@@ -1,5 +1,5 @@
 import { MATCH_BY_ID } from '../data/schedule'
-import { sideLabelFor, venueName, matchTimeLabel } from '../utils/labels'
+import { sideLabelFor, venueName, matchTimeLabel, formatDateShort, matchDateKey } from '../utils/labels'
 import { canPredict } from '../utils/stage'
 import type { ActiveContext } from '../hooks'
 
@@ -8,9 +8,10 @@ interface Props {
   ctx: ActiveContext
   onEdit: (matchId: number) => void
   showVenue?: boolean
+  showDate?: boolean
 }
 
-export function MatchRow({ matchId, ctx, onEdit, showVenue = true }: Props) {
+export function MatchRow({ matchId, ctx, onEdit, showVenue = true, showDate = false }: Props) {
   const match = MATCH_BY_ID[matchId]
   if (!match) return null
   const res = ctx.results[matchId]
@@ -30,6 +31,7 @@ export function MatchRow({ matchId, ctx, onEdit, showVenue = true }: Props) {
     >
       <div className="text-[10px] text-slate-500 w-12 shrink-0">
         <div className="font-mono">{lockedForPrediction ? '🔒' : ''}P{match.id}</div>
+        {showDate && <div className="text-slate-400">{formatDateShort(matchDateKey(match))}</div>}
         <div>{matchTimeLabel(match)}</div>
       </div>
 
