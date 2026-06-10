@@ -1,7 +1,7 @@
 {
   "name": "mundialiten",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "type": "module",
   "description": "Calendario interactivo del Mundial de Fútbol 2026 con predicciones y escenarios what-if",
   "scripts": {
