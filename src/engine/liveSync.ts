@@ -57,13 +57,20 @@ export interface LiveEvent {
   note?: string
 }
 
+// Conectores que distintos proveedores ponen o sacan ("Bosnia and Herzegovina"
+// vs "Bosnia-Herzegovina"). Se ignoran para que el emparejado por nombre sea
+// robusto. Se comparan como PALABRAS sueltas, así no rompen nombres como
+// "Ireland" (que contiene "and" como subcadena pero no como palabra).
+const NAME_STOPWORDS = new Set(['and', 'the', 'of', 'y', 'e'])
+
 function normalize(s: string): string {
   return s
     .toLowerCase()
     .normalize('NFD')
-    // quita acentos y separadores; queda sólo a-z0-9
-    .replace(/[^a-z0-9]/g, '')
-    .trim()
+    .replace(/[\u0300-\u036f]/g, "") // saca acentos
+    .split(/[^a-z0-9]+/) // separa en palabras (espacios, guiones, &, etc.)
+    .filter((w) => w && !NAME_STOPWORDS.has(w))
+    .join('')
 }
 
 // Mapa nombre/alias normalizado -> id de equipo.

@@ -44,5 +44,14 @@ u = mapFixturesToUpdates([fx({ homeName: 'Mexico', awayName: 'South Africa', hs:
 const g = u.updates.find((x) => x.matchId === 1)
 check('Empate sin penales: homePens/awayPens undefined', !!g && g.homePens === undefined && g.awayPens === undefined)
 
+// M3 = CAN vs BOS. El proveedor puede nombrar a Bosnia de varias formas; todas
+// deben emparejar (normalize ignora conectores y separadores).
+for (const bos of ['Bosnia and Herzegovina', 'Bosnia-Herzegovina', 'Bosnia & Herzegovina', 'Bosnia Herzegovina', 'Bosnia']) {
+  const uu = mapFixturesToUpdates([fx({ homeName: 'Canada', awayName: bos, hs: 1, as: 0, finished: true })], res)
+  check(`Bosnia "${bos}" mapea a M3 (1-0)`, uu.updates.some((x) => x.matchId === 3 && x.homeScore === 1 && x.awayScore === 0), JSON.stringify(uu.updates))
+}
+// No debe romper nombres que contienen un conector como subcadena.
+check('"Ireland" no se rompe (no es "and")', ('Ireland'.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w && !['and'].includes(w)).join('')) === 'ireland')
+
 console.log(`\n──────── LIVE SYNC: ${pass} OK, ${fail} FALLOS ────────`)
 if (fail > 0) process.exit(1)
