@@ -6,6 +6,7 @@ import { useStore, getScenario, REAL_SCENARIO_ID } from '../store/useStore'
 import { resolve } from '../engine/resolve'
 import { TEAM_BY_ID } from '../data/teams'
 import { rankDeltas } from '../lib/rankDelta'
+import { LiveBanner } from './LiveBanner'
 
 const MEDALS = ['🥇', '🥈', '🥉']
 
@@ -102,6 +103,8 @@ export function RankingView() {
           ↻ {t('Actualizar', 'Refresh')}
         </button>
       </div>
+
+      <LiveBanner realResults={realResults} />
 
       {lastMatchId != null && lastReal?.played && (
         <div className="bg-emerald-500/10 border border-emerald-500/25 rounded-xl px-3 py-2 mb-3 text-sm flex items-center gap-2 flex-wrap">

@@ -3,6 +3,7 @@ import { MATCHES, STAGE_I18N } from '../data/schedule'
 import { GROUPS } from '../data/teams'
 import type { StageId } from '../types'
 import { MatchRow } from './MatchRow'
+import { LiveBanner } from './LiveBanner'
 import { formatDate, matchDateKey } from '../utils/labels'
 import type { ActiveContext } from '../hooks'
 import { useT } from '../i18n'
@@ -103,6 +104,7 @@ export function CalendarView({ ctx, onEdit }: Props) {
 
   return (
     <div>
+      {ctx.scenario.type === 'real' && <LiveBanner realResults={ctx.real.results} />}
       {ctx.scenario.type === 'prediction' && (
         <div className="bg-pitch-500/10 border border-pitch-500/30 rounded-xl px-3 py-2 mb-3 text-xs text-slate-200">
           {openBucket ? (
