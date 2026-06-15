@@ -81,10 +81,18 @@ export async function upsertScore(
 
 export async function fetchRanking(): Promise<RankingRow[]> {
   if (!supabase) return []
-  const { data, error } = await supabase
+  // Intentamos con las columnas del snapshot del último partido.
+  const full = await supabase
     .from('scores')
     .select('user_id, display_name, accuracy, points, last_match_id, last_pred_home, last_pred_away, last_points')
     .order('points', { ascending: false })
-  if (error) throw error
-  return (data as RankingRow[]) ?? []
+  if (!full.error) return (full.data as RankingRow[]) ?? []
+  // Compatibilidad: si todavía no se corrió la migración (columnas last_*),
+  // caemos a las columnas básicas para no romper el ranking.
+  const basic = await supabase
+    .from('scores')
+    .select('user_id, display_name, accuracy, points')
+    .order('points', { ascending: false })
+  if (basic.error) throw basic.error
+  return (basic.data as RankingRow[]) ?? []
 }
