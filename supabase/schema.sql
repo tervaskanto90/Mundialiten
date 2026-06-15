@@ -26,10 +26,20 @@ create table if not exists public.scores (
   accuracy numeric not null default 0,
   points numeric not null default 0,
   factors jsonb not null default '[]',
+  -- Snapshot del último partido jugado (lo completa recompute_all_scores), para
+  -- mostrar en el ranking la flecha de cambio de puesto + la última predicción.
+  last_match_id int,
+  last_pred_home int,
+  last_pred_away int,
+  last_points numeric not null default 0,
   updated_at timestamptz not null default now()
 );
--- Si ya tenías la tabla creada (sin la columna points), corré además:
+-- Si ya tenías la tabla creada, corré además (idempotente):
 --   alter table public.scores add column if not exists points numeric not null default 0;
+alter table public.scores add column if not exists last_match_id int;
+alter table public.scores add column if not exists last_pred_home int;
+alter table public.scores add column if not exists last_pred_away int;
+alter table public.scores add column if not exists last_points numeric not null default 0;
 alter table public.scores enable row level security;
 create policy "scores_select_all" on public.scores
   for select to authenticated using (true);
@@ -118,14 +128,31 @@ as $$
   agg as (
     select user_id, sum(award) as points, sum(exact_pts) as maxp
     from calc group by user_id
+  ),
+  -- Último partido jugado (mayor nº entre los reales jugados = el más reciente).
+  lastm as (select max(mid) as mid from realm),
+  -- Predicción de cada usuario para ese último partido (y los puntos que le dio).
+  lastpred as (
+    select p.user_id,
+           (p.pv->>'homeScore')::int as ph,
+           (p.pv->>'awayScore')::int as pa,
+           coalesce(c.award, 0) as lpts
+    from predm p
+    join lastm l on p.mid = l.mid
+    left join calc c on c.user_id = p.user_id and c.mid = l.mid
   )
   update public.scores s
   set points = coalesce(a.points, 0),
       accuracy = case when coalesce(a.maxp, 0) > 0
                       then round(coalesce(a.points, 0)::numeric / a.maxp * 100, 2) else 0 end,
+      last_match_id = (select mid from lastm),
+      last_pred_home = lp.ph,
+      last_pred_away = lp.pa,
+      last_points = coalesce(lp.lpts, 0),
       updated_at = now()
   from public.scores s2
   left join agg a on a.user_id = s2.user_id
+  left join lastpred lp on lp.user_id = s2.user_id
   where s.user_id = s2.user_id;
 $$;
 

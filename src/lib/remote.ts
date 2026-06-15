@@ -10,6 +10,11 @@ export interface RankingRow {
   display_name: string
   accuracy: number // % de acierto (dato secundario)
   points: number // puntos acumulados (ordena el ranking)
+  // Snapshot del último partido jugado (lo completa el recálculo en el servidor):
+  last_match_id?: number | null // nº del último partido sincronizado
+  last_pred_home?: number | null // marcador que predijo (local), o null si no predijo
+  last_pred_away?: number | null
+  last_points?: number // puntos que le dio ese último partido
 }
 
 export async function fetchRealResults(): Promise<Record<number, MatchResult> | null> {
@@ -78,7 +83,7 @@ export async function fetchRanking(): Promise<RankingRow[]> {
   if (!supabase) return []
   const { data, error } = await supabase
     .from('scores')
-    .select('user_id, display_name, accuracy, points')
+    .select('user_id, display_name, accuracy, points, last_match_id, last_pred_home, last_pred_away, last_points')
     .order('points', { ascending: false })
   if (error) throw error
   return (data as RankingRow[]) ?? []
