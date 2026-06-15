@@ -5,8 +5,9 @@ import { allGroupsComplete } from './engine/standings'
 import { fetchLiveFixtures, mapFixturesToUpdates } from './engine/liveSync'
 import type { MatchResult, Scenario } from './types'
 
-/** Intervalo de auto-actualización en vivo (ms). 5 min para cuidar la cuota del proveedor. */
-const POLL_MS = 5 * 60_000
+/** Intervalo de auto-actualización en vivo (ms). 1 min para seguir los partidos
+ * en vivo; el proxy cachea 30s, así que no se quema la cuota del proveedor. */
+const POLL_MS = 60_000
 
 export interface ActiveContext {
   scenario: Scenario

@@ -61,10 +61,24 @@ export function RankingView() {
       .catch((e) => setError(e instanceof Error ? e.message : t('No se pudo cargar', 'Could not load')))
   }
 
+  // Carga inicial + refresco periódico (respaldo) mientras la pestaña está abierta.
   useEffect(() => {
-    if (enabled && user) load()
+    if (!(enabled && user)) return
+    load()
+    const id = setInterval(load, 60_000)
+    return () => clearInterval(id)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, user])
+
+  // Refresco al terminar cada sincronización en vivo (con un margen para que el
+  // servidor recalcule el ranking tras guardarse los resultados reales).
+  const lastSync = useStore((s) => s.lastSync)
+  useEffect(() => {
+    if (!(enabled && user) || !lastSync) return
+    const id = setTimeout(load, 3000)
+    return () => clearTimeout(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastSync, enabled, user])
 
   if (!enabled) {
     return (
