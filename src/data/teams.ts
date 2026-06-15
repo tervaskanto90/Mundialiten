@@ -20,7 +20,7 @@ export const TEAMS: Team[] = [
   // Grupo A
   { id: 'MEX', name: 'México', flag: '🇲🇽', group: 'A', aliases: ['Mexico'] },
   { id: 'RSA', name: 'Sudáfrica', flag: '🇿🇦', group: 'A', aliases: ['South Africa'] },
-  { id: 'COR', name: 'Rep. de Corea', flag: '🇰🇷', group: 'A', aliases: ['South Korea', 'Korea Republic'] },
+  { id: 'COR', name: 'Rep. de Corea', flag: '🇰🇷', group: 'A', aliases: ['South Korea', 'Korea Republic', 'Republic of Korea', 'Korea Rep', 'Korea'] },
   { id: 'CZE', name: 'Chequia', flag: '🇨🇿', group: 'A', aliases: ['Czechia', 'Czech Republic'] },
 
   // Grupo B
@@ -36,7 +36,7 @@ export const TEAMS: Team[] = [
   { id: 'HAI', name: 'Haití', flag: '🇭🇹', group: 'C', aliases: ['Haiti'] },
 
   // Grupo D
-  { id: 'USA', name: 'Estados Unidos', flag: '🇺🇸', group: 'D', aliases: ['United States', 'USA'] },
+  { id: 'USA', name: 'Estados Unidos', flag: '🇺🇸', group: 'D', aliases: ['United States', 'USA', 'United States of America', 'US'] },
   { id: 'PAR', name: 'Paraguay', flag: '🇵🇾', group: 'D', aliases: ['Paraguay'] },
   { id: 'AUS', name: 'Australia', flag: '🇦🇺', group: 'D', aliases: ['Australia'] },
   { id: 'TUR', name: 'Turquía', flag: '🇹🇷', group: 'D', aliases: ['Turkey', 'Türkiye', 'Turkiye'] },
@@ -55,15 +55,15 @@ export const TEAMS: Team[] = [
 
   // Grupo G
   { id: 'BEL', name: 'Bélgica', flag: '🇧🇪', group: 'G', aliases: ['Belgium'] },
-  { id: 'IRA', name: 'Irán', flag: '🇮🇷', group: 'G', aliases: ['Iran', 'IR Iran'] },
+  { id: 'IRA', name: 'Irán', flag: '🇮🇷', group: 'G', aliases: ['Iran', 'IR Iran', 'Islamic Republic of Iran'] },
   { id: 'EGI', name: 'Egipto', flag: '🇪🇬', group: 'G', aliases: ['Egypt'] },
   { id: 'NZL', name: 'Nueva Zelanda', flag: '🇳🇿', group: 'G', aliases: ['New Zealand'] },
 
   // Grupo H
   { id: 'ESP', name: 'España', flag: '🇪🇸', group: 'H', aliases: ['Spain'] },
   { id: 'URU', name: 'Uruguay', flag: '🇺🇾', group: 'H', aliases: ['Uruguay'] },
-  { id: 'ARA', name: 'Arabia Saudí', flag: '🇸🇦', group: 'H', aliases: ['Saudi Arabia'] },
-  { id: 'CAB', name: 'Cabo Verde', flag: '🇨🇻', group: 'H', aliases: ['Cape Verde', 'Cabo Verde'] },
+  { id: 'ARA', name: 'Arabia Saudí', flag: '🇸🇦', group: 'H', aliases: ['Saudi Arabia', 'KSA'] },
+  { id: 'CAB', name: 'Cabo Verde', flag: '🇨🇻', group: 'H', aliases: ['Cape Verde', 'Cabo Verde', 'Cape Verde Islands', 'Cabo Verde Islands'] },
 
   // Grupo I
   { id: 'FRA', name: 'Francia', flag: '🇫🇷', group: 'I', aliases: ['France'] },
@@ -81,7 +81,7 @@ export const TEAMS: Team[] = [
   { id: 'POR', name: 'Portugal', flag: '🇵🇹', group: 'K', aliases: ['Portugal'] },
   { id: 'UZB', name: 'Uzbekistán', flag: '🇺🇿', group: 'K', aliases: ['Uzbekistan'] },
   { id: 'COL', name: 'Colombia', flag: '🇨🇴', group: 'K', aliases: ['Colombia'] },
-  { id: 'COD', name: 'RD del Congo', flag: '🇨🇩', group: 'K', aliases: ['DR Congo', 'Congo DR', 'Democratic Republic of the Congo', 'Congo'] },
+  { id: 'COD', name: 'RD del Congo', flag: '🇨🇩', group: 'K', aliases: ['DR Congo', 'Congo DR', 'Democratic Republic of the Congo', 'Democratic Republic of Congo', 'DRC', 'Congo-Kinshasa', 'Congo'] },
 
   // Grupo L
   { id: 'ING', name: 'Inglaterra', flag: ENGLAND, group: 'L', aliases: ['England'] },
