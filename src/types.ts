@@ -71,6 +71,9 @@ export interface MatchResult {
   // Cantidad de veces que intervino el VAR en el partido (predecible y rankeable).
   // El proveedor en vivo no lo trae, así que en el escenario real se carga a mano.
   varCount?: number
+  // ¿El partido ya terminó? Lo marca la sync en vivo (status FINISHED). Si está
+  // jugado pero NO finished, está EN VIVO. Sólo aplica al escenario real.
+  finished?: boolean
 }
 
 export type ScenarioType = 'real' | 'prediction' | 'whatif'

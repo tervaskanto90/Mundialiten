@@ -270,6 +270,7 @@ export const useStore = create<State>()(
                   awayPens: u.awayPens ?? prev?.awayPens,
                   events: prev?.events ?? [],
                   varCount: prev?.varCount, // preservar el VAR cargado a mano
+                  finished: u.finished, // EN VIVO si played && !finished
                 }
               }
               return { ...sc, results }

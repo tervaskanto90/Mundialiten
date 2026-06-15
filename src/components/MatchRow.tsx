@@ -1,6 +1,7 @@
 import { MATCH_BY_ID } from '../data/schedule'
 import { sideLabelFor, venueName, matchTimeLabel, formatDateShort, matchDateKey } from '../utils/labels'
 import { canPredict } from '../utils/stage'
+import { isMatchLive } from '../utils/live'
 import type { ActiveContext } from '../hooks'
 
 interface Props {
@@ -19,18 +20,24 @@ export function MatchRow({ matchId, ctx, onEdit, showVenue = true, showDate = fa
   const away = sideLabelFor(matchId, match.away, 'away', ctx.resolution)
   const played = res?.played
   const rm = ctx.resolution.matches[matchId]
+  // En vivo según los resultados REALES (vale en cualquier pestaña).
+  const live = isMatchLive(ctx.real.results, matchId)
   // En una predicción, marcamos los partidos que todavía no se pueden predecir.
   const lockedForPrediction = ctx.scenario.type === 'prediction' && !canPredict(match)
 
   return (
     <button
       onClick={() => onEdit(matchId)}
-      className={`w-full text-left border border-white/5 rounded-xl px-3 py-2.5 flex items-center gap-3 transition ${
-        lockedForPrediction ? 'bg-slate-800/30 hover:bg-slate-800/50' : 'bg-slate-800/60 hover:bg-slate-800'
+      className={`w-full text-left rounded-xl px-3 py-2.5 flex items-center gap-3 transition border ${
+        live
+          ? 'border-rose-500/70 ring-2 ring-rose-500/50 bg-rose-500/10 hover:bg-rose-500/15'
+          : lockedForPrediction
+            ? 'border-white/5 bg-slate-800/30 hover:bg-slate-800/50'
+            : 'border-white/5 bg-slate-800/60 hover:bg-slate-800'
       }`}
     >
       <div className="text-[10px] text-slate-500 w-12 shrink-0">
-        <div className="font-mono">{lockedForPrediction ? '🔒' : ''}P{match.id}</div>
+        <div className="font-mono">{live ? <span className="text-rose-400">🔴 VIVO</span> : `${lockedForPrediction ? '🔒' : ''}P${match.id}`}</div>
         {showDate && <div className="text-slate-400">{formatDateShort(matchDateKey(match))}</div>}
         <div>{matchTimeLabel(match)}</div>
       </div>
