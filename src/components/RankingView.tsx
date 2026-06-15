@@ -1,15 +1,58 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useAuth } from '../auth'
 import { fetchRanking, type RankingRow } from '../lib/remote'
 import { useT } from '../i18n'
+import { useStore, getScenario, REAL_SCENARIO_ID } from '../store/useStore'
+import { resolve } from '../engine/resolve'
+import { TEAM_BY_ID } from '../data/teams'
+import { rankDeltas } from '../lib/rankDelta'
 
 const MEDALS = ['🥇', '🥈', '🥉']
+
+/** Bandera + código de 3 letras de una selección (el id ya es el código). */
+function TeamMini({ id }: { id?: string }) {
+  const team = id ? TEAM_BY_ID[id] : undefined
+  return (
+    <span className="whitespace-nowrap">
+      {team?.flag ?? '🏳️'} {id ?? '???'}
+    </span>
+  )
+}
+
+function Arrow({ delta }: { delta: number }) {
+  if (delta > 0) return <span className="text-emerald-400" title="Subió">▲</span>
+  if (delta < 0) return <span className="text-rose-400" title="Bajó">▼</span>
+  return <span className="text-slate-500" title="Se mantuvo">▬</span>
+}
 
 export function RankingView() {
   const { enabled, user } = useAuth()
   const { t, lang } = useT()
   const [rows, setRows] = useState<RankingRow[] | null>(null)
   const [error, setError] = useState('')
+
+  // Resultados reales (para el recuadro del último partido y las banderas).
+  const real = useStore((s) => getScenario(s.scenarios, REAL_SCENARIO_ID))
+  const realResults = real?.results ?? {}
+  const realRes = useMemo(() => resolve(realResults), [realResults])
+
+  // Último partido sincronizado (lo marca el servidor en cada fila, igual para todos).
+  const lastMatchId = rows?.find((r) => r.last_match_id != null)?.last_match_id ?? null
+  const lastTeams = lastMatchId != null ? realRes.matches[lastMatchId] : undefined
+  const lastReal = lastMatchId != null ? realResults[lastMatchId] : undefined
+
+  // Cambio de puesto por efecto del último partido (se calcula en el cliente).
+  const deltas = useMemo(
+    () =>
+      rankDeltas(
+        (rows ?? []).map((r) => ({
+          user_id: r.user_id,
+          points: Number(r.points),
+          last_points: Number(r.last_points ?? 0),
+        })),
+      ),
+    [rows],
+  )
 
   const load = () => {
     setError('')
@@ -45,6 +88,19 @@ export function RankingView() {
           ↻ {t('Actualizar', 'Refresh')}
         </button>
       </div>
+
+      {lastMatchId != null && lastReal?.played && (
+        <div className="bg-emerald-500/10 border border-emerald-500/25 rounded-xl px-3 py-2 mb-3 text-sm flex items-center gap-2 flex-wrap">
+          <span className="text-emerald-300 font-semibold">🟢 {t('Último resultado:', 'Latest result:')}</span>
+          <span className="font-medium tabular-nums whitespace-nowrap">
+            <TeamMini id={lastTeams?.home} /> {lastReal.homeScore}-{lastReal.awayScore}{' '}
+            <TeamMini id={lastTeams?.away} />
+            {lastReal.homePens != null && lastReal.awayPens != null && (
+              <span className="text-slate-400"> ({lastReal.homePens}-{lastReal.awayPens} pen)</span>
+            )}
+          </span>
+        </div>
+      )}
 
       <div className="bg-slate-800/50 border border-white/10 rounded-xl p-3 mb-4 text-xs text-slate-300 space-y-1.5">
         {lang === 'en' ? (
@@ -120,24 +176,48 @@ export function RankingView() {
         <div className="space-y-2">
           {rows.map((r, i) => {
             const mine = r.user_id === user.id
+            const predicted = r.last_pred_home != null && r.last_pred_away != null
             return (
               <div
                 key={r.user_id}
-                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 border ${
+                className={`rounded-xl px-3 py-2.5 border ${
                   mine ? 'border-pitch-500/50 bg-pitch-500/10' : 'border-white/5 bg-slate-800/50'
                 }`}
               >
-                <span className="w-7 text-center text-lg">{MEDALS[i] ?? i + 1}</span>
-                <span className="flex-1 truncate font-medium">
-                  {r.display_name}
-                  {mine && <span className="text-[10px] text-pitch-500 ml-1">{t('(vos)', '(you)')}</span>}
-                </span>
-                <div className="text-right">
-                  <div className="font-bold tabular-nums">
-                    {Math.round(Number(r.points))} {t('pts', 'pts')}
+                <div className="flex items-center gap-3">
+                  <span className="w-7 text-center text-lg">{MEDALS[i] ?? i + 1}</span>
+                  <span className="flex-1 truncate font-medium">
+                    {r.display_name}
+                    {mine && <span className="text-[10px] text-pitch-500 ml-1">{t('(vos)', '(you)')}</span>}
+                  </span>
+                  <div className="text-right">
+                    <div className="font-bold tabular-nums">
+                      {Math.round(Number(r.points))} {t('pts', 'pts')}
+                    </div>
+                    <div className="text-[10px] text-slate-500 tabular-nums">{Number(r.accuracy).toFixed(0)}%</div>
                   </div>
-                  <div className="text-[10px] text-slate-500 tabular-nums">{Number(r.accuracy).toFixed(0)}%</div>
                 </div>
+
+                {lastMatchId != null && (
+                  <div className="flex items-center gap-2 mt-1.5 pl-10 text-xs">
+                    <span className="flex items-center gap-1 shrink-0">
+                      <Arrow delta={deltas.get(r.user_id) ?? 0} />
+                      {predicted && (
+                        <span className="text-slate-400 tabular-nums">+{Number(r.last_points ?? 0)}</span>
+                      )}
+                    </span>
+                    <span className="ml-auto text-right truncate text-slate-300">
+                      {predicted ? (
+                        <span className="tabular-nums whitespace-nowrap">
+                          <TeamMini id={lastTeams?.home} /> {r.last_pred_home}-{r.last_pred_away}{' '}
+                          <TeamMini id={lastTeams?.away} />
+                        </span>
+                      ) : (
+                        <span className="text-slate-500 italic">{t('Sin predicción', 'No prediction')}</span>
+                      )}
+                    </span>
+                  </div>
+                )}
               </div>
             )
           })}
