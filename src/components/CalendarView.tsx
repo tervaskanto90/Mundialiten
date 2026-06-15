@@ -76,16 +76,22 @@ export function CalendarView({ ctx, onEdit }: Props) {
       if (!map.has(key)) map.set(key, [])
       map.get(key)!.push(m)
     }
+    // Dentro de cada día, orden CRONOLÓGICO por hora de inicio (los nº de partido
+    // no siempre van en orden: p.ej. el 16 -19:00- arranca antes que el 15 -22:00-).
+    for (const arr of map.values()) arr.sort((a, b) => Date.parse(a.kickoff) - Date.parse(b.kickoff))
     return [...map.entries()].sort(([a], [b]) => a.localeCompare(b))
   }, [filtered])
 
   // Vista grupos: una tarjeta por grupo (A..L) + tarjetas por etapa de eliminación.
+  // Dentro de cada tarjeta, orden cronológico por hora de inicio.
+  const byKickoff = (a: (typeof MATCHES)[number], b: (typeof MATCHES)[number]) =>
+    Date.parse(a.kickoff) - Date.parse(b.kickoff)
   const groupSections = useMemo(
     () =>
       GROUPS.map((g) => ({
         key: g,
         title: `${lang === 'en' ? 'Group' : 'Grupo'} ${g}`,
-        matches: MATCHES.filter((m) => m.stage === 'group' && m.group === g && (!onlyPending || isPending(m.id))),
+        matches: MATCHES.filter((m) => m.stage === 'group' && m.group === g && (!onlyPending || isPending(m.id))).sort(byKickoff),
       })),
     [onlyPending, ctx.results, lang],
   )
@@ -94,7 +100,7 @@ export function CalendarView({ ctx, onEdit }: Props) {
       KO_ORDER.map((st) => ({
         key: st,
         title: lang === 'en' ? STAGE_I18N[st].en : STAGE_I18N[st].es,
-        matches: MATCHES.filter((m) => m.stage === st && (!onlyPending || isPending(m.id))),
+        matches: MATCHES.filter((m) => m.stage === st && (!onlyPending || isPending(m.id))).sort(byKickoff),
       })).filter((s) => s.matches.length > 0),
     [onlyPending, ctx.results, lang],
   )
