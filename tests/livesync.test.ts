@@ -53,5 +53,14 @@ for (const bos of ['Bosnia and Herzegovina', 'Bosnia-Herzegovina', 'Bosnia & Her
 // No debe romper nombres que contienen un conector como subcadena.
 check('"Ireland" no se rompe (no es "and")', ('Ireland'.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w && !['and'].includes(w)).join('')) === 'ireland')
 
+// M14 = ESP vs CAB: variantes de Cabo Verde del proveedor.
+for (const cab of ['Cape Verde', 'Cabo Verde', 'Cape Verde Islands', 'Cabo Verde Islands']) {
+  const uu = mapFixturesToUpdates([fx({ homeName: 'Spain', awayName: cab, hs: 2, as: 1, finished: true })], res)
+  check(`ESP vs "${cab}" mapea a M14 (2-1)`, uu.updates.some((x) => x.matchId === 14 && x.homeScore === 2 && x.awayScore === 1))
+}
+// Otras variantes de nombre por proveedor (USA M4, Corea M2).
+check('"United States of America" → M4', mapFixturesToUpdates([fx({ homeName: 'United States of America', awayName: 'Paraguay', hs: 1, as: 0, finished: true })], res).updates.some((x) => x.matchId === 4))
+check('"Korea Republic" → M2', mapFixturesToUpdates([fx({ homeName: 'Korea Republic', awayName: 'Czechia', hs: 0, as: 0, finished: true })], res).updates.some((x) => x.matchId === 2))
+
 console.log(`\n──────── LIVE SYNC: ${pass} OK, ${fail} FALLOS ────────`)
 if (fail > 0) process.exit(1)
