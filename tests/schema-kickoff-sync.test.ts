@@ -33,6 +33,8 @@ check('kickoffs del SQL == calendario', mismatches === 0, `${mismatches} distint
 // El bug concreto: el partido 13 (Bélgica) arranca DESPUÉS del 14 (España), así
 // que el "último" jugado entre ambos es el 13 (no el de mayor número).
 check('M13 arranca después del M14 (no alcanza con max(id))', (pairs.get(13) ?? 0) > (pairs.get(14) ?? 0))
+// Mismo día: M16 (Arabia-Uruguay, 19:00) arranca ANTES que M15 (Irán, 22:00).
+check('M16 arranca antes que M15 (orden ≠ por nº)', (pairs.get(16) ?? 1) < (pairs.get(15) ?? 0))
 
 console.log(`\n──────── KICKOFF SYNC (SQL ↔ calendario): ${pass} OK, ${fail} FALLOS ────────`)
 if (fail > 0) process.exit(1)
