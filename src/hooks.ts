@@ -55,14 +55,14 @@ export async function runLiveSync(): Promise<void> {
     const fixtures = await fetchLiveFixtures(st.liveConfig)
     const real = getScenario(st.scenarios, REAL_SCENARIO_ID)
     const resolution = resolve(real?.results ?? {})
-    const { updates, matched, fetched } = mapFixturesToUpdates(fixtures, resolution)
+    const { updates, matched, fetched, unmatched } = mapFixturesToUpdates(fixtures, resolution)
     st.applyLiveResults(updates)
-    st.setSyncStatus(
-      'ok',
+    let msg =
       fetched === 0
         ? 'El proveedor todavía no tiene partidos de este torneo'
-        : `${updates.length} con resultado · ${matched} emparejados de ${fetched}`,
-    )
+        : `${updates.length} con resultado · ${matched} reconocidos de ${fetched}`
+    if (unmatched.length) msg += ` · ⚠️ sin reconocer: ${unmatched.slice(0, 5).join(', ')}`
+    st.setSyncStatus('ok', msg)
   } catch (e) {
     st.setSyncStatus('error', e instanceof Error ? e.message : 'No se pudo conectar')
   }

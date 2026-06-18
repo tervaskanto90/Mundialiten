@@ -26,6 +26,7 @@ check('Invierte orientación: MEX sigue siendo "home" nuestro', !!m1 && m1.homeS
 
 u = mapFixturesToUpdates([fx({ homeName: 'Atlantis', awayName: 'Wakanda', hs: 5, as: 0, finished: true })], res)
 check('Ignora equipos desconocidos', u.updates.length === 0 && u.fetched === 1 && u.matched === 0)
+check('Reporta los nombres no reconocidos', u.unmatched.includes('Atlantis') && u.unmatched.includes('Wakanda'))
 
 u = mapFixturesToUpdates([fx({ homeName: 'Mexico', awayName: 'South Africa', hs: null, as: null, finished: false })], res)
 check('Ignora marcador null', u.updates.length === 0)
