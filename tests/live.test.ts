@@ -23,15 +23,20 @@ const ko14 = T(MATCH_BY_ID[14].kickoff) // España–Cabo Verde (arranca antes q
   const ids = liveMatchIds({ 13: r({ finished: true }) }, ko13 + 3600_000)
   check('partido finished → NO en vivo', ids.length === 0)
 }
-// No empezó (sin resultado) → no en vivo.
+// Ya arrancó pero todavía no llegó el marcador → SÍ en vivo (por horario).
 {
   const ids = liveMatchIds({}, ko13 + 3600_000)
-  check('sin resultado → NO en vivo', ids.length === 0)
+  check('en horario sin marcador → en vivo (por reloj)', ids.includes(13))
 }
-// Pasó hace mucho sin flag finished (tope de seguridad) → no en vivo.
+// Todavía no arrancó → ese partido NO está en vivo.
+{
+  const ids = liveMatchIds({}, ko13 - 600_000)
+  check('antes del inicio → ese partido NO en vivo', !ids.includes(13))
+}
+// Pasó hace mucho sin flag finished (tope de seguridad) → ese partido NO en vivo.
 {
   const ids = liveMatchIds({ 13: r() }, ko13 + 5 * 3600_000)
-  check('5h después sin finished → NO en vivo (tope)', ids.length === 0)
+  check('5h después sin finished → NO en vivo (tope)', !ids.includes(13))
 }
 // Dos partidos en simultáneo → ambos, ordenados por horario (14 arranca antes).
 {

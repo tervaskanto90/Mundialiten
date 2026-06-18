@@ -39,8 +39,17 @@ export function LiveBanner({ realResults }: { realResults: Record<number, MatchR
               <span className="animate-pulse">🔴</span> {t('EN VIVO', 'LIVE')}
             </span>
             <span className="font-medium tabular-nums whitespace-nowrap">
-              <TeamMini id={m?.home} /> {r?.homeScore ?? 0}-{r?.awayScore ?? 0} <TeamMini id={m?.away} />
+              <TeamMini id={m?.home} />{' '}
+              {r?.played ? (
+                `${r.homeScore}-${r.awayScore}`
+              ) : (
+                <span className="text-slate-400">{t('vs', 'vs')}</span>
+              )}{' '}
+              <TeamMini id={m?.away} />
             </span>
+            {!r?.played && (
+              <span className="text-[10px] text-slate-400">{t('· marcador en breve', '· score soon')}</span>
+            )}
           </div>
         )
       })}
