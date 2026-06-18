@@ -47,6 +47,8 @@ export interface SyncResult {
   updates: LiveUpdate[]
   fetched: number
   matched: number
+  /** Nombres de equipo que el proveedor mandó y no pudimos reconocer (diagnóstico). */
+  unmatched: string[]
 }
 
 export interface LiveEvent {
@@ -184,14 +186,18 @@ export function mapFixturesToUpdates(fixtures: NormFixture[], resolution: Resolu
 
   const updates: LiveUpdate[] = []
   let matched = 0
+  const unmatched = new Set<string>()
   for (const f of fixtures) {
     const h = NAME_TO_ID[normalize(f.homeName)]
     const a = NAME_TO_ID[normalize(f.awayName)]
+    // Diagnóstico: nombres que el proveedor manda y NO reconocemos (alias).
+    if (!h) unmatched.add(f.homeName)
+    if (!a) unmatched.add(f.awayName)
     if (!h || !a) continue
-    if (f.hs == null || f.as == null) continue
     const slot = byPair[`${h}|${a}`]
     if (!slot) continue
-    matched++
+    matched++ // emparejado con uno de nuestros partidos (haya o no marcador)
+    if (f.hs == null || f.as == null) continue // en el feed pero todavía sin marcador
     const sameOrientation = slot.home === h
     const hasPens = f.hpens != null && f.apens != null
     updates.push({
@@ -204,7 +210,7 @@ export function mapFixturesToUpdates(fixtures: NormFixture[], resolution: Resolu
       awayPens: hasPens ? (sameOrientation ? f.apens! : f.hpens!) : undefined,
     })
   }
-  return { updates, fetched: fixtures.length, matched }
+  return { updates, fetched: fixtures.length, matched, unmatched: [...unmatched] }
 }
 
 function classifyEvent(type: string, detail: string): EventType | null {
