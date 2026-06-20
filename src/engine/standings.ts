@@ -131,57 +131,49 @@ export function orderGroup(
   return out
 }
 
+const RES_WDL = (o: number): MatchResult =>
+  o === 0
+    ? { played: true, homeScore: 1, awayScore: 0, events: [] }
+    : o === 1
+      ? { played: true, homeScore: 0, awayScore: 0, events: [] }
+      : { played: true, homeScore: 0, awayScore: 1, events: [] }
+
 /**
- * Equipos de un grupo matemáticamente SIN chances de entrar al top 3 (no pueden
- * salir del 4° puesto), probando TODOS los resultados posibles de lo que queda.
- * Criterio por PUNTOS (sólido: si un equipo puede quedar al menos empatado en el
- * 3°, no se marca, porque podría ganar el desempate). Sirve para "eliminado".
+ * Equipos SIN chances de entrar al top 3 del grupo, considerando el desempate
+ * COMPLETO (puntos + head-to-head + DG…). Para cada equipo prueba su mejor caso:
+ * gana en grande lo que le queda y se enumeran los resultados de los demás. Si
+ * en NINGÚN escenario llega al top 3, está eliminado. Así marca también al que
+ * queda 4° por desempate, y funciona aunque falte sincronizar un partido.
  */
-export function lockedOutOfTop3(
+export function eliminatedFromTop3(
   group: string,
   results: Record<number, MatchResult>,
 ): Set<string> {
   const teamIds = teamsOfGroup(group).map((t) => t.id)
-  const base: Record<string, number> = {}
-  for (const id of teamIds) base[id] = 0
-  const remaining: { home: string; away: string }[] = []
-  for (const m of GROUP_MATCHES) {
-    if (m.group !== group) continue
-    const res = results[m.id]
-    if (!res?.played) {
-      remaining.push({ home: m.home, away: m.away })
-      continue
-    }
-    if (res.homeScore > res.awayScore) base[m.home] += 3
-    else if (res.homeScore < res.awayScore) base[m.away] += 3
-    else {
-      base[m.home] += 1
-      base[m.away] += 1
-    }
-  }
-  const minAbove: Record<string, number> = {}
-  for (const id of teamIds) minAbove[id] = Infinity
-  const combos = 3 ** remaining.length
-  for (let mask = 0; mask < combos; mask++) {
-    const pts = { ...base }
-    let mm = mask
-    for (const match of remaining) {
-      const o = mm % 3
-      mm = Math.floor(mm / 3)
-      if (o === 0) pts[match.home] += 3
-      else if (o === 1) {
-        pts[match.home] += 1
-        pts[match.away] += 1
-      } else pts[match.away] += 3
-    }
-    for (const id of teamIds) {
-      let above = 0
-      for (const other of teamIds) if (other !== id && pts[other] > pts[id]) above++
-      if (above < minAbove[id]) minAbove[id] = above
-    }
-  }
+  const remaining = GROUP_MATCHES.filter((m) => m.group === group && !results[m.id]?.played)
   const out = new Set<string>()
-  for (const id of teamIds) if (minAbove[id] >= 3) out.add(id)
+  for (const t of teamIds) {
+    const others = remaining.filter((m) => m.home !== t && m.away !== t)
+    const combos = 3 ** others.length
+    let canTop3 = false
+    for (let mask = 0; mask < combos && !canTop3; mask++) {
+      const variant: Record<number, MatchResult> = { ...results }
+      // El equipo evaluado gana en grande lo suyo (maximiza puntos y DG).
+      for (const m of remaining) {
+        if (m.home === t) variant[m.id] = { played: true, homeScore: 5, awayScore: 0, events: [] }
+        else if (m.away === t) variant[m.id] = { played: true, homeScore: 0, awayScore: 5, events: [] }
+      }
+      let mm = mask
+      for (const m of others) {
+        const o = mm % 3
+        mm = Math.floor(mm / 3)
+        variant[m.id] = RES_WDL(o)
+      }
+      const pos = computeGroupStanding(group, variant).findIndex((x) => x.teamId === t)
+      if (pos >= 0 && pos <= 2) canTop3 = true
+    }
+    if (!canTop3) out.add(t)
+  }
   return out
 }
 
