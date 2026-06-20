@@ -131,6 +131,60 @@ export function orderGroup(
   return out
 }
 
+/**
+ * Equipos de un grupo matemáticamente SIN chances de entrar al top 3 (no pueden
+ * salir del 4° puesto), probando TODOS los resultados posibles de lo que queda.
+ * Criterio por PUNTOS (sólido: si un equipo puede quedar al menos empatado en el
+ * 3°, no se marca, porque podría ganar el desempate). Sirve para "eliminado".
+ */
+export function lockedOutOfTop3(
+  group: string,
+  results: Record<number, MatchResult>,
+): Set<string> {
+  const teamIds = teamsOfGroup(group).map((t) => t.id)
+  const base: Record<string, number> = {}
+  for (const id of teamIds) base[id] = 0
+  const remaining: { home: string; away: string }[] = []
+  for (const m of GROUP_MATCHES) {
+    if (m.group !== group) continue
+    const res = results[m.id]
+    if (!res?.played) {
+      remaining.push({ home: m.home, away: m.away })
+      continue
+    }
+    if (res.homeScore > res.awayScore) base[m.home] += 3
+    else if (res.homeScore < res.awayScore) base[m.away] += 3
+    else {
+      base[m.home] += 1
+      base[m.away] += 1
+    }
+  }
+  const minAbove: Record<string, number> = {}
+  for (const id of teamIds) minAbove[id] = Infinity
+  const combos = 3 ** remaining.length
+  for (let mask = 0; mask < combos; mask++) {
+    const pts = { ...base }
+    let mm = mask
+    for (const match of remaining) {
+      const o = mm % 3
+      mm = Math.floor(mm / 3)
+      if (o === 0) pts[match.home] += 3
+      else if (o === 1) {
+        pts[match.home] += 1
+        pts[match.away] += 1
+      } else pts[match.away] += 3
+    }
+    for (const id of teamIds) {
+      let above = 0
+      for (const other of teamIds) if (other !== id && pts[other] > pts[id]) above++
+      if (above < minAbove[id]) minAbove[id] = above
+    }
+  }
+  const out = new Set<string>()
+  for (const id of teamIds) if (minAbove[id] >= 3) out.add(id)
+  return out
+}
+
 /** Tabla de un grupo, ordenada. */
 export function computeGroupStanding(
   group: string,

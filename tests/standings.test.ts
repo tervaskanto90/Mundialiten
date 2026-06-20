@@ -39,5 +39,14 @@ const r = (h: number, a: number): MatchResult => ({ played: true, homeScore: h, 
   check('grupo en curso → sin eliminados', res.eliminated.size === 0, `${[...res.eliminated]}`)
 }
 
+// 5) Eliminado AUNQUE el grupo no haya terminado (falta M51 por sincronizar):
+//    RSA jugó sus 3 partidos con 0 pts y 3 rivales por encima sin importar M51.
+{
+  const results = { 1: r(1, 0), 2: r(1, 0), 25: r(1, 0), 28: r(1, 0), 52: r(0, 1) }
+  const res = resolve(results)
+  check('RSA eliminado aunque el grupo no terminó (sin chances de top 3)', res.eliminated.has('RSA'))
+  check('MEX/COR no eliminados', !res.eliminated.has('MEX') && !res.eliminated.has('COR'))
+}
+
 console.log(`\n──────── DESEMPATE/ELIMINACIÓN: ${pass} OK, ${fail} FALLOS ────────`)
 if (fail > 0) process.exit(1)

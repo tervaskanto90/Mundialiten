@@ -4,7 +4,7 @@ import { MATCHES } from '../data/schedule'
 import {
   computeAllStandings,
   allGroupsComplete,
-  groupComplete,
+  lockedOutOfTop3,
   sortStanding,
   type StandingRow,
 } from './standings'
@@ -30,9 +30,11 @@ export interface Resolution {
 }
 
 /**
- * Equipos eliminados: 4° de un grupo terminado; 3° de un grupo terminado que no
- * entra entre los 8 mejores (cuando ya terminaron todos los grupos); o un equipo
- * matemáticamente último (no puede llegar al 3° aunque gane lo que le queda).
+ * Equipos eliminados (no pueden clasificar a la fase final):
+ *  - matemáticamente sin chances de entrar al top 3 del grupo (no salen del 4°),
+ *    aunque el grupo todavía no haya terminado / falte sincronizar algún partido.
+ *  - 3° de su grupo que no entra entre los 8 mejores (cuando ya terminaron TODOS
+ *    los grupos y se conocen los mejores terceros).
  */
 function computeEliminated(
   standings: Record<string, StandingRow[]>,
@@ -44,20 +46,11 @@ function computeEliminated(
   const qualThirds = new Set((bestThirds ?? []).slice(0, 8))
   for (const g of GROUPS) {
     const table = standings[g]
-    if (!table) continue
-    const done = groupComplete(g, results)
-    for (let pos = 0; pos < table.length; pos++) {
-      const row = table[pos]
-      if (done) {
-        if (pos >= 3) out.add(row.teamId) // 4° → eliminado
-        else if (pos === 2 && allDone && !qualThirds.has(row.teamId)) out.add(row.teamId) // 3° no clasificado
-      } else {
-        // ¿No puede salir del último puesto? (≥3 rivales ya tienen más puntos
-        // que el máximo que este equipo podría alcanzar ganando todo lo que resta).
-        const maxPts = row.points + 3 * (3 - row.played)
-        const guaranteedAbove = table.filter((r) => r.teamId !== row.teamId && r.points > maxPts).length
-        if (guaranteedAbove >= 3) out.add(row.teamId)
-      }
+    if (!table || table.length === 0) continue
+    for (const id of lockedOutOfTop3(g, results)) out.add(id)
+    if (allDone) {
+      const third = table[2]
+      if (third && !qualThirds.has(third.teamId)) out.add(third.teamId)
     }
   }
   return out
