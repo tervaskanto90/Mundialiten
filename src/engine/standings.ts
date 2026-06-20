@@ -132,56 +132,57 @@ export function orderGroup(
 }
 
 /**
- * Equipos de un grupo matemáticamente SIN chances de entrar al top 3 (no pueden
- * salir del 4° puesto), probando TODOS los resultados posibles de lo que queda.
- * Criterio por PUNTOS (sólido: si un equipo puede quedar al menos empatado en el
- * 3°, no se marca, porque podría ganar el desempate). Sirve para "eliminado".
+ * Equipos de un grupo SIN chances de entrar al top 3 — SÓLIDO (nunca marca de
+ * más). Un equipo está eliminado si al menos 3 rivales quedan arriba SÍ o SÍ:
+ *   - el rival tiene más puntos que el MÁXIMO del equipo (gane todo lo que le
+ *     queda), o
+ *   - empatan en ese máximo PERO el rival ya le ganó el HEAD-TO-HEAD (partido
+ *     jugado, no se puede revertir; la diferencia de gol no cuenta porque es un
+ *     criterio posterior). Captura el caso Turquía.
+ * Si hay un empate cuyo desempate depende de la DG futura, NO se marca (el equipo
+ * podría ganarlo).
  */
-export function lockedOutOfTop3(
+export function eliminatedFromTop3(
   group: string,
   results: Record<number, MatchResult>,
 ): Set<string> {
   const teamIds = teamsOfGroup(group).map((t) => t.id)
-  const base: Record<string, number> = {}
-  for (const id of teamIds) base[id] = 0
-  const remaining: { home: string; away: string }[] = []
+  const pts: Record<string, number> = {}
+  const played: Record<string, number> = {}
+  const beat: Record<string, Set<string>> = {} // beat[a] = equipos a los que 'a' le ganó
+  for (const id of teamIds) {
+    pts[id] = 0
+    played[id] = 0
+    beat[id] = new Set()
+  }
   for (const m of GROUP_MATCHES) {
     if (m.group !== group) continue
     const res = results[m.id]
-    if (!res?.played) {
-      remaining.push({ home: m.home, away: m.away })
-      continue
-    }
-    if (res.homeScore > res.awayScore) base[m.home] += 3
-    else if (res.homeScore < res.awayScore) base[m.away] += 3
-    else {
-      base[m.home] += 1
-      base[m.away] += 1
-    }
-  }
-  const minAbove: Record<string, number> = {}
-  for (const id of teamIds) minAbove[id] = Infinity
-  const combos = 3 ** remaining.length
-  for (let mask = 0; mask < combos; mask++) {
-    const pts = { ...base }
-    let mm = mask
-    for (const match of remaining) {
-      const o = mm % 3
-      mm = Math.floor(mm / 3)
-      if (o === 0) pts[match.home] += 3
-      else if (o === 1) {
-        pts[match.home] += 1
-        pts[match.away] += 1
-      } else pts[match.away] += 3
-    }
-    for (const id of teamIds) {
-      let above = 0
-      for (const other of teamIds) if (other !== id && pts[other] > pts[id]) above++
-      if (above < minAbove[id]) minAbove[id] = above
+    if (!res?.played) continue
+    played[m.home]++
+    played[m.away]++
+    if (res.homeScore > res.awayScore) {
+      pts[m.home] += 3
+      beat[m.home].add(m.away)
+    } else if (res.homeScore < res.awayScore) {
+      pts[m.away] += 3
+      beat[m.away].add(m.home)
+    } else {
+      pts[m.home] += 1
+      pts[m.away] += 1
     }
   }
   const out = new Set<string>()
-  for (const id of teamIds) if (minAbove[id] >= 3) out.add(id)
+  for (const t of teamIds) {
+    const maxT = pts[t] + 3 * (3 - played[t]) // gana todo lo que le queda
+    let guaranteedAbove = 0
+    for (const x of teamIds) {
+      if (x === t) continue
+      const minX = pts[x] // pierde todo lo que le queda
+      if (minX > maxT || (minX === maxT && beat[x].has(t))) guaranteedAbove++
+    }
+    if (guaranteedAbove >= 3) out.add(t)
+  }
   return out
 }
 

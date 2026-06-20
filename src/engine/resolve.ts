@@ -4,7 +4,8 @@ import { MATCHES } from '../data/schedule'
 import {
   computeAllStandings,
   allGroupsComplete,
-  lockedOutOfTop3,
+  groupComplete,
+  eliminatedFromTop3,
   sortStanding,
   type StandingRow,
 } from './standings'
@@ -47,10 +48,13 @@ function computeEliminated(
   for (const g of GROUPS) {
     const table = standings[g]
     if (!table || table.length === 0) continue
-    for (const id of lockedOutOfTop3(g, results)) out.add(id)
-    if (allDone) {
-      const third = table[2]
-      if (third && !qualThirds.has(third.teamId)) out.add(third.teamId)
+    for (const id of eliminatedFromTop3(g, results)) out.add(id) // puntos + head-to-head
+    if (groupComplete(g, results)) {
+      for (let pos = 3; pos < table.length; pos++) out.add(table[pos].teamId) // 4° real (incluye 4° por DG)
+      if (allDone) {
+        const third = table[2]
+        if (third && !qualThirds.has(third.teamId)) out.add(third.teamId)
+      }
     }
   }
   return out
