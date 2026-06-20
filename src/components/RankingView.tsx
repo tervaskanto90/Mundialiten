@@ -5,7 +5,7 @@ import { useT } from '../i18n'
 import { useStore, getScenario, REAL_SCENARIO_ID } from '../store/useStore'
 import { resolve } from '../engine/resolve'
 import { TEAM_BY_ID } from '../data/teams'
-import { rankDeltas } from '../lib/rankDelta'
+import { rankDeltas, tieGroups } from '../lib/rankDelta'
 import { LiveBanner } from './LiveBanner'
 
 const MEDALS = ['🥇', '🥈', '🥉']
@@ -52,6 +52,19 @@ export function RankingView() {
           last_points: Number(r.last_points ?? 0),
         })),
       ),
+    [rows],
+  )
+
+  // Agrupa por PUESTO: usuarios con los mismos puntos comparten puesto y van en
+  // el mismo renglón (repartido en partes iguales). El rank es la posición del
+  // primero del grupo (1, 2, 2, 4… competición estándar).
+  const groups = useMemo(
+    () =>
+      tieGroups(rows ?? [], (r) => Number(r.points)).map((g) => ({
+        key: g.members.map((m) => m.user_id).join('|'),
+        rank: g.rank,
+        members: g.members,
+      })),
     [rows],
   )
 
@@ -191,18 +204,76 @@ export function RankingView() {
         <Empty>{t('Todavía no hay puntajes cargados. ¡Sé el primero en armar tu predicción!', 'No scores yet. Be the first to make your prediction!')}</Empty>
       ) : (
         <div className="space-y-2">
-          {rows.map((r, i) => {
+          {groups.map((g) => {
+            const medal = MEDALS[g.rank - 1] ?? g.rank
+            // Puesto compartido por 2+ usuarios → mismo renglón, repartido en partes iguales.
+            if (g.members.length > 1) {
+              return (
+                <div
+                  key={g.key}
+                  className="rounded-xl px-3 py-2.5 border border-white/5 bg-slate-800/30 flex items-center gap-2"
+                >
+                  <span className="w-7 text-center text-lg shrink-0">{medal}</span>
+                  <div className="flex-1 min-w-0 flex gap-2">
+                    {g.members.map((r) => {
+                      const mine = r.user_id === user.id
+                      const predicted = r.last_pred_home != null && r.last_pred_away != null
+                      return (
+                        <div
+                          key={r.user_id}
+                          className={`flex-1 basis-0 min-w-0 rounded-lg px-2 py-1.5 border ${
+                            mine ? 'border-pitch-500/50 bg-pitch-500/10' : 'border-white/5 bg-slate-800/50'
+                          }`}
+                        >
+                          <div className="truncate font-medium text-sm">
+                            {r.display_name}
+                            {mine && <span className="text-[9px] text-pitch-500 ml-0.5">{t('(vos)', '(you)')}</span>}
+                          </div>
+                          <div className="flex items-baseline gap-1">
+                            <span className="font-bold tabular-nums text-sm">
+                              {Math.round(Number(r.points))} {t('pts', 'pts')}
+                            </span>
+                            <span className="text-[9px] text-slate-500 tabular-nums">
+                              {Number(r.accuracy).toFixed(0)}%
+                            </span>
+                          </div>
+                          {lastMatchId != null && (
+                            <div className="flex items-center gap-1 mt-1 text-[10px] text-slate-400 min-w-0">
+                              <Arrow delta={deltas.get(r.user_id) ?? 0} />
+                              {predicted && <span className="tabular-nums shrink-0">+{Number(r.last_points ?? 0)}</span>}
+                              <span className="ml-auto truncate text-right">
+                                {predicted ? (
+                                  <span className="tabular-nums whitespace-nowrap">
+                                    <TeamMini id={lastTeams?.home} /> {r.last_pred_home}-{r.last_pred_away}{' '}
+                                    <TeamMini id={lastTeams?.away} />
+                                  </span>
+                                ) : (
+                                  <span className="italic text-slate-500">{t('Sin pred.', 'No pred.')}</span>
+                                )}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            }
+
+            // Puesto de un solo usuario → renglón completo (igual que siempre).
+            const r = g.members[0]
             const mine = r.user_id === user.id
             const predicted = r.last_pred_home != null && r.last_pred_away != null
             return (
               <div
-                key={r.user_id}
+                key={g.key}
                 className={`rounded-xl px-3 py-2.5 border ${
                   mine ? 'border-pitch-500/50 bg-pitch-500/10' : 'border-white/5 bg-slate-800/50'
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <span className="w-7 text-center text-lg">{MEDALS[i] ?? i + 1}</span>
+                  <span className="w-7 text-center text-lg">{medal}</span>
                   <span className="flex-1 truncate font-medium">
                     {r.display_name}
                     {mine && <span className="text-[10px] text-pitch-500 ml-1">{t('(vos)', '(you)')}</span>}

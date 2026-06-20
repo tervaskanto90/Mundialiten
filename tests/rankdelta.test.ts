@@ -1,5 +1,6 @@
-// Cambio de puesto por efecto del último partido (flechas del ranking).
-import { rankDeltas } from '../src/lib/rankDelta'
+// Cambio de puesto por efecto del último partido (flechas del ranking)
+// + agrupado de empatados en el mismo puesto.
+import { rankDeltas, tieGroups } from '../src/lib/rankDelta'
 
 let pass = 0, fail = 0
 function check(name: string, cond: boolean, extra = '') {
@@ -51,6 +52,30 @@ function check(name: string, cond: boolean, extra = '') {
   check('victor (exacto) no baja', (d.get('victor') ?? 0) >= 0)
   check('sergio (no predijo) baja o igual', (d.get('sergio') ?? 0) <= 0)
 }
+
+// Agrupado por puesto (empatados comparten renglón).
+{
+  const rows = [
+    { id: 'a', points: 10 },
+    { id: 'b', points: 8 },
+    { id: 'c', points: 8 },
+    { id: 'd', points: 5 },
+    { id: 'e', points: 5 },
+    { id: 'f', points: 5 },
+  ]
+  const g = tieGroups(rows, (r) => r.points)
+  check('3 grupos (10 · 8×2 · 5×3)', g.length === 3, `got ${g.length}`)
+  check('puesto 1: solo a', g[0].rank === 1 && g[0].members.length === 1)
+  check('puesto 2: b y c juntos', g[1].rank === 2 && g[1].members.length === 2)
+  check('puesto 4: d,e,f juntos (salta el 3)', g[2].rank === 4 && g[2].members.length === 3)
+}
+{
+  // Sin empates → cada uno su grupo, rank correlativo.
+  const g = tieGroups([{ p: 5 }, { p: 3 }, { p: 1 }], (r) => r.p)
+  check('sin empates → 3 grupos de 1', g.length === 3 && g.every((x) => x.members.length === 1))
+  check('ranks 1,2,3', g[0].rank === 1 && g[1].rank === 2 && g[2].rank === 3)
+}
+check('lista vacía → sin grupos', tieGroups([] as { p: number }[], (r) => r.p).length === 0)
 
 console.log(`\n──────── RANK DELTA: ${pass} OK, ${fail} FALLOS ────────`)
 if (fail > 0) process.exit(1)
