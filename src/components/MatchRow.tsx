@@ -44,7 +44,12 @@ export function MatchRow({ matchId, ctx, onEdit, showVenue = true, showDate = fa
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2">
-          <Side flag={home.flag} name={home.name} winner={played && rm?.winner === home.short} />
+          <Side
+            flag={home.flag}
+            name={home.name}
+            winner={played && rm?.winner === home.short}
+            eliminated={!!home.short && ctx.resolution.eliminated.has(home.short)}
+          />
           <Score
             played={!!played}
             h={res?.homeScore}
@@ -56,6 +61,7 @@ export function MatchRow({ matchId, ctx, onEdit, showVenue = true, showDate = fa
             flag={away.flag}
             name={away.name}
             winner={played && rm?.winner === away.short}
+            eliminated={!!away.short && ctx.resolution.eliminated.has(away.short)}
             right
           />
         </div>
@@ -72,16 +78,22 @@ function Side({
   name,
   right,
   winner,
+  eliminated,
 }: {
   flag: string
   name: string
   right?: boolean
   winner?: boolean
+  eliminated?: boolean
 }) {
   return (
     <div className={`flex items-center gap-1.5 min-w-0 flex-1 ${right ? 'flex-row-reverse text-right' : ''}`}>
-      <span className="text-lg shrink-0">{flag}</span>
-      <span className={`text-sm truncate ${winner ? 'font-bold text-white' : 'text-slate-200'}`}>
+      <span className={`text-lg shrink-0 ${eliminated ? 'grayscale opacity-50' : ''}`}>{flag}</span>
+      <span
+        className={`text-sm truncate ${
+          eliminated ? 'line-through text-slate-500' : winner ? 'font-bold text-white' : 'text-slate-200'
+        }`}
+      >
         {name}
       </span>
     </div>

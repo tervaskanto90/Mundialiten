@@ -4,6 +4,7 @@ import { MATCHES } from '../data/schedule'
 import {
   computeAllStandings,
   allGroupsComplete,
+  groupComplete,
   sortStanding,
   type StandingRow,
 } from './standings'
@@ -24,6 +25,42 @@ export interface Resolution {
   slots: Record<string, string>
   /** Estado resuelto de cada partido. */
   matches: Record<number, ResolvedMatch>
+  /** Equipos eliminados (no pueden clasificar a la fase final). */
+  eliminated: Set<string>
+}
+
+/**
+ * Equipos eliminados: 4° de un grupo terminado; 3° de un grupo terminado que no
+ * entra entre los 8 mejores (cuando ya terminaron todos los grupos); o un equipo
+ * matemáticamente último (no puede llegar al 3° aunque gane lo que le queda).
+ */
+function computeEliminated(
+  standings: Record<string, StandingRow[]>,
+  results: Record<number, MatchResult>,
+  bestThirds: string[] | null,
+): Set<string> {
+  const out = new Set<string>()
+  const allDone = allGroupsComplete(results)
+  const qualThirds = new Set((bestThirds ?? []).slice(0, 8))
+  for (const g of GROUPS) {
+    const table = standings[g]
+    if (!table) continue
+    const done = groupComplete(g, results)
+    for (let pos = 0; pos < table.length; pos++) {
+      const row = table[pos]
+      if (done) {
+        if (pos >= 3) out.add(row.teamId) // 4° → eliminado
+        else if (pos === 2 && allDone && !qualThirds.has(row.teamId)) out.add(row.teamId) // 3° no clasificado
+      } else {
+        // ¿No puede salir del último puesto? (≥3 rivales ya tienen más puntos
+        // que el máximo que este equipo podría alcanzar ganando todo lo que resta).
+        const maxPts = row.points + 3 * (3 - row.played)
+        const guaranteedAbove = table.filter((r) => r.teamId !== row.teamId && r.points > maxPts).length
+        if (guaranteedAbove >= 3) out.add(row.teamId)
+      }
+    }
+  }
+  return out
 }
 
 // Slots de tercero presentes en el cuadro (ej. '3ABCDF') y sus grupos válidos.
@@ -180,5 +217,6 @@ export function resolve(
     if (!changed) break
   }
 
-  return { standings, bestThirds, slots, matches }
+  const eliminated = computeEliminated(standings, results, bestThirds)
+  return { standings, bestThirds, slots, matches, eliminated }
 }

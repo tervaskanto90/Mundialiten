@@ -9,7 +9,7 @@ interface Props {
 }
 
 export function GroupsView({ ctx }: Props) {
-  const { standings, bestThirds } = ctx.resolution
+  const { standings, bestThirds, eliminated } = ctx.resolution
   const qualifiedThirds = new Set((bestThirds ?? []).slice(0, 8))
   const { t } = useT()
 
@@ -18,6 +18,10 @@ export function GroupsView({ ctx }: Props) {
       <div className="flex flex-wrap gap-3 text-[11px] text-slate-400 mb-3">
         <Legend color="bg-emerald-500" label={t('Clasifican directo (1° y 2°)', 'Qualify directly (1st & 2nd)')} />
         <Legend color="bg-amber-500" label={t('Mejor 3° clasificado', 'Best 3rd place')} />
+        <span className="flex items-center gap-1.5">
+          <span className="line-through text-slate-500">ABC</span>
+          {t('Eliminado', 'Eliminated')}
+        </span>
       </div>
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {GROUPS.map((g) => (
@@ -27,6 +31,7 @@ export function GroupsView({ ctx }: Props) {
             rows={standings[g]}
             qualifiedThirds={qualifiedThirds}
             thirdsKnown={bestThirds != null}
+            eliminated={eliminated}
             t={t}
           />
         ))}
@@ -49,12 +54,14 @@ function GroupTable({
   rows,
   qualifiedThirds,
   thirdsKnown,
+  eliminated,
   t,
 }: {
   group: string
   rows: StandingRow[]
   qualifiedThirds: Set<string>
   thirdsKnown: boolean
+  eliminated: Set<string>
   t: (es: string, en: string) => string
 }) {
   return (
@@ -75,6 +82,7 @@ function GroupTable({
             const direct = i < 2
             const isThird = i === 2
             const thirdQual = isThird && qualifiedThirds.has(r.teamId)
+            const elim = eliminated.has(r.teamId)
             const bar = direct
               ? 'border-l-2 border-emerald-500'
               : thirdQual
@@ -87,8 +95,10 @@ function GroupTable({
                 <td className="px-2 py-1.5">
                   <div className="flex items-center gap-1.5 min-w-0">
                     <span className="text-slate-500 w-3">{i + 1}</span>
-                    <span>{team?.flag}</span>
-                    <span className="truncate">{team ? teamDisplayName(team) : r.teamId}</span>
+                    <span className={elim ? 'grayscale opacity-50' : ''}>{team?.flag}</span>
+                    <span className={`truncate ${elim ? 'line-through text-slate-500' : ''}`}>
+                      {team ? teamDisplayName(team) : r.teamId}
+                    </span>
                   </div>
                 </td>
                 <td className="text-center text-slate-400">{r.played}</td>
