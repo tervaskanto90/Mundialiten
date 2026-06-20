@@ -48,6 +48,13 @@ const r = (h: number, a: number): MatchResult => ({ played: true, homeScore: h, 
   check('MEX/COR no eliminados', !res.eliminated.has('MEX') && !res.eliminated.has('COR'))
 }
 
+// 5b) PRINCIPIO: con sólo 1 fecha jugada NADIE puede estar eliminado (cualquiera
+//     puede llegar a 6 pts). Grupo D fecha 1: USA-PAR y AUS-TUR.
+{
+  const res = resolve({ 4: r(2, 0), 8: r(1, 0) })
+  check('1 fecha jugada → 0 eliminados', res.eliminated.size === 0, `${[...res.eliminated]}`)
+}
+
 // 6) Caso Turquía (Grupo D, falta la fecha 3): USA 6, AUS 3, PAR 3, TUR 0.
 //    TUR llega como mucho a 3 (gana fecha 3) pero YA perdió el head-to-head con
 //    AUS (M8) y PAR (M31) → no los pasa ni empatándolos → eliminada por h2h.
