@@ -26,3 +26,24 @@ export function rankDeltas(rows: RankDeltaRow[]): Map<string, number> {
   for (const r of rows) out.set(r.user_id, (before.get(r.user_id) ?? 0) - (now.get(r.user_id) ?? 0))
   return out
 }
+
+/**
+ * Agrupa filas (YA ordenadas por puntos desc) por PUESTO: las que comparten
+ * puntos quedan en el mismo grupo. `rank` = posición del primero del grupo
+ * (1, 2, 2, 4… competición estándar).
+ */
+export function tieGroups<T>(rows: T[], points: (r: T) => number): { rank: number; members: T[] }[] {
+  const out: { rank: number; members: T[] }[] = []
+  let i = 0
+  while (i < rows.length) {
+    const pts = points(rows[i])
+    const rank = i + 1
+    const members: T[] = []
+    while (i < rows.length && points(rows[i]) === pts) {
+      members.push(rows[i])
+      i++
+    }
+    out.push({ rank, members })
+  }
+  return out
+}
