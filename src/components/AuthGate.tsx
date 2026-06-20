@@ -2,6 +2,8 @@ import { useState, type ReactNode } from 'react'
 import { useAuth } from '../auth'
 import { useT } from '../i18n'
 import { LangToggle } from './LangToggle'
+import { useTheme, ACCENT } from '../theme'
+import { Emblem } from './Emblem'
 
 /**
  * Si Supabase está configurado y no hay sesión, muestra la pantalla de
@@ -10,25 +12,34 @@ import { LangToggle } from './LangToggle'
  */
 export function AuthGate({ children }: { children: ReactNode }) {
   const { enabled, loading, user } = useAuth()
-  const { t } = useT()
 
   // Si Supabase no está configurado, la app funciona local (sin login).
   if (!enabled || user) return <>{children}</>
 
   if (loading) {
-    return (
-      <div className="min-h-full flex items-center justify-center text-slate-400 text-sm">
-        {t('Cargando…', 'Loading…')}
-      </div>
-    )
+    return <LoadingScreen />
   }
 
   return <AuthScreen />
 }
 
+function LoadingScreen() {
+  const { t } = useT()
+  const { c } = useTheme()
+  return (
+    <div
+      className="min-h-full flex items-center justify-center text-sm"
+      style={{ background: c.page, color: c.muted, minHeight: '100vh' }}
+    >
+      {t('Cargando…', 'Loading…')}
+    </div>
+  )
+}
+
 function AuthScreen() {
   const { signIn, signUp } = useAuth()
   const { t } = useT()
+  const { c } = useTheme()
   const [mode, setMode] = useState<'login' | 'signup'>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -59,19 +70,43 @@ function AuthScreen() {
   }
 
   return (
-    <div className="min-h-full flex items-center justify-center p-4">
+    <div
+      className="min-h-full flex items-center justify-center p-4"
+      style={{ background: c.page, color: c.text, minHeight: '100vh' }}
+    >
       <div className="w-full max-w-sm">
         <div className="flex justify-end mb-2">
           <LangToggle />
         </div>
         <div className="text-center mb-6">
-          <div className="text-4xl">⚽</div>
-          <h1 className="text-2xl font-bold mt-1">Mundialiten</h1>
-          <p className="text-sm text-slate-400">{t('Prode del Mundial 2026', 'World Cup 2026 prediction game')}</p>
+          <div className="flex justify-center">
+            <Emblem size={56} />
+          </div>
+          <h1
+            className="text-2xl mt-1"
+            style={{ fontFamily: "'Archivo'", fontWeight: 900, color: c.text }}
+          >
+            Mundialiten
+          </h1>
+          <p className="text-sm" style={{ color: c.muted }}>{t('Prode del Mundial 2026', 'World Cup 2026 prediction game')}</p>
         </div>
 
-        <div className="bg-slate-800/60 border border-white/10 rounded-2xl p-5">
-          <div className="flex gap-1 bg-slate-900/60 rounded-lg p-1 mb-4">
+        <div
+          className="rounded-2xl p-5 overflow-hidden"
+          style={{ background: c.cardGrad, border: '1px solid ' + c.line, boxShadow: c.shadow }}
+        >
+          <div
+            className="-mx-5 -mt-5 mb-4"
+            style={{
+              height: 4,
+              background:
+                'linear-gradient(90deg,#2F6DF0,#7B3FF2,#EC1C7D,#FF7A1A,#FFC21A,#1FA85C)',
+            }}
+          />
+          <div
+            className="flex gap-1 rounded-lg p-1 mb-4"
+            style={{ background: c.canvas, border: '1px solid ' + c.line }}
+          >
             {(['login', 'signup'] as const).map((m) => (
               <button
                 key={m}
@@ -80,9 +115,12 @@ function AuthScreen() {
                   setError('')
                   setInfo('')
                 }}
-                className={`flex-1 py-1.5 rounded-md text-sm font-medium ${
-                  mode === m ? 'bg-pitch-500 text-white' : 'text-slate-300 hover:bg-white/5'
-                }`}
+                className="flex-1 py-1.5 rounded-md text-sm font-medium"
+                style={
+                  mode === m
+                    ? { background: ACCENT.blue, color: '#fff' }
+                    : { color: c.muted }
+                }
               >
                 {m === 'login' ? t('Entrar', 'Log in') : t('Crear cuenta', 'Sign up')}
               </button>
@@ -120,29 +158,31 @@ function AuthScreen() {
               />
             </Field>
 
-            {error && <p className="text-xs text-rose-400">{error}</p>}
-            {info && <p className="text-xs text-emerald-400">{info}</p>}
+            {error && <p className="text-xs" style={{ color: ACCENT.red }}>{error}</p>}
+            {info && <p className="text-xs" style={{ color: ACCENT.green }}>{info}</p>}
 
             <button
               type="submit"
               disabled={busy}
-              className="w-full bg-pitch-500 hover:bg-pitch-600 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg"
+              className="w-full disabled:opacity-50 font-medium py-2.5 rounded-lg"
+              style={{ background: ACCENT.blue, color: '#fff' }}
             >
               {busy ? '…' : mode === 'login' ? t('Entrar', 'Log in') : t('Crear cuenta', 'Sign up')}
             </button>
           </form>
         </div>
 
-        <p className="text-center text-[11px] text-slate-600 mt-6">{t('hecho por', 'made by')} Octavio Boggiano</p>
+        <p className="text-center text-[11px] mt-6" style={{ color: c.faint }}>{t('hecho por', 'made by')} Octavio Boggiano</p>
       </div>
     </div>
   )
 }
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
+  const { c } = useTheme()
   return (
     <label className="block">
-      <span className="text-xs text-slate-400">{label}</span>
+      <span className="text-xs" style={{ color: c.muted }}>{label}</span>
       <div className="mt-1">{children}</div>
     </label>
   )

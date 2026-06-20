@@ -3,6 +3,10 @@ export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
   theme: {
     extend: {
+      fontFamily: {
+        display: ["'Archivo'", 'system-ui', 'sans-serif'],
+        sans: ["'Noto Sans'", "'Twemoji Country Flags'", 'system-ui', 'sans-serif'],
+      },
       colors: {
         // Paleta inspirada en el calendario (azules del Mundial)
         pitch: {

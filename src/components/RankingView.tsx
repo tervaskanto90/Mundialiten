@@ -7,6 +7,7 @@ import { resolve } from '../engine/resolve'
 import { TEAM_BY_ID } from '../data/teams'
 import { rankDeltas, tieGroups } from '../lib/rankDelta'
 import { LiveBanner } from './LiveBanner'
+import { useTheme, ACCENT } from '../theme'
 
 const MEDALS = ['🥇', '🥈', '🥉']
 
@@ -21,14 +22,16 @@ function TeamMini({ id }: { id?: string }) {
 }
 
 function Arrow({ delta }: { delta: number }) {
-  if (delta > 0) return <span className="text-emerald-400" title="Subió">▲</span>
-  if (delta < 0) return <span className="text-rose-400" title="Bajó">▼</span>
-  return <span className="text-slate-500" title="Se mantuvo">▬</span>
+  const { c } = useTheme()
+  if (delta > 0) return <span style={{ color: ACCENT.green }} title="Subió">▲</span>
+  if (delta < 0) return <span style={{ color: ACCENT.red }} title="Bajó">▼</span>
+  return <span style={{ color: c.faint }} title="Se mantuvo">▬</span>
 }
 
 export function RankingView() {
   const { enabled, user } = useAuth()
   const { t, lang } = useT()
+  const { c, dark } = useTheme()
   const [rows, setRows] = useState<RankingRow[] | null>(null)
   const [error, setError] = useState('')
 
@@ -111,8 +114,8 @@ export function RankingView() {
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
-        <h2 className="font-semibold">🏆 Ranking{rows && rows.length > 0 ? ` · ${rows.length}` : ''}</h2>
-        <button onClick={load} className="text-xs text-slate-400 hover:text-white px-2 py-1 rounded-lg hover:bg-white/5">
+        <h2 className="font-semibold" style={{ fontFamily: "'Archivo'", color: c.text }}>🏆 Ranking{rows && rows.length > 0 ? ` · ${rows.length}` : ''}</h2>
+        <button onClick={load} className="text-xs px-2 py-1 rounded-lg" style={{ color: c.muted }}>
           ↻ {t('Actualizar', 'Refresh')}
         </button>
       </div>
@@ -120,76 +123,86 @@ export function RankingView() {
       <LiveBanner realResults={realResults} />
 
       {lastMatchId != null && lastReal?.played && (
-        <div className="bg-emerald-500/10 border border-emerald-500/25 rounded-xl px-3 py-2 mb-3 text-sm flex items-center gap-2 flex-wrap">
-          <span className="text-emerald-300 font-semibold">🟢 {t('Último resultado:', 'Latest result:')}</span>
+        <div
+          className="rounded-xl px-3 py-2 mb-3 text-sm flex items-center gap-2 flex-wrap"
+          style={{
+            background: dark ? 'rgba(31,168,92,.14)' : 'rgba(31,168,92,.12)',
+            border: '1px solid rgba(31,168,92,.35)',
+            color: c.text,
+          }}
+        >
+          <span className="font-semibold" style={{ color: ACCENT.green }}>🟢 {t('Último resultado:', 'Latest result:')}</span>
           <span className="font-medium tabular-nums whitespace-nowrap">
             <TeamMini id={lastTeams?.home} /> {lastReal.homeScore}-{lastReal.awayScore}{' '}
             <TeamMini id={lastTeams?.away} />
             {lastReal.homePens != null && lastReal.awayPens != null && (
-              <span className="text-slate-400"> ({lastReal.homePens}-{lastReal.awayPens} pen)</span>
+              <span style={{ color: c.muted }}> ({lastReal.homePens}-{lastReal.awayPens} pen)</span>
             )}
           </span>
         </div>
       )}
 
-      <div className="bg-slate-800/50 border border-white/10 rounded-xl p-3 mb-4 text-xs text-slate-300 space-y-1.5">
+      <div
+        className="rounded-xl p-3 mb-4 text-xs space-y-1.5"
+        style={{ background: c.cardGrad, border: '1px solid '+c.line, color: c.muted }}
+      >
         {lang === 'en' ? (
           <>
-            <p className="font-semibold text-slate-200">📋 How scoring works</p>
+            <p className="font-semibold" style={{ color: c.text }}>📋 How scoring works</p>
             <p>
               The ranking counts <strong>only match results</strong>, which the app verifies
               automatically from the live scores:
             </p>
-            <ul className="list-disc pl-4 space-y-0.5 text-slate-400">
+            <ul className="list-disc pl-4 space-y-0.5" style={{ color: c.muted }}>
               <li>
-                <strong className="text-emerald-400">Exact score</strong> (e.g. you predicted 2-1 and
-                it ended 2-1) or <strong className="text-amber-400">just the result</strong>
+                <strong style={{ color: ACCENT.green }}>Exact score</strong> (e.g. you predicted 2-1 and
+                it ended 2-1) or <strong style={{ color: ACCENT.gold }}>just the result</strong>
                 (win/draw/loss, without the exact score; e.g. you predicted 1-1 and it ended 0-0).
               </li>
               <li>Wrong result: 0 points.</li>
             </ul>
-            <p className="text-slate-400">
+            <p style={{ color: c.muted }}>
               Points are <strong>worth more as the tournament advances</strong> (exact / result):
               Groups 3/1 · R32 4/2 · R16 5/2 · QF 6/3 · SF 8/4 · Final & 3rd 10/5. The ranking is
               ordered by <strong>total points accumulated over the whole World Cup</strong>.
             </p>
-            <p className="text-slate-400">
+            <p style={{ color: c.muted }}>
               📣 You predict <strong>one stage at a time</strong>: only the current stage is open
               (groups → R32 → R16 → QF → semis+final+3rd). Each knockout stage shows the teams that
               <strong> actually qualified</strong>, and you can <strong>join at any stage</strong>.
             </p>
-            <p className="text-slate-400">
+            <p style={{ color: c.muted }}>
               ⏱️ Each match <strong>closes 5 minutes before</strong> kick-off. <strong>Scorers, cards
               and VAR</strong> can be predicted but <strong>do not count</strong> for the ranking.
             </p>
           </>
         ) : (
           <>
-            <p className="font-semibold text-slate-200">📋 Cómo se puntúa</p>
+            <p className="font-semibold" style={{ color: c.text }}>📋 Cómo se puntúa</p>
             <p>
               El ranking cuenta <strong>sólo los resultados de los partidos</strong>, que es lo que la
               app verifica automáticamente con los marcadores en vivo:
             </p>
-            <ul className="list-disc pl-4 space-y-0.5 text-slate-400">
+            <ul className="list-disc pl-4 space-y-0.5" style={{ color: c.muted }}>
               <li>
-                <strong className="text-emerald-400">Marcador exacto</strong> (ej: predijiste 2-1 y
-                salió 2-1) o <strong className="text-amber-400">sólo el resultado</strong>
+                <strong style={{ color: ACCENT.green }}>Marcador exacto</strong> (ej: predijiste 2-1 y
+                salió 2-1) o <strong style={{ color: ACCENT.gold }}>sólo el resultado</strong>
                 (ganó/empató/perdió, sin el marcador; ej: predijiste 1-1 y salió 0-0).
               </li>
               <li>Errar el resultado: 0 puntos.</li>
             </ul>
-            <p className="text-slate-400">
+            <p style={{ color: c.muted }}>
               Los puntos <strong>valen más a medida que avanza el torneo</strong> (exacto / sólo
               resultado): Grupos 3/1 · 16avos 4/2 · 8vos 5/2 · 4tos 6/3 · Semis 8/4 · Final y 3º 10/5.
               El ranking se ordena por el <strong>total de puntos acumulados en todo el Mundial</strong>.
             </p>
-            <p className="text-slate-400">
+            <p style={{ color: c.muted }}>
               📣 Se predice <strong>una etapa por vez</strong>: sólo está abierta la etapa en curso
               (grupos → 16avos → 8avos → 4tos → semis+final+3º). Cada etapa de eliminatoria muestra los
               equipos que <strong>realmente clasificaron</strong>, y podés <strong>entrar en cualquier
               instancia</strong>.
             </p>
-            <p className="text-slate-400">
+            <p style={{ color: c.muted }}>
               ⏱️ Cada partido <strong>se cierra 5 minutos antes</strong> de empezar.
               <strong> Goleadores, tarjetas y VAR</strong> se pueden pronosticar pero <strong>no suman
               al ranking</strong>.
@@ -197,9 +210,9 @@ export function RankingView() {
           </>
         )}
       </div>
-      {error && <p className="text-xs text-rose-400 mb-2">{error}</p>}
+      {error && <p className="text-xs mb-2" style={{ color: ACCENT.red }}>{error}</p>}
       {rows == null ? (
-        <p className="text-sm text-slate-500">{t('Cargando…', 'Loading…')}</p>
+        <p className="text-sm" style={{ color: c.muted }}>{t('Cargando…', 'Loading…')}</p>
       ) : rows.length === 0 ? (
         <Empty>{t('Todavía no hay puntajes cargados. ¡Sé el primero en armar tu predicción!', 'No scores yet. Be the first to make your prediction!')}</Empty>
       ) : (
@@ -211,7 +224,8 @@ export function RankingView() {
               return (
                 <div
                   key={g.key}
-                  className="rounded-xl px-3 py-2.5 border border-white/5 bg-slate-800/30 flex items-center gap-2"
+                  className="rounded-xl px-3 py-2.5 flex items-center gap-2"
+                  style={{ background: c.cardGrad, border: '1px solid '+c.line }}
                 >
                   <span className="w-7 text-center text-lg shrink-0">{medal}</span>
                   <div className="flex-1 min-w-0 flex gap-2">
@@ -221,24 +235,30 @@ export function RankingView() {
                       return (
                         <div
                           key={r.user_id}
-                          className={`flex-1 basis-0 min-w-0 rounded-lg px-2 py-1.5 border ${
-                            mine ? 'border-pitch-500/50 bg-pitch-500/10' : 'border-white/5 bg-slate-800/50'
-                          }`}
+                          className="flex-1 basis-0 min-w-0 rounded-lg px-2 py-1.5"
+                          style={
+                            mine
+                              ? {
+                                  border: '1px solid '+ACCENT.blue,
+                                  background: dark ? 'rgba(47,109,240,.18)' : 'rgba(47,109,240,.10)',
+                                }
+                              : { border: '1px solid '+c.line, background: c.cardGrad }
+                          }
                         >
-                          <div className="truncate font-medium text-sm">
+                          <div className="truncate font-medium text-sm" style={{ color: c.text }}>
                             {r.display_name}
-                            {mine && <span className="text-[9px] text-pitch-500 ml-0.5">{t('(vos)', '(you)')}</span>}
+                            {mine && <span className="text-[9px] ml-0.5" style={{ color: ACCENT.blue }}>{t('(vos)', '(you)')}</span>}
                           </div>
                           <div className="flex items-baseline gap-1">
-                            <span className="font-bold tabular-nums text-sm">
+                            <span className="font-bold tabular-nums text-sm" style={{ fontFamily: "'Archivo'", color: c.text }}>
                               {Math.round(Number(r.points))} {t('pts', 'pts')}
                             </span>
-                            <span className="text-[9px] text-slate-500 tabular-nums">
+                            <span className="text-[9px] tabular-nums" style={{ color: c.faint }}>
                               {Number(r.accuracy).toFixed(0)}%
                             </span>
                           </div>
                           {lastMatchId != null && (
-                            <div className="flex items-center gap-1 mt-1 text-[10px] text-slate-400 min-w-0">
+                            <div className="flex items-center gap-1 mt-1 text-[10px] min-w-0" style={{ color: c.muted }}>
                               <Arrow delta={deltas.get(r.user_id) ?? 0} />
                               {predicted && <span className="tabular-nums shrink-0">+{Number(r.last_points ?? 0)}</span>}
                               <span className="ml-auto truncate text-right">
@@ -248,7 +268,7 @@ export function RankingView() {
                                     <TeamMini id={lastTeams?.away} />
                                   </span>
                                 ) : (
-                                  <span className="italic text-slate-500">{t('Sin pred.', 'No pred.')}</span>
+                                  <span className="italic" style={{ color: c.faint }}>{t('Sin pred.', 'No pred.')}</span>
                                 )}
                               </span>
                             </div>
@@ -268,21 +288,27 @@ export function RankingView() {
             return (
               <div
                 key={g.key}
-                className={`rounded-xl px-3 py-2.5 border ${
-                  mine ? 'border-pitch-500/50 bg-pitch-500/10' : 'border-white/5 bg-slate-800/50'
-                }`}
+                className="rounded-xl px-3 py-2.5"
+                style={
+                  mine
+                    ? {
+                        border: '1px solid '+ACCENT.blue,
+                        background: dark ? 'rgba(47,109,240,.18)' : 'rgba(47,109,240,.10)',
+                      }
+                    : { border: '1px solid '+c.line, background: c.cardGrad, boxShadow: c.shadow }
+                }
               >
                 <div className="flex items-center gap-3">
                   <span className="w-7 text-center text-lg">{medal}</span>
-                  <span className="flex-1 truncate font-medium">
+                  <span className="flex-1 truncate font-medium" style={{ color: c.text }}>
                     {r.display_name}
-                    {mine && <span className="text-[10px] text-pitch-500 ml-1">{t('(vos)', '(you)')}</span>}
+                    {mine && <span className="text-[10px] ml-1" style={{ color: ACCENT.blue }}>{t('(vos)', '(you)')}</span>}
                   </span>
                   <div className="text-right">
-                    <div className="font-bold tabular-nums">
+                    <div className="font-bold tabular-nums" style={{ fontFamily: "'Archivo'", color: c.text }}>
                       {Math.round(Number(r.points))} {t('pts', 'pts')}
                     </div>
-                    <div className="text-[10px] text-slate-500 tabular-nums">{Number(r.accuracy).toFixed(0)}%</div>
+                    <div className="text-[10px] tabular-nums" style={{ color: c.faint }}>{Number(r.accuracy).toFixed(0)}%</div>
                   </div>
                 </div>
 
@@ -291,17 +317,17 @@ export function RankingView() {
                     <span className="flex items-center gap-1 shrink-0">
                       <Arrow delta={deltas.get(r.user_id) ?? 0} />
                       {predicted && (
-                        <span className="text-slate-400 tabular-nums">+{Number(r.last_points ?? 0)}</span>
+                        <span className="tabular-nums" style={{ color: c.muted }}>+{Number(r.last_points ?? 0)}</span>
                       )}
                     </span>
-                    <span className="ml-auto text-right truncate text-slate-300">
+                    <span className="ml-auto text-right truncate" style={{ color: c.muted }}>
                       {predicted ? (
                         <span className="tabular-nums whitespace-nowrap">
                           <TeamMini id={lastTeams?.home} /> {r.last_pred_home}-{r.last_pred_away}{' '}
                           <TeamMini id={lastTeams?.away} />
                         </span>
                       ) : (
-                        <span className="text-slate-500 italic">{t('Sin predicción', 'No prediction')}</span>
+                        <span className="italic" style={{ color: c.faint }}>{t('Sin predicción', 'No prediction')}</span>
                       )}
                     </span>
                   </div>
@@ -316,8 +342,9 @@ export function RankingView() {
 }
 
 function Empty({ children }: { children: ReactNode }) {
+  const { c } = useTheme()
   return (
-    <div className="text-center text-slate-500 py-12 text-sm">
+    <div className="text-center py-12 text-sm" style={{ color: c.muted }}>
       <p className="text-4xl mb-3">🏆</p>
       <p className="max-w-xs mx-auto">{children}</p>
     </div>

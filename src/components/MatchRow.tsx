@@ -3,6 +3,7 @@ import { sideLabelFor, venueName, matchTimeLabel, formatDateShort, matchDateKey 
 import { canPredict } from '../utils/stage'
 import { isMatchLive } from '../utils/live'
 import type { ActiveContext } from '../hooks'
+import { useTheme, ACCENT } from '../theme'
 
 interface Props {
   matchId: number
@@ -13,6 +14,7 @@ interface Props {
 }
 
 export function MatchRow({ matchId, ctx, onEdit, showVenue = true, showDate = false }: Props) {
+  const { c, dark } = useTheme()
   const match = MATCH_BY_ID[matchId]
   if (!match) return null
   const res = ctx.results[matchId]
@@ -25,21 +27,32 @@ export function MatchRow({ matchId, ctx, onEdit, showVenue = true, showDate = fa
   // En una predicción, marcamos los partidos que todavía no se pueden predecir.
   const lockedForPrediction = ctx.scenario.type === 'prediction' && !canPredict(match)
 
+  const cardStyle: React.CSSProperties = {
+    width: '100%',
+    textAlign: 'left',
+    borderRadius: '16px',
+    padding: '11px 12px',
+    cursor: 'pointer',
+    transition: 'transform .16s ease, border-color .2s ease',
+    animation: 'mdlUp .4s both',
+    background: live
+      ? dark
+        ? 'linear-gradient(150deg, rgba(60,20,12,.7), rgba(25,19,9,.9))'
+        : 'linear-gradient(150deg,#FFF4EC,#FFFDF6)'
+      : c.cardGrad,
+    border: '1px solid ' + (live ? 'rgba(229,50,43,.32)' : c.line),
+    boxShadow: live ? '0 12px 30px -18px rgba(229,50,43,.5)' : 'none',
+    opacity: lockedForPrediction ? 0.72 : 1,
+  }
+
   return (
-    <button
-      onClick={() => onEdit(matchId)}
-      className={`w-full text-left rounded-xl px-3 py-2.5 flex items-center gap-3 transition border ${
-        live
-          ? 'border-rose-500/70 ring-2 ring-rose-500/50 bg-rose-500/10 hover:bg-rose-500/15'
-          : lockedForPrediction
-            ? 'border-white/5 bg-slate-800/30 hover:bg-slate-800/50'
-            : 'border-white/5 bg-slate-800/60 hover:bg-slate-800'
-      }`}
-    >
-      <div className="text-[10px] text-slate-500 w-12 shrink-0">
-        <div className="font-mono">{live ? <span className="text-rose-400">🔴 VIVO</span> : `${lockedForPrediction ? '🔒' : ''}P${match.id}`}</div>
-        {showDate && <div className="text-slate-400">{formatDateShort(matchDateKey(match))}</div>}
-        <div>{matchTimeLabel(match)}</div>
+    <button onClick={() => onEdit(matchId)} style={cardStyle} className="flex items-center gap-3">
+      <div style={{ width: 46, flex: 'none', textAlign: 'center', lineHeight: 1.25 }}>
+        <div style={{ fontSize: '10px', fontFamily: "'Archivo'", fontWeight: 800, color: live ? ACCENT.red : c.muted }}>
+          {live ? '🔴 VIVO' : `${lockedForPrediction ? '🔒 ' : ''}P${match.id}`}
+        </div>
+        {showDate && <div style={{ fontSize: '9px', color: c.faint, fontWeight: 600 }}>{formatDateShort(matchDateKey(match))}</div>}
+        <div style={{ fontSize: '10px', color: c.faint, fontWeight: 700 }}>{matchTimeLabel(match)}</div>
       </div>
 
       <div className="flex-1 min-w-0">
@@ -47,26 +60,24 @@ export function MatchRow({ matchId, ctx, onEdit, showVenue = true, showDate = fa
           <Side
             flag={home.flag}
             name={home.name}
-            winner={played && rm?.winner === home.short}
+            winner={!!played && rm?.winner === home.short}
             eliminated={!!home.short && ctx.resolution.eliminated.has(home.short)}
+            c={c}
           />
-          <Score
-            played={!!played}
-            h={res?.homeScore}
-            a={res?.awayScore}
-            hp={res?.homePens}
-            ap={res?.awayPens}
-          />
+          <Score played={!!played} h={res?.homeScore} a={res?.awayScore} hp={res?.homePens} ap={res?.awayPens} live={live} c={c} />
           <Side
             flag={away.flag}
             name={away.name}
-            winner={played && rm?.winner === away.short}
+            winner={!!played && rm?.winner === away.short}
             eliminated={!!away.short && ctx.resolution.eliminated.has(away.short)}
             right
+            c={c}
           />
         </div>
         {showVenue && (
-          <div className="text-[10px] text-slate-500 mt-1 truncate">📍 {venueName(match.venueId)}</div>
+          <div style={{ fontSize: '10px', color: c.faint, marginTop: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            📍 {venueName(match.venueId)}
+          </div>
         )}
       </div>
     </button>
@@ -79,20 +90,27 @@ function Side({
   right,
   winner,
   eliminated,
+  c,
 }: {
   flag: string
   name: string
   right?: boolean
   winner?: boolean
   eliminated?: boolean
+  c: { text: string; muted: string; faint: string }
 }) {
   return (
     <div className={`flex items-center gap-1.5 min-w-0 flex-1 ${right ? 'flex-row-reverse text-right' : ''}`}>
-      <span className={`text-lg shrink-0 ${eliminated ? 'grayscale opacity-50' : ''}`}>{flag}</span>
+      <span className="text-lg shrink-0" style={{ filter: eliminated ? 'grayscale(1)' : 'none', opacity: eliminated ? 0.5 : 1 }}>
+        {flag}
+      </span>
       <span
-        className={`text-sm truncate ${
-          eliminated ? 'line-through text-slate-500' : winner ? 'font-bold text-white' : 'text-slate-200'
-        }`}
+        className="text-sm truncate"
+        style={{
+          color: eliminated ? c.faint : winner ? c.text : c.muted,
+          fontWeight: winner ? 800 : 600,
+          textDecoration: eliminated ? 'line-through' : 'none',
+        }}
       >
         {name}
       </span>
@@ -106,23 +124,29 @@ function Score({
   a,
   hp,
   ap,
+  live,
+  c,
 }: {
   played: boolean
   h?: number
   a?: number
   hp?: number
   ap?: number
+  live?: boolean
+  c: { text: string; muted: string; faint: string }
 }) {
   if (!played) {
-    return <span className="text-xs text-slate-500 px-2 shrink-0">vs</span>
+    return <span className="text-xs px-2 shrink-0" style={{ color: c.faint, fontWeight: 700 }}>vs</span>
   }
   return (
     <div className="shrink-0 px-2 text-center">
-      <div className="font-bold tabular-nums">
-        {h} <span className="text-slate-500">-</span> {a}
+      <div style={{ fontFamily: "'Archivo'", fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: live ? ACCENT.red : c.text }}>
+        {h} <span style={{ color: c.faint }}>-</span> {a}
       </div>
       {hp != null && ap != null && (
-        <div className="text-[10px] text-slate-400">({hp}-{ap} pen)</div>
+        <div style={{ fontSize: '10px', color: c.muted }}>
+          ({hp}-{ap} pen)
+        </div>
       )}
     </div>
   )

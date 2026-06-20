@@ -1,22 +1,38 @@
 import { useState } from 'react'
 import { Modal } from './Modal'
 import { useT } from '../i18n'
+import { useTheme } from '../theme'
 
 export function HowToPlay() {
   const { t, lang } = useT()
+  const { c, dark } = useTheme()
   const [open, setOpen] = useState(false)
 
   return (
     <>
       <button
         onClick={() => setOpen(true)}
-        className="text-xs font-medium bg-white/10 hover:bg-white/20 text-white px-2.5 py-1 rounded-lg whitespace-nowrap"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          fontFamily: "'Noto Sans'",
+          fontSize: '12px',
+          fontWeight: 800,
+          color: dark ? '#FFCF45' : '#B07D08',
+          background: dark ? 'rgba(255,194,26,.12)' : 'rgba(255,194,26,.18)',
+          border: '1px solid ' + (dark ? 'rgba(255,194,26,.3)' : 'rgba(176,125,8,.3)'),
+          padding: '8px 13px',
+          borderRadius: '11px',
+          cursor: 'pointer',
+          whiteSpace: 'nowrap',
+        }}
       >
-        ❓ {t('¿Cómo jugar?', 'How to play?')}
+        <span style={{ fontSize: '13px' }}>💡</span> {t('¿Cómo jugar?', 'How to play?')}
       </button>
       {open && (
         <Modal title={t('¿Cómo jugar?', 'How to play?')} onClose={() => setOpen(false)} wide>
-          <div className="space-y-4 text-sm leading-relaxed text-slate-300">
+          <div className="space-y-4 text-sm leading-relaxed" style={{ color: c.muted }}>
             {lang === 'en' ? <GuideEN /> : <GuideES />}
           </div>
         </Modal>
@@ -26,7 +42,12 @@ export function HowToPlay() {
 }
 
 function H({ children }: { children: React.ReactNode }) {
-  return <h3 className="font-semibold text-white mt-4">{children}</h3>
+  const { c } = useTheme()
+  return (
+    <h3 className="font-bold mt-4" style={{ fontFamily: "'Archivo'", color: c.text }}>
+      {children}
+    </h3>
+  )
 }
 
 // Tabla de puntos por fase (exacto / sólo resultado). Misma data en ambos idiomas.
@@ -44,9 +65,11 @@ const POINTS_LABEL_ES: Record<string, string> = {
 }
 
 function PointsTable({ lang }: { lang: 'es' | 'en' }) {
+  const { c, dark } = useTheme()
+  const headBg = dark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.04)'
   return (
-    <div className="rounded-lg border border-white/10 overflow-hidden text-xs mt-1">
-      <div className="grid grid-cols-3 bg-white/5 font-semibold text-slate-200">
+    <div className="rounded-lg overflow-hidden text-xs mt-1" style={{ border: '1px solid ' + c.line }}>
+      <div className="grid grid-cols-3 font-semibold" style={{ background: headBg, color: c.text }}>
         <span className="px-2 py-1.5">{lang === 'es' ? 'Fase' : 'Stage'}</span>
         <span className="px-2 py-1.5 text-center">{lang === 'es' ? 'Exacto' : 'Exact'}</span>
         <span className="px-2 py-1.5 text-center">{lang === 'es' ? 'Sólo resultado' : 'Result only'}</span>
@@ -54,10 +77,10 @@ function PointsTable({ lang }: { lang: 'es' | 'en' }) {
       {POINTS_ROWS.map(([key, exact, tend]) => {
         const [esKey, en] = key.split('|')
         return (
-          <div key={key} className="grid grid-cols-3 border-t border-white/5">
+          <div key={key} className="grid grid-cols-3" style={{ borderTop: '1px solid ' + c.line, color: c.muted }}>
             <span className="px-2 py-1.5">{lang === 'es' ? POINTS_LABEL_ES[esKey] : en}</span>
-            <span className="px-2 py-1.5 text-center font-semibold text-emerald-400">{exact}</span>
-            <span className="px-2 py-1.5 text-center font-semibold text-amber-400">{tend}</span>
+            <span className="px-2 py-1.5 text-center font-semibold" style={{ color: '#1FA85C' }}>{exact}</span>
+            <span className="px-2 py-1.5 text-center font-semibold" style={{ color: '#E59A12' }}>{tend}</span>
           </div>
         )
       })}
@@ -93,7 +116,7 @@ function GuideES() {
         Esta es la regla grande que cambió. Ya <strong>no se completa todo el cuadro de una</strong>:
         predecís <strong>una etapa por vez</strong>, acompañando al Mundial real:
       </p>
-      <p className="text-center text-slate-200 text-xs bg-white/5 rounded-lg py-2">
+      <p className="text-center text-xs rounded-lg py-2" style={{ background: 'rgba(127,127,127,.12)', color: 'inherit', fontWeight: 600 }}>
         Grupos → 16avos → 8vos → Cuartos → (Semis + Final + 3er puesto)
       </p>
       <ul className="list-disc pl-5 space-y-1">
@@ -197,7 +220,7 @@ function GuideEN() {
         This is the big change. You <strong>no longer fill in the whole bracket at once</strong>: you
         predict <strong>one stage at a time</strong>, following the real tournament:
       </p>
-      <p className="text-center text-slate-200 text-xs bg-white/5 rounded-lg py-2">
+      <p className="text-center text-xs rounded-lg py-2" style={{ background: 'rgba(127,127,127,.12)', color: 'inherit', fontWeight: 600 }}>
         Groups → Round of 32 → Round of 16 → Quarter-finals → (Semis + Final + 3rd place)
       </p>
       <ul className="list-disc pl-5 space-y-1">

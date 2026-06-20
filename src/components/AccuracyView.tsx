@@ -9,6 +9,7 @@ import {
 import { formatDateShort } from '../utils/labels'
 import type { Scenario } from '../types'
 import { useT } from '../i18n'
+import { useTheme, ACCENT } from '../theme'
 
 // Factores que se derivan de los resultados (la base del ranking).
 const RANKING_KEYS = new Set(['outcome', 'score'])
@@ -30,6 +31,7 @@ export function AccuracyView() {
   const scenarios = useStore((s) => s.scenarios)
   const real = getScenario(scenarios, REAL_SCENARIO_ID) ?? scenarios[0]
   const { t } = useT()
+  const { c } = useTheme()
 
   const cards = useMemo(() => {
     return scenarios
@@ -48,7 +50,7 @@ export function AccuracyView() {
 
   if (cards.length === 0) {
     return (
-      <div className="text-center text-slate-500 py-12">
+      <div className="text-center py-12" style={{ color: c.muted }}>
         <p className="text-4xl mb-3">🎯</p>
         <p className="text-sm">{t('Todavía no hay predicciones ni escenarios.', 'No predictions or scenarios yet.')}</p>
         <p className="text-xs mt-1">{t('Creá una predicción para medir tu acierto.', 'Create a prediction to measure your accuracy.')}</p>
@@ -58,7 +60,7 @@ export function AccuracyView() {
 
   return (
     <div>
-      <p className="text-xs text-slate-500 mb-4">
+      <p className="text-xs mb-4" style={{ color: c.muted }}>
         {t(
           `Se comparan tus pestañas con los resultados reales (${realPlayed} partidos jugados). El puntaje (que ordena el ranking) cuenta sólo los resultados de los partidos que predijiste antes del cierre, con puntos que aumentan por fase (más detalle en la pestaña Ranking). El resto es informativo.`,
           `Your tabs are compared with the real results (${realPlayed} matches played). The score (which orders the ranking) counts only the results of the matches you predicted before the close, with points increasing per stage (more detail in the Ranking tab). The rest is informational.`,
@@ -86,15 +88,16 @@ function AccuracyCard({
   report: AccuracyReport
 }) {
   const { t, lang } = useT()
+  const { c, dark } = useTheme()
   return (
-    <div className="bg-slate-800/40 rounded-xl border border-white/5 overflow-hidden">
+    <div className="rounded-xl overflow-hidden" style={{ background: c.cardGrad, border: '1px solid ' + c.line, boxShadow: c.shadow }}>
       <div className="flex items-center gap-3 px-4 py-3" style={{ borderLeft: `4px solid ${scenario.color}` }}>
         <div className="flex-1 min-w-0">
-          <div className="font-semibold flex items-center gap-1.5">
+          <div className="font-semibold flex items-center gap-1.5" style={{ color: c.text, fontFamily: "'Archivo'" }}>
             {scenario.type === 'prediction' ? '🔮' : '🧪'}
             <span className="truncate">{scenario.name}</span>
           </div>
-          <div className="text-[11px] text-slate-500">
+          <div className="text-[11px]" style={{ color: c.muted }}>
             {scenario.type === 'prediction' ? t('Predicción', 'Prediction') : 'What-if'}
             {scenario.predictionDate ? ` · ${formatDateShort(scenario.predictionDate)}` : ''}
           </div>
@@ -103,36 +106,36 @@ function AccuracyCard({
           <div className="text-2xl font-bold" style={{ color: scenario.color }}>
             {Math.round(score.points)} {t('pts', 'pts')}
           </div>
-          <div className="text-[10px] text-slate-500">
+          <div className="text-[10px]" style={{ color: c.muted }}>
             {t('puntos del ranking', 'ranking points')} · {score.pct.toFixed(0)}%
           </div>
         </div>
       </div>
 
       <div className="px-4 pb-2 -mt-1">
-        <div className="text-[11px] text-slate-400">
+        <div className="text-[11px]" style={{ color: c.muted }}>
           🎯 {score.exact} {t('exactos', 'exact')} · ✅ {score.tendency} {t('sólo resultado', 'result only')} ·{' '}
           {t(`de ${score.played} jugados`, `of ${score.played} played`)}
-          <span className="text-slate-600"> ({score.points}/{score.max} pts)</span>
+          <span style={{ color: c.faint }}> ({score.points}/{score.max} pts)</span>
         </div>
       </div>
 
-      <div className="px-4 pb-4 pt-2 space-y-2 border-t border-white/5 mt-1">
-        <div className="text-[10px] uppercase tracking-wide text-slate-500">{t('Detalle informativo', 'Informational detail')}</div>
+      <div className="px-4 pb-4 pt-2 space-y-2 border-t mt-1" style={{ borderColor: c.line }}>
+        <div className="text-[10px] uppercase tracking-wide" style={{ color: c.muted }}>{t('Detalle informativo', 'Informational detail')}</div>
         {report.factors.map((f) => (
           <div key={f.key}>
             <div className="flex items-center justify-between text-xs mb-0.5">
-              <span className="text-slate-400">
+              <span style={{ color: c.muted }}>
                 {lang === 'en' ? FACTOR_EN[f.key] ?? f.label : f.label}
                 {RANKING_KEYS.has(f.key) && (
-                  <span className="ml-1 text-[9px] text-emerald-400/80">· {t('cuenta', 'counts')}</span>
+                  <span className="ml-1 text-[9px]" style={{ color: ACCENT.green }}>· {t('cuenta', 'counts')}</span>
                 )}
               </span>
-              <span className={f.total === 0 ? 'text-slate-600' : 'text-slate-300'}>
+              <span style={{ color: f.total === 0 ? c.faint : c.muted }}>
                 {f.total === 0 ? t('sin datos', 'no data') : `${f.correct}/${f.total} · ${f.pct.toFixed(0)}%`}
               </span>
             </div>
-            <div className="h-1.5 bg-slate-700/50 rounded-full overflow-hidden">
+            <div className="h-1.5 rounded-full overflow-hidden" style={{ background: dark ? 'rgba(0,0,0,.4)' : 'rgba(0,0,0,.06)' }}>
               <div
                 className="h-full rounded-full transition-all"
                 style={{ width: `${f.total === 0 ? 0 : f.pct}%`, background: scenario.color }}

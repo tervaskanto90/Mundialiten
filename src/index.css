@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=Noto+Sans:wght@400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -16,8 +18,25 @@
   font-display: swap;
 }
 
-:root {
+/* Tokens del tema expuestos a CSS (los maneja ThemeProvider vía data-theme). */
+:root,
+:root[data-theme='light'] {
+  color-scheme: light;
+  --mdl-page: #e8dcc2;
+  --mdl-canvas: #fbf6ea;
+  --mdl-text: #1c160c;
+  --mdl-muted: #897b58;
+  --mdl-faint: #b6a57e;
+  --mdl-line: #e7dbc0;
+}
+:root[data-theme='dark'] {
   color-scheme: dark;
+  --mdl-page: #0c0904;
+  --mdl-canvas: #191309;
+  --mdl-text: #f5ecd8;
+  --mdl-muted: #a8997c;
+  --mdl-faint: #776a52;
+  --mdl-line: rgba(255, 236, 200, 0.12);
 }
 
 html,
@@ -28,10 +47,56 @@ body,
 
 body {
   margin: 0;
-  font-family: 'Twemoji Country Flags', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica,
-    Arial, sans-serif;
-  background: #0b1220;
-  color: #e2e8f0;
+  font-family: 'Twemoji Country Flags', 'Noto Sans', system-ui, -apple-system, 'Segoe UI', Roboto,
+    Helvetica, Arial, sans-serif;
+  background: var(--mdl-page);
+  color: var(--mdl-text);
+}
+
+/* ── Animaciones del diseño (mdl*) ── */
+@keyframes mdlLivePulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.3; transform: scale(0.5); }
+}
+@keyframes mdlRing {
+  0% { box-shadow: 0 0 0 0 rgba(229, 50, 43, 0.5); }
+  70% { box-shadow: 0 0 0 9px rgba(229, 50, 43, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(229, 50, 43, 0); }
+}
+@keyframes mdlUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes mdlRight {
+  from { opacity: 0; transform: translateX(18px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes mdlPop {
+  0% { transform: scale(0.4); opacity: 0.2; }
+  60% { transform: scale(1.22); }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes mdlShimmer {
+  0% { background-position: -180% 0; }
+  100% { background-position: 180% 0; }
+}
+@keyframes mdlGlow {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+@keyframes mdlBar {
+  from { width: 0; }
+}
+@keyframes mdlModalIn {
+  from { opacity: 0; transform: translateY(20px) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes mdlBandIn {
+  from { opacity: 0; transform: scale(0.6); }
+  to { opacity: 1; transform: scale(1); }
+}
+.mdl-noscroll::-webkit-scrollbar {
+  display: none;
 }
 
 /* ── Llave de torneo (bracket) ── */
@@ -39,7 +104,7 @@ body {
   display: flex;
   align-items: stretch;
   min-height: 780px;
-  --bl: rgba(148, 163, 184, 0.45); /* color de las líneas conectoras */
+  --bl: var(--mdl-line); /* color de las líneas conectoras */
 }
 .bracket-round {
   display: flex;
@@ -56,7 +121,7 @@ body {
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: #94a3b8;
+  color: var(--mdl-faint);
   margin-bottom: 0.25rem;
 }
 .bracket-col {
@@ -100,12 +165,12 @@ body {
 
 .auth-input {
   width: 100%;
-  background: #0f172a;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--mdl-canvas);
+  border: 1px solid var(--mdl-line);
   border-radius: 0.5rem;
   padding: 0.5rem 0.75rem;
   font-size: 0.875rem;
-  color: #e2e8f0;
+  color: var(--mdl-text);
   outline: none;
 }
 .auth-input:focus {
@@ -118,6 +183,6 @@ body {
   width: 8px;
 }
 ::-webkit-scrollbar-thumb {
-  background: #334155;
-  border-radius: 8px;
+  background: rgba(120, 110, 90, 0.35);
+  border-radius: 99px;
 }

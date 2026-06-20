@@ -9,6 +9,7 @@ import { LineupPanel } from './LineupPanel'
 import { fetchFixtureEvents } from '../engine/liveSync'
 import { predictReason } from '../utils/stage'
 import { useT } from '../i18n'
+import { useTheme, ACCENT } from '../theme'
 
 interface Props {
   matchId: number
@@ -30,6 +31,7 @@ const GOAL_TYPES: EventType[] = ['goal', 'penalty', 'own_goal']
 export function ResultEditor({ matchId, ctx, onClose }: Props) {
   const match = MATCH_BY_ID[matchId]
   const { t, lang } = useT()
+  const { c } = useTheme()
   const setResult = useStore((s) => s.setResult)
   const clearResult = useStore((s) => s.clearResult)
   const addEvent = useStore((s) => s.addEvent)
@@ -119,7 +121,7 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
       wide
       footer={
         <div className="flex items-center justify-between gap-2">
-          <div className="text-xs text-slate-500">
+          <div className="text-xs" style={{ color: c.muted }}>
             {t('En', 'In')} «{scenario.type === 'real' ? t('Resultados reales', 'Real results') : scenario.name}»
             {inherited && t(' · heredando del real', ' · inheriting from real')}
             {isReal && t(' · 🔴 sólo lectura (en vivo)', ' · 🔴 read-only (live)')}
@@ -132,7 +134,8 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
                   clearResult(scenario.id, matchId)
                   onClose()
                 }}
-                className="px-3 py-2 rounded-lg text-sm text-amber-300 hover:bg-amber-500/10"
+                className="px-3 py-2 rounded-lg text-sm"
+                style={{ color: ACCENT.gold }}
               >
                 ↺ {t('Volver al real', 'Back to real')}
               </button>
@@ -143,14 +146,16 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
                   clearResult(scenario.id, matchId)
                   onClose()
                 }}
-                className="px-3 py-2 rounded-lg text-sm text-rose-300 hover:bg-rose-500/10"
+                className="px-3 py-2 rounded-lg text-sm"
+                style={{ color: ACCENT.red }}
               >
                 🗑 {t('Borrar', 'Clear')}
               </button>
             )}
             <button
               onClick={onClose}
-              className="px-4 py-2 rounded-lg text-sm font-medium bg-pitch-500 hover:bg-pitch-600 text-white"
+              className="px-4 py-2 rounded-lg text-sm font-medium"
+              style={{ background: ACCENT.blue, color: '#fff' }}
             >
               {t('Listo', 'Done')}
             </button>
@@ -158,12 +163,15 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
         </div>
       }
     >
-      <div className="text-xs text-slate-500 mb-4 capitalize">
+      <div className="text-xs mb-4 capitalize" style={{ color: c.muted }}>
         {matchDateLabel(match, lang)} · {matchTimeLabel(match)} · 📍 {venueName(match.venueId)}
       </div>
 
       {isReal && (
-        <div className="text-[11px] text-slate-400 bg-rose-500/10 border border-rose-500/20 rounded-lg px-3 py-2 mb-4">
+        <div
+          className="text-[11px] rounded-lg px-3 py-2 mb-4"
+          style={{ color: c.muted, background: ACCENT.red + '1A', border: '1px solid ' + ACCENT.red + '33' }}
+        >
           {t(
             '🔴 Los resultados reales son la fuente de verdad y no se editan a mano: se actualizan automáticamente en vivo. Para simular escenarios, cloná esta pestaña como «What-if».',
             '🔴 The real results are the source of truth and are not edited by hand: they update automatically live. To simulate scenarios, clone this tab as “What-if”.',
@@ -172,7 +180,10 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
       )}
 
       {locked && (
-        <div className="text-[11px] text-amber-200 bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2 mb-4">
+        <div
+          className="text-[11px] rounded-lg px-3 py-2 mb-4"
+          style={{ color: c.text, background: ACCENT.gold + '1A', border: '1px solid ' + ACCENT.gold + '4D' }}
+        >
           {reason === 'future'
             ? t(
                 `🔒 Las predicciones de ${STAGE_I18N[match.stage].es} se abren cuando empiece esa fase.`,
@@ -194,13 +205,13 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 mb-4">
         <ScoreSide flag={home.flag} name={home.name} />
         {editingDisabled ? (
-          <div className="text-3xl font-bold tabular-nums px-2">
+          <div className="text-3xl font-bold tabular-nums px-2" style={{ color: c.text }}>
             {base.played ? `${base.homeScore} - ${base.awayScore}` : 'vs'}
           </div>
         ) : (
           <div className="flex items-center gap-2">
             <Stepper value={base.played ? base.homeScore : 0} onChange={(v) => setScore('home', v)} />
-            <span className="text-slate-500">-</span>
+            <span style={{ color: c.muted }}>-</span>
             <Stepper value={base.played ? base.awayScore : 0} onChange={(v) => setScore('away', v)} />
           </div>
         )}
@@ -211,7 +222,8 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
         <div className="text-center -mt-2 mb-3">
           <button
             onClick={() => patch({ played: true })}
-            className="text-xs text-pitch-500 hover:underline"
+            className="text-xs hover:underline"
+            style={{ color: ACCENT.blue }}
           >
             {t('Marcar como jugado (0-0)', 'Mark as played (0-0)')}
           </button>
@@ -220,17 +232,17 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
 
       {/* Penales en eliminatorias empatadas */}
       {isKnockout && base.played && base.homeScore === base.awayScore && (
-        <div className="bg-slate-800/60 rounded-xl p-3 mb-4">
-          <div className="text-xs text-slate-400 mb-2">{t('Definición por penales', 'Penalty shoot-out')}</div>
+        <div className="rounded-xl p-3 mb-4" style={{ background: c.surface, border: '1px solid ' + c.line }}>
+          <div className="text-xs mb-2" style={{ color: c.muted }}>{t('Definición por penales', 'Penalty shoot-out')}</div>
           <div className="flex items-center justify-center gap-2">
             {editingDisabled ? (
-              <span className="text-lg font-bold tabular-nums">
+              <span className="text-lg font-bold tabular-nums" style={{ color: c.text }}>
                 {base.homePens ?? 0} - {base.awayPens ?? 0}
               </span>
             ) : (
               <>
                 <Stepper value={base.homePens ?? 0} onChange={(v) => patch({ homePens: Math.max(0, v) })} small />
-                <span className="text-slate-500 text-sm">{t('penales', 'penalties')}</span>
+                <span className="text-sm" style={{ color: c.muted }}>{t('penales', 'penalties')}</span>
                 <Stepper value={base.awayPens ?? 0} onChange={(v) => patch({ awayPens: Math.max(0, v) })} small />
               </>
             )}
@@ -242,7 +254,7 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
       {base.played &&
         (goalCount('home') !== base.homeScore || goalCount('away') !== base.awayScore) &&
         events.some((e) => GOAL_TYPES.includes(e.type)) && (
-          <div className="text-[11px] text-amber-400/90 bg-amber-500/10 rounded-lg px-3 py-1.5 mb-3">
+          <div className="text-[11px] rounded-lg px-3 py-1.5 mb-3" style={{ color: ACCENT.gold, background: ACCENT.gold + '1A' }}>
             {t(
               `Ojo: los goleadores cargados (${goalCount('home')}-${goalCount('away')}) no coinciden con el marcador (${base.homeScore}-${base.awayScore}).`,
               `Heads up: the scorers entered (${goalCount('home')}-${goalCount('away')}) don't match the score (${base.homeScore}-${base.awayScore}).`,
@@ -253,20 +265,21 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
       {/* Eventos */}
       <div className="mb-3">
         <div className="flex items-center justify-between mb-2">
-          <h4 className="text-sm font-semibold">{t('Eventos', 'Events')}</h4>
+          <h4 className="text-sm font-semibold" style={{ color: c.text }}>{t('Eventos', 'Events')}</h4>
           {isReal && liveConfig.provider === 'apifootball' && fixtureId != null && (
             <button
               onClick={fetchRealEvents}
               disabled={eventsLoading}
-              className="text-xs font-medium bg-pitch-500 hover:bg-pitch-600 disabled:opacity-50 text-white px-2.5 py-1 rounded-lg"
+              className="text-xs font-medium disabled:opacity-50 px-2.5 py-1 rounded-lg"
+              style={{ background: ACCENT.blue, color: '#fff' }}
             >
               {eventsLoading ? t('Trayendo…', 'Fetching…') : t('↻ Traer goles/tarjetas en vivo', '↻ Fetch goals/cards live')}
             </button>
           )}
         </div>
-        {eventsError && <p className="text-[11px] text-rose-400 mb-2">{eventsError}</p>}
+        {eventsError && <p className="text-[11px] mb-2" style={{ color: ACCENT.red }}>{eventsError}</p>}
         {events.length === 0 && !isReal && (
-          <p className="text-xs text-slate-500 mb-2">
+          <p className="text-xs mb-2" style={{ color: c.muted }}>
             {t(
               'Sin eventos. Cargá goles y tarjetas tocando jugadores en Formaciones; el VAR se agrega abajo.',
               'No events. Add goals and cards by tapping players in Line-ups; VAR is added below.',
@@ -274,7 +287,7 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
           </p>
         )}
         {events.length === 0 && isReal && (
-          <p className="text-xs text-slate-500 mb-2">
+          <p className="text-xs mb-2" style={{ color: c.muted }}>
             {t('Sin eventos cargados.', 'No events loaded.')}{' '}
             {fixtureId != null
               ? t('Usá el botón para traerlos en vivo.', 'Use the button to fetch them live.')
@@ -289,26 +302,29 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
             return (
               <div
                 key={e.id}
-                className="flex items-center gap-2 bg-slate-800/60 rounded-lg px-2.5 py-1.5 text-sm"
+                className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm"
+                style={{ background: c.surface, border: '1px solid ' + c.line, color: c.text }}
               >
                 <span>{meta.icon}</span>
-                <span className="text-slate-400">{side.flag}</span>
+                <span style={{ color: c.muted }}>{side.flag}</span>
                 <span className="flex-1 truncate">
                   {e.type === 'var' ? (
-                    <span className="text-slate-300">{e.note || t('Revisión VAR', 'VAR review')}</span>
+                    <span style={{ color: c.text }}>{e.note || t('Revisión VAR', 'VAR review')}</span>
                   ) : (
                     <span>{e.player || metaLabel}</span>
                   )}
-                  {e.minute != null && <span className="text-slate-500"> {e.minute}'</span>}
+                  {e.minute != null && <span style={{ color: c.muted }}> {e.minute}'</span>}
                 </span>
-                <span className="text-[10px] text-slate-500">{metaLabel}</span>
+                <span className="text-[10px]" style={{ color: c.muted }}>{metaLabel}</span>
                 {!editingDisabled && (
                   <button
                     onClick={() => {
                       ensureOverride()
                       removeEvent(scenario.id, matchId, e.id)
                     }}
-                    className="text-slate-500 hover:text-rose-400"
+                    style={{ color: c.muted }}
+                    onMouseEnter={(ev) => (ev.currentTarget.style.color = ACCENT.red)}
+                    onMouseLeave={(ev) => (ev.currentTarget.style.color = c.muted)}
                   >
                     ✕
                   </button>
@@ -320,18 +336,18 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
       </div>
 
       {/* VAR: cantidad de intervenciones en el partido (pronosticable, no rankeable) */}
-      <div className="bg-slate-800/40 rounded-xl p-3">
+      <div className="rounded-xl p-3" style={{ background: c.surface, border: '1px solid ' + c.line }}>
         <div className="flex items-center justify-between gap-3">
-          <div className="text-xs font-medium flex items-center gap-1.5">
+          <div className="text-xs font-medium flex items-center gap-1.5" style={{ color: c.text }}>
             📺 {t('¿Cuántas veces intervino el VAR en este partido?', 'How many times did VAR intervene in this match?')}
           </div>
           {editingDisabled ? (
-            <span className="text-lg font-bold tabular-nums">{base.varCount ?? 0}</span>
+            <span className="text-lg font-bold tabular-nums" style={{ color: c.text }}>{base.varCount ?? 0}</span>
           ) : (
             <Stepper value={base.varCount ?? 0} onChange={setVarCountHandler} small />
           )}
         </div>
-        <p className="text-[10px] text-slate-500 mt-1.5">
+        <p className="text-[10px] mt-1.5" style={{ color: c.muted }}>
           {isReal
             ? t('El proveedor en vivo no trae este dato.', 'The live provider does not bring this data.')
             : t('Se puede pronosticar, pero el VAR no cuenta para el ranking.', 'It can be predicted, but VAR does not count for the ranking.')}
@@ -339,7 +355,7 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
       </div>
 
       {/* Formaciones: titulares y suplentes de ambos equipos */}
-      <div className="mt-4 pt-4 border-t border-white/10">
+      <div className="mt-4 pt-4" style={{ borderTop: '1px solid ' + c.line }}>
         <LineupPanel
           homeId={ctx.resolution.matches[matchId]?.home}
           awayId={ctx.resolution.matches[matchId]?.away}
@@ -354,10 +370,11 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
 }
 
 function ScoreSide({ flag, name, right }: { flag: string; name: string; right?: boolean }) {
+  const { c } = useTheme()
   return (
     <div className={`flex items-center gap-2 min-w-0 ${right ? 'flex-row-reverse text-right' : ''}`}>
       <span className="text-2xl shrink-0">{flag}</span>
-      <span className="text-sm font-medium truncate">{name}</span>
+      <span className="text-sm font-medium truncate" style={{ color: c.text }}>{name}</span>
     </div>
   )
 }
@@ -371,20 +388,31 @@ function Stepper({
   onChange: (v: number) => void
   small?: boolean
 }) {
+  const { c, dark } = useTheme()
+  const stepStyle = {
+    border: '1px solid ' + c.line,
+    color: c.text,
+    background: dark ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.04)',
+  }
   return (
     <div className="flex items-center gap-1">
       <button
         onClick={() => onChange(value - 1)}
-        className="w-7 h-7 rounded-lg bg-slate-700 hover:bg-slate-600 text-lg leading-none"
+        className="w-7 h-7 rounded-lg text-lg leading-none"
+        style={stepStyle}
       >
         −
       </button>
-      <span className={`tabular-nums text-center ${small ? 'w-6 text-lg' : 'w-8 text-2xl'} font-bold`}>
+      <span
+        className={`tabular-nums text-center ${small ? 'w-6 text-lg' : 'w-8 text-2xl'} font-bold`}
+        style={{ color: c.text }}
+      >
         {value}
       </span>
       <button
         onClick={() => onChange(value + 1)}
-        className="w-7 h-7 rounded-lg bg-slate-700 hover:bg-slate-600 text-lg leading-none"
+        className="w-7 h-7 rounded-lg text-lg leading-none"
+        style={stepStyle}
       >
         +
       </button>
