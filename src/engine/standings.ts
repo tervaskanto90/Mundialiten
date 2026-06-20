@@ -68,6 +68,69 @@ export function sortStanding(a: StandingRow, b: StandingRow): number {
   )
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Orden oficial FIFA 2026: entre equipos IGUALADOS EN PUNTOS, primero el
+// enfrentamiento directo (head-to-head): pts → DG → goles SÓLO de los partidos
+// entre ellos. Recién si siguen empatados, criterios generales (DG total, goles
+// totales, fair play, alfabético) vía sortStanding.
+// ─────────────────────────────────────────────────────────────────────────────
+function orderTied(
+  tied: StandingRow[],
+  group: string,
+  results: Record<number, MatchResult>,
+): StandingRow[] {
+  const ids = new Set(tied.map((r) => r.teamId))
+  const h2h: Record<string, { pts: number; gd: number; gf: number }> = {}
+  for (const r of tied) h2h[r.teamId] = { pts: 0, gd: 0, gf: 0 }
+  for (const m of GROUP_MATCHES) {
+    if (m.group !== group || !ids.has(m.home) || !ids.has(m.away)) continue
+    const res = results[m.id]
+    if (!res?.played) continue
+    const hh = h2h[m.home]
+    const ah = h2h[m.away]
+    hh.gf += res.homeScore
+    hh.gd += res.homeScore - res.awayScore
+    ah.gf += res.awayScore
+    ah.gd += res.awayScore - res.homeScore
+    if (res.homeScore > res.awayScore) hh.pts += 3
+    else if (res.homeScore < res.awayScore) ah.pts += 3
+    else {
+      hh.pts += 1
+      ah.pts += 1
+    }
+  }
+  return [...tied].sort((a, b) => {
+    const A = h2h[a.teamId]
+    const B = h2h[b.teamId]
+    if (B.pts !== A.pts) return B.pts - A.pts
+    if (B.gd !== A.gd) return B.gd - A.gd
+    if (B.gf !== A.gf) return B.gf - A.gf
+    return sortStanding(a, b) // criterios generales (DG total, goles, fair play, nombre)
+  })
+}
+
+/** Ordena un grupo aplicando el desempate oficial (head-to-head entre empatados). */
+export function orderGroup(
+  rows: StandingRow[],
+  group: string,
+  results: Record<number, MatchResult>,
+): StandingRow[] {
+  const byPoints = [...rows].sort((a, b) => b.points - a.points)
+  const out: StandingRow[] = []
+  let i = 0
+  while (i < byPoints.length) {
+    const pts = byPoints[i].points
+    const tied: StandingRow[] = []
+    while (i < byPoints.length && byPoints[i].points === pts) {
+      tied.push(byPoints[i])
+      i++
+    }
+    if (tied.length === 1) out.push(tied[0])
+    else out.push(...orderTied(tied, group, results))
+  }
+  return out
+}
+
 /** Tabla de un grupo, ordenada. */
 export function computeGroupStanding(
   group: string,
@@ -115,7 +178,7 @@ export function computeGroupStanding(
   }
 
   for (const r of Object.values(rows)) r.gd = r.gf - r.ga
-  return Object.values(rows).sort(sortStanding)
+  return orderGroup(Object.values(rows), group, results)
 }
 
 export function computeAllStandings(
