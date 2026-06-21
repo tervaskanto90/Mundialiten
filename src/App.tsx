@@ -7,6 +7,7 @@ import { AccuracyView } from './components/AccuracyView'
 import { ResultEditor } from './components/ResultEditor'
 import { LiveSyncBar } from './components/LiveSyncBar'
 import { RankingView } from './components/RankingView'
+import { NewsView } from './components/NewsView'
 import { useActiveContext, useLiveSyncPolling } from './hooks'
 import { useAuth } from './auth'
 import { useSupabaseSync } from './lib/sync'
@@ -19,7 +20,7 @@ import { useTheme } from './theme'
 import { useIsDesktop } from './hooks/useIsDesktop'
 import { useBranding } from './lib/branding'
 
-type View = 'calendario' | 'grupos' | 'llaves' | 'precision' | 'ranking'
+type View = 'calendario' | 'grupos' | 'llaves' | 'precision' | 'ranking' | 'noticias'
 
 const NAV: { id: View; es: string; en: string }[] = [
   { id: 'calendario', es: 'Calendario', en: 'Calendar' },
@@ -27,6 +28,7 @@ const NAV: { id: View; es: string; en: string }[] = [
   { id: 'llaves', es: 'Llaves', en: 'Bracket' },
   { id: 'precision', es: 'Precisión', en: 'Accuracy' },
   { id: 'ranking', es: 'Ranking', en: 'Ranking' },
+  { id: 'noticias', es: 'Noticias', en: 'News' },
 ]
 
 const LANGS: { id: Lang; flag: string }[] = [
@@ -296,6 +298,7 @@ export default function App() {
               {view === 'llaves' && <BracketView ctx={ctx} onEdit={setEditingMatch} />}
               {view === 'precision' && <AccuracyView />}
               {view === 'ranking' && <RankingView />}
+              {view === 'noticias' && <NewsView />}
 
               {ctx.scenario.type === 'real' && (
                 <div style={{ marginTop: '14px' }}>

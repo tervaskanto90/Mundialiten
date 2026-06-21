@@ -227,3 +227,83 @@ export function computeAccuracy(
 
   return { factors, overall, playedSample }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ESTADÍSTICAS ÚTILES DE UNA PREDICCIÓN (para la pestaña Precisión)
+// Derivadas SOLO de lo que la app verifica de verdad (marcador de cada partido),
+// así no quedan métricas en "sin datos".
+// ─────────────────────────────────────────────────────────────────────────────
+export type HitKind = 'exact' | 'result' | 'miss'
+
+export interface StageBreakdown {
+  stage: StageId
+  points: number
+  max: number
+  played: number
+  exact: number
+}
+
+export interface PredStats {
+  byStage: StageBreakdown[]
+  // Forma reciente: últimos partidos jugados que predijiste, del más nuevo al
+  // más viejo, con qué tan bien le pegaste.
+  form: { matchId: number; kind: HitKind }[]
+  exact: number
+  result: number
+  miss: number
+}
+
+export function classifyHit(
+  pred: MatchResult | undefined,
+  real: MatchResult | undefined,
+): HitKind | null {
+  if (!real?.played || !pred?.played) return null
+  if (pred.homeScore === real.homeScore && pred.awayScore === real.awayScore) return 'exact'
+  if (sign(pred.homeScore, pred.awayScore) === sign(real.homeScore, real.awayScore)) return 'result'
+  return 'miss'
+}
+
+export function computePredStats(
+  predResults: Record<number, MatchResult>,
+  realResults: Record<number, MatchResult>,
+  formLimit = 14,
+): PredStats {
+  const stageMap = new Map<StageId, StageBreakdown>()
+  const timeline: { matchId: number; kind: HitKind; ts: number }[] = []
+  let exact = 0
+  let result = 0
+  let miss = 0
+
+  for (const m of MATCHES) {
+    const kind = classifyHit(predResults[m.id], realResults[m.id])
+    if (!kind) continue
+    const pts = STAGE_POINTS[m.stage]
+    let row = stageMap.get(m.stage)
+    if (!row) {
+      row = { stage: m.stage, points: 0, max: 0, played: 0, exact: 0 }
+      stageMap.set(m.stage, row)
+    }
+    row.played++
+    row.max += pts.exact
+    if (kind === 'exact') {
+      row.points += pts.exact
+      row.exact++
+      exact++
+    } else if (kind === 'result') {
+      row.points += pts.tendency
+      result++
+    } else {
+      miss++
+    }
+    timeline.push({ matchId: m.id, kind, ts: Date.parse(m.kickoff) })
+  }
+
+  const order: StageId[] = ['group', 'r32', 'r16', 'qf', 'sf', 'third', 'final']
+  const byStage = order.filter((s) => stageMap.has(s)).map((s) => stageMap.get(s)!)
+  const form = timeline
+    .sort((a, b) => b.ts - a.ts)
+    .slice(0, formLimit)
+    .map(({ matchId, kind }) => ({ matchId, kind }))
+
+  return { byStage, form, exact, result, miss }
+}

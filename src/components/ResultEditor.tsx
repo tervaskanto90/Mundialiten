@@ -8,6 +8,7 @@ import { Modal } from './Modal'
 import { LineupPanel } from './LineupPanel'
 import { fetchFixtureEvents } from '../engine/liveSync'
 import { predictReason } from '../utils/stage'
+import { useOdds, oddsForMatch, type MatchOdds } from '../lib/odds'
 import { useT } from '../i18n'
 import { useTheme, ACCENT } from '../theme'
 
@@ -44,6 +45,8 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
   const { scenario } = ctx
   const homeId = ctx.resolution.matches[matchId]?.home
   const awayId = ctx.resolution.matches[matchId]?.away
+  const oddsState = useOdds()
+  const odds = oddsForMatch(oddsState, homeId, awayId)
   const [eventsLoading, setEventsLoading] = useState(false)
   const [eventsError, setEventsError] = useState('')
 
@@ -217,6 +220,8 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
         )}
         <ScoreSide flag={away.flag} name={away.name} right />
       </div>
+
+      {odds && <OddsBar odds={odds} homeFlag={home.flag} awayFlag={away.flag} />}
 
       {!base.played && !editingDisabled && (
         <div className="text-center -mt-2 mb-3">
@@ -416,6 +421,36 @@ function Stepper({
       >
         +
       </button>
+    </div>
+  )
+}
+
+// Índice de una casa de apuestas: prob. implícita Local / Empate / Visitante.
+function OddsBar({ odds, homeFlag, awayFlag }: { odds: MatchOdds; homeFlag: string; awayFlag: string }) {
+  const { t } = useT()
+  const { c, dark } = useTheme()
+  const pct = (n: number) => Math.round(n * 100)
+  const segs: { v: number; color: string }[] = [
+    { v: odds.home, color: ACCENT.blue },
+    { v: odds.draw, color: dark ? '#6b7280' : '#9ca3af' },
+    { v: odds.away, color: ACCENT.pink },
+  ]
+  return (
+    <div className="rounded-lg px-3 py-2 mb-4" style={{ background: dark ? 'rgba(255,255,255,.04)' : 'rgba(0,0,0,.035)', border: '1px solid ' + c.line }}>
+      <div className="flex items-center justify-between text-[10px] mb-1.5" style={{ color: c.muted }}>
+        <span>📊 {t('Probabilidad según', 'Odds from')} <strong style={{ color: c.text }}>{odds.bookmaker}</strong></span>
+        <span style={{ color: c.faint }}>{t('referencia · no suma puntos', 'reference · no points')}</span>
+      </div>
+      <div className="flex h-2.5 rounded-full overflow-hidden mb-1.5" style={{ background: dark ? 'rgba(0,0,0,.35)' : 'rgba(0,0,0,.06)' }}>
+        {segs.map((s, i) => (
+          <div key={i} style={{ width: `${s.v * 100}%`, background: s.color }} />
+        ))}
+      </div>
+      <div className="flex items-center justify-between text-[11px] font-semibold" style={{ color: c.text }}>
+        <span>{homeFlag} {pct(odds.home)}%</span>
+        <span style={{ color: c.muted }}>{t('Empate', 'Draw')} {pct(odds.draw)}%</span>
+        <span>{pct(odds.away)}% {awayFlag}</span>
+      </div>
     </div>
   )
 }
