@@ -1,9 +1,11 @@
+import { useRef } from 'react'
 import { MATCHES, MATCH_BY_ID, STAGE_I18N } from '../data/schedule'
 import type { StageId } from '../types'
 import { sideLabel, sideLabelFor } from '../utils/labels'
 import type { ActiveContext } from '../hooks'
 import { useT } from '../i18n'
 import { useTheme } from '../theme'
+import { useIsDesktop } from '../hooks/useIsDesktop'
 
 interface Props {
   ctx: ActiveContext
@@ -62,6 +64,53 @@ const STAGE_ORDERED: Record<string, number[]> = {
 export function BracketView({ ctx, onEdit }: Props) {
   const { t } = useT()
   const { c, dark } = useTheme()
+  const isDesktop = useIsDesktop()
+  // Scroll horizontal de la llave sin tener que bajar hasta la barra del fondo:
+  // se arrastra con el mouse (grab) y/o con los botones ◀ ▶ de arriba.
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const drag = useRef({ down: false, moved: false, x: 0, left: 0 })
+  const justDragged = useRef(false)
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    const el = scrollRef.current
+    if (!el || e.button !== 0 || e.pointerType !== 'mouse') return // touch usa scroll nativo
+    drag.current = { down: true, moved: false, x: e.clientX, left: el.scrollLeft }
+  }
+  const onPointerMove = (e: React.PointerEvent) => {
+    const el = scrollRef.current
+    const d = drag.current
+    if (!el || !d.down) return
+    const dx = e.clientX - d.x
+    if (!d.moved && Math.abs(dx) < 6) return
+    if (!d.moved) {
+      d.moved = true
+      el.style.cursor = 'grabbing'
+      el.setPointerCapture?.(e.pointerId)
+    }
+    el.scrollLeft = d.left - dx
+  }
+  const onPointerUp = () => {
+    const el = scrollRef.current
+    if (el && drag.current.moved) {
+      justDragged.current = true
+      el.style.cursor = 'grab'
+      setTimeout(() => (justDragged.current = false), 60)
+    }
+    drag.current.down = false
+    drag.current.moved = false
+  }
+  // Tras arrastrar, anula el click que abriría el editor de ese partido.
+  const onClickCapture = (e: React.MouseEvent) => {
+    if (justDragged.current) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+  }
+  const nudge = (dir: 1 | -1) => {
+    const el = scrollRef.current
+    if (el) el.scrollBy({ left: dir * Math.max(280, el.clientWidth * 0.7), behavior: 'smooth' })
+  }
+
   const finalMatch = ctx.resolution.matches[104]
   // El campeón es el GANADOR de la final (no el local).
   const champLabel = finalMatch?.winner ? sideLabel(finalMatch.winner, finalMatch.winner) : null
@@ -103,7 +152,34 @@ export function BracketView({ ctx, onEdit }: Props) {
           'Positions update live with the standings: the current 1st and 2nd of each group appear (provisional) as soon as they play. When the group stage ends, predictions build the knockouts with the teams that actually qualified.',
         )}
       </p>
-      <div className="overflow-x-auto pb-2">
+      {isDesktop && (
+        <div className="flex items-center justify-end gap-1.5 mb-1.5">
+          <span className="text-[11px] mr-1" style={{ color: c.faint }}>
+            {t('Arrastrá o usá', 'Drag or use')}
+          </span>
+          {([-1, 1] as const).map((dir) => (
+            <button
+              key={dir}
+              onClick={() => nudge(dir)}
+              title={dir < 0 ? t('Ronda anterior', 'Previous round') : t('Ronda siguiente', 'Next round')}
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-xs"
+              style={{ border: '1px solid ' + c.line, background: c.cardGrad, color: c.text }}
+            >
+              {dir < 0 ? '◀' : '▶'}
+            </button>
+          ))}
+        </div>
+      )}
+      <div
+        ref={scrollRef}
+        className="overflow-x-auto pb-2"
+        style={{ cursor: isDesktop ? 'grab' : undefined, touchAction: 'pan-x pan-y' }}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerLeave={onPointerUp}
+        onClickCapture={onClickCapture}
+      >
         <div className="bracket min-w-max">
           {ROUNDS.map((stage) => {
             const matches = STAGE_ORDERED[stage].map((id) => MATCH_BY_ID[id])

@@ -112,6 +112,15 @@ body {
   flex: 0 0 13.5rem;
   padding: 0 1.25rem;
 }
+@media (max-width: 640px) {
+  .bracket {
+    min-height: 560px;
+  }
+  .bracket-round {
+    flex-basis: 11rem;
+    padding: 0 0.85rem;
+  }
+}
 .bracket-round-title {
   height: 1.75rem;
   display: flex;

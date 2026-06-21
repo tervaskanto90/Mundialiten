@@ -70,8 +70,11 @@ create table if not exists public.branding (
   id int primary key default 1 check (id = 1),
   light_url text,
   dark_url text,
+  img_scale numeric not null default 1, -- escala de toda la barra de arriba
   updated_at timestamptz not null default now()
 );
+-- Si ya tenías la tabla creada, agrega la columna (idempotente):
+alter table public.branding add column if not exists img_scale numeric not null default 1;
 alter table public.branding enable row level security;
 -- Lectura para cualquiera: la imagen la ve todo el mundo.
 drop policy if exists "branding_select_all" on public.branding;

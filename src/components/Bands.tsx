@@ -13,8 +13,32 @@ function cells(offset: number) {
   return out
 }
 
-/** Banda lateral de mosaico multicolor (decorativa). */
-export function Band({ offset, dark }: { offset: number; dark: boolean }) {
+// Línea fina vertical con todos los colores de la paleta (para mobile, donde no
+// entra el mosaico ancho pero queremos conservar el acento de color a los lados).
+const THIN_GRAD =
+  'linear-gradient(180deg,' +
+  PAL.map((p, i) => `${p} ${Math.round((i / PAL.length) * 100)}%`).join(',') +
+  ',' +
+  PAL[0] +
+  ' 100%)'
+
+/** Banda lateral de mosaico multicolor (decorativa). En `thin` es una línea
+ *  finita (mobile). */
+export function Band({ offset, dark, thin }: { offset: number; dark: boolean; thin?: boolean }) {
+  if (thin) {
+    return (
+      <aside
+        aria-hidden
+        style={{
+          width: 6,
+          flex: 'none',
+          alignSelf: 'stretch',
+          background: THIN_GRAD,
+          opacity: dark ? 0.85 : 1,
+        }}
+      />
+    )
+  }
   return (
     <aside
       aria-hidden

@@ -1,15 +1,20 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Modal } from './Modal'
 import { Emblem } from './Emblem'
 import { useAuth } from '../auth'
 import { useTheme } from '../theme'
 import { useT } from '../i18n'
-import { fetchBranding, saveBranding, type Branding } from '../lib/remote'
+import { saveBranding, type Branding } from '../lib/remote'
 
-const EMPTY: Branding = { light: null, dark: null }
 // Lado máximo al que reescalamos antes de guardar, para no meter imágenes
 // enormes en la base (se reexporta en webp, que mantiene la transparencia).
 const MAX_DIM = 640
+
+const SIZE_OPTS: { v: number; es: string; en: string }[] = [
+  { v: 1, es: 'Normal', en: 'Normal' },
+  { v: 1.25, es: 'Grande', en: 'Large' },
+  { v: 1.55, es: 'Extra', en: 'Extra' },
+]
 
 async function fileToDataUrl(file: File): Promise<string> {
   const original = await new Promise<string>((resolve, reject) => {
@@ -39,26 +44,22 @@ async function fileToDataUrl(file: File): Promise<string> {
 /**
  * Imagen del encabezado, centrada a la izquierda. Muestra la imagen subida para
  * el tema actual (claro/oscuro) y, si no hay, cae al escudo por defecto. La
- * cuenta admin ve un lápiz para subir/cambiar las imágenes (una por tema).
+ * cuenta admin ve un lápiz para subir/cambiar las imágenes y elegir el tamaño
+ * de la barra (una imagen por tema). `size` ya viene escalado desde App.
  */
-export function HeaderBrand({ size = 58 }: { size?: number }) {
+export function HeaderBrand({
+  branding,
+  onChange,
+  size = 58,
+}: {
+  branding: Branding
+  onChange: (b: Branding) => void
+  size?: number
+}) {
   const { isAdmin } = useAuth()
   const { dark, c } = useTheme()
   const { t } = useT()
-  const [branding, setBranding] = useState<Branding>(EMPTY)
   const [editing, setEditing] = useState(false)
-
-  useEffect(() => {
-    let cancelled = false
-    fetchBranding()
-      .then((b) => {
-        if (!cancelled && b) setBranding(b)
-      })
-      .catch(() => {})
-    return () => {
-      cancelled = true
-    }
-  }, [])
 
   const current = dark ? branding.dark : branding.light
 
@@ -72,7 +73,7 @@ export function HeaderBrand({ size = 58 }: { size?: number }) {
             style={{
               height: '100%',
               width: 'auto',
-              maxWidth: 220,
+              maxWidth: size * 3.8,
               objectFit: 'contain',
               objectPosition: 'left center',
               display: 'block',
@@ -117,7 +118,7 @@ export function HeaderBrand({ size = 58 }: { size?: number }) {
           initial={branding}
           onClose={() => setEditing(false)}
           onSaved={(b) => {
-            setBranding(b)
+            onChange(b)
             setEditing(false)
           }}
         />
@@ -139,6 +140,7 @@ function BrandingEditor({
   const { c } = useTheme()
   const [light, setLight] = useState<string | null>(initial.light)
   const [dark, setDark] = useState<string | null>(initial.dark)
+  const [scale, setScale] = useState<number>(initial.scale || 1)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
 
@@ -158,8 +160,9 @@ function BrandingEditor({
     setBusy(true)
     setErr('')
     try {
-      await saveBranding(light, dark)
-      onSaved({ light, dark })
+      const next: Branding = { light, dark, scale }
+      await saveBranding(next)
+      onSaved(next)
     } catch (e) {
       setErr(e instanceof Error ? e.message : t('No se pudo guardar', 'Could not save'))
       setBusy(false)
@@ -211,6 +214,32 @@ function BrandingEditor({
         onPick={(f) => pick('dark', f)}
         onClear={() => setDark(null)}
       />
+
+      <div className="mt-5">
+        <div className="text-xs font-semibold mb-1.5" style={{ color: c.text }}>
+          {t('Tamaño de la barra de arriba', 'Top bar size')}
+        </div>
+        <div className="flex gap-2">
+          {SIZE_OPTS.map((o) => {
+            const active = Math.abs(scale - o.v) < 0.01
+            return (
+              <button
+                key={o.v}
+                onClick={() => setScale(o.v)}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold"
+                style={
+                  active
+                    ? { background: '#2F6DF0', color: '#fff', border: '1px solid #2F6DF0' }
+                    : { color: c.muted, border: '1px solid ' + c.line }
+                }
+              >
+                {t(o.es, o.en)}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
       {err && (
         <p className="text-xs mt-3" style={{ color: '#E5322B' }}>
           {err}

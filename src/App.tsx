@@ -16,6 +16,7 @@ import { HeaderBrand } from './components/HeaderBrand'
 import { Band } from './components/Bands'
 import { useTheme } from './theme'
 import { useIsDesktop } from './hooks/useIsDesktop'
+import { useBranding } from './lib/branding'
 
 type View = 'calendario' | 'grupos' | 'llaves' | 'precision' | 'ranking'
 
@@ -40,18 +41,25 @@ export default function App() {
   const { t, lang, setLang } = useT()
   const { c, dark, toggle } = useTheme()
   const isDesktop = useIsDesktop()
+  const [branding, setBranding] = useBranding()
   useLiveSyncPolling()
   useSupabaseSync()
 
   const name = (enabled && user && displayName) || 'Invitado'
   const initial = name.slice(0, 1).toUpperCase()
 
+  // Escala de la barra de arriba (la define el admin, la ven todos). Acota.
+  const hs = Math.min(1.6, Math.max(1, branding.scale || 1))
+  const px = (n: number) => `${Math.round(n * hs)}px`
+
   const pageStyle: React.CSSProperties = {
+    height: isDesktop ? '100vh' : undefined,
     minHeight: '100vh',
     width: '100%',
     display: 'flex',
     alignItems: 'stretch',
     justifyContent: 'center',
+    overflow: isDesktop ? 'hidden' : undefined,
     fontFamily: "'Twemoji Country Flags', 'Noto Sans', system-ui, sans-serif",
     color: c.text,
     backgroundColor: c.page,
@@ -62,36 +70,37 @@ export default function App() {
     width: '100%',
     maxWidth: isDesktop ? 1120 : 472,
     minWidth: 0,
+    height: isDesktop ? '100vh' : undefined,
+    display: isDesktop ? 'flex' : 'block',
+    flexDirection: 'column',
     backgroundColor: c.canvas,
-    padding: isDesktop ? '26px 32px 44px' : '18px 16px 34px',
+    padding: isDesktop ? '24px 32px 0' : '18px 14px 34px',
     overflow: 'hidden',
     boxShadow: dark ? '0 0 60px -10px rgba(0,0,0,.7)' : '0 0 60px -16px rgba(120,90,30,.3)',
   }
   const headerStyle: React.CSSProperties = {
+    flexShrink: 0,
     display: 'flex',
     alignItems: 'center',
-    gap: '14px',
-    padding: '18px 16px',
+    gap: px(14),
+    padding: `${px(16)} ${px(16)}`,
     borderRadius: '18px',
     background: c.cardGrad,
     border: '1px solid ' + c.line,
     boxShadow: c.shadow,
   }
   const bodyWrapStyle: React.CSSProperties = isDesktop
-    ? { display: 'flex', gap: '28px', alignItems: 'flex-start', marginTop: '20px' }
+    ? { flex: '1 1 0', minHeight: 0, display: 'flex', gap: '28px', alignItems: 'stretch', marginTop: '18px', overflow: 'hidden' }
     : { display: 'block' }
   const sidebarStyle: React.CSSProperties = isDesktop
-    ? { width: '252px', flex: 'none', position: 'sticky', top: '20px', display: 'flex', flexDirection: 'column' }
+    ? { width: '252px', flex: 'none', display: 'flex', flexDirection: 'column', overflowY: 'auto', paddingRight: '4px' }
     : {}
   const sectionNavStyle: React.CSSProperties = isDesktop
     ? { display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '16px', paddingTop: '14px', borderTop: '1px solid ' + c.line }
     : { display: 'flex', gap: '7px', marginTop: '13px', overflowX: 'auto', padding: '3px 2px 4px' }
-  const mainStyle: React.CSSProperties = {
-    flex: isDesktop ? '1 1 0' : 'none',
-    minWidth: 0,
-    marginTop: isDesktop ? 0 : '6px',
-    animation: 'mdlUp .34s ease both',
-  }
+  const mainStyle: React.CSSProperties = isDesktop
+    ? { flex: '1 1 0', minWidth: 0, overflowY: 'auto', paddingRight: '8px', paddingBottom: '32px', animation: 'mdlUp .34s ease both' }
+    : { flex: 'none', minWidth: 0, marginTop: '6px', animation: 'mdlUp .34s ease both' }
 
   const sectionBtn = (active: boolean): React.CSSProperties =>
     isDesktop
@@ -126,7 +135,7 @@ export default function App() {
 
   return (
     <div style={pageStyle}>
-      <Band offset={0} dark={dark} />
+      <Band offset={0} dark={dark} thin={!isDesktop} />
 
       <div style={canvasStyle}>
         <div
@@ -142,16 +151,16 @@ export default function App() {
 
         {/* HEADER */}
         <header style={headerStyle}>
-          <HeaderBrand size={58} />
+          <HeaderBrand branding={branding} onChange={setBranding} size={Math.round(58 * hs)} />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontFamily: "'Archivo'", fontWeight: 900, fontSize: '18px', lineHeight: 1, letterSpacing: '-.3px', color: c.text }}>
+            <div style={{ fontFamily: "'Archivo'", fontWeight: 900, fontSize: px(18), lineHeight: 1, letterSpacing: '-.3px', color: c.text }}>
               MUNDIALITEN
             </div>
-            <div style={{ fontSize: '11px', color: c.muted, fontWeight: 700, letterSpacing: '.3px', marginTop: '3px' }}>
+            <div style={{ fontSize: px(11), color: c.muted, fontWeight: 700, letterSpacing: '.3px', marginTop: '3px' }}>
               {t('Mundial 2026', 'World Cup 2026')} · 🇺🇸 🇨🇦 🇲🇽
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '7px', flex: 'none' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: px(7), flex: 'none' }}>
             <div
               style={{
                 display: 'flex',
@@ -169,9 +178,9 @@ export default function App() {
                     key={l.id}
                     onClick={() => setLang(l.id)}
                     style={{
-                      fontSize: '13px',
+                      fontSize: px(13),
                       lineHeight: 1,
-                      padding: '5px 8px',
+                      padding: `${px(5)} ${px(8)}`,
                       borderRadius: '8px',
                       cursor: 'pointer',
                       border: 'none',
@@ -190,12 +199,12 @@ export default function App() {
               onClick={toggle}
               title={dark ? t('Modo claro', 'Light mode') : t('Modo oscuro', 'Dark mode')}
               style={{
-                width: '34px',
-                height: '34px',
+                width: px(34),
+                height: px(34),
                 flex: 'none',
                 borderRadius: '11px',
                 cursor: 'pointer',
-                fontSize: '15px',
+                fontSize: px(15),
                 border: '1px solid ' + c.line,
                 background: dark ? 'rgba(255,194,26,.14)' : 'rgba(47,109,240,.1)',
                 display: 'flex',
@@ -209,7 +218,7 @@ export default function App() {
         </header>
 
         {/* USER CARD */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginTop: '12px', padding: '0 2px' }}>
+        <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginTop: '12px', padding: '0 2px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '9px', minWidth: 0 }}>
             <div
               style={{
@@ -250,7 +259,7 @@ export default function App() {
 
         {/* BODY */}
         <div style={bodyWrapStyle}>
-          <div style={sidebarStyle}>
+          <div style={sidebarStyle} className="mdl-noscroll">
             <TabBar />
             <div style={sectionNavStyle} className="mdl-noscroll">
               {NAV.map((n) => (
@@ -273,19 +282,19 @@ export default function App() {
                 <LiveSyncBar />
               </div>
             )}
-          </main>
-        </div>
 
-        <div style={{ textAlign: 'center', marginTop: '22px', fontSize: '10px', color: c.faint, fontWeight: 600, letterSpacing: '.3px' }}>
-          Mundialiten · {t('hecho por', 'made by')} Octavio Boggiano ·{' '}
-          {ctx.resolution.bestThirds
-            ? t('fase de grupos completa', 'group stage complete')
-            : t('fase de grupos en curso', 'group stage in progress')}{' '}
-          · v1.0.0
+            <div style={{ textAlign: 'center', marginTop: '22px', fontSize: '10px', color: c.faint, fontWeight: 600, letterSpacing: '.3px' }}>
+              Mundialiten · {t('hecho por', 'made by')} Octavio Boggiano ·{' '}
+              {ctx.resolution.bestThirds
+                ? t('fase de grupos completa', 'group stage complete')
+                : t('fase de grupos en curso', 'group stage in progress')}{' '}
+              · v1.0.0
+            </div>
+          </main>
         </div>
       </div>
 
-      <Band offset={5} dark={dark} />
+      <Band offset={5} dark={dark} thin={!isDesktop} />
 
       {editingMatch != null && (
         <ResultEditor matchId={editingMatch} ctx={ctx} onClose={() => setEditingMatch(null)} />

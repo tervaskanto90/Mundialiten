@@ -19,18 +19,21 @@ export interface RankingRow {
 
 // ─── Imagen compartida del encabezado (una para modo claro, otra para oscuro) ──
 // La sube SÓLO el admin (RLS por email en Supabase) pero la ve todo el mundo.
+// `scale` agranda toda la barra de arriba (imagen + textos + botones) y también
+// es compartido: lo define el admin y lo ven todos.
 export interface Branding {
   light: string | null
   dark: string | null
+  scale: number
 }
+
+export const DEFAULT_BRANDING: Branding = { light: null, dark: null, scale: 1 }
 
 export async function fetchBranding(): Promise<Branding | null> {
   if (!supabase) return null
-  const { data, error } = await supabase
-    .from('branding')
-    .select('light_url, dark_url')
-    .eq('id', 1)
-    .maybeSingle()
+  // select('*') es tolerante: si todavía no se corrió la migración que agrega
+  // `img_scale`, igual trae light_url/dark_url sin romper.
+  const { data, error } = await supabase.from('branding').select('*').eq('id', 1).maybeSingle()
   if (error) {
     // Si la tabla todavía no existe (migración sin correr) no rompemos la app:
     // simplemente no hay imagen custom y se usa el escudo por defecto.
@@ -38,17 +41,23 @@ export async function fetchBranding(): Promise<Branding | null> {
     return null
   }
   if (!data) return null
+  const scale = Number((data as { img_scale?: number }).img_scale ?? 1)
   return {
     light: (data.light_url as string | null) ?? null,
     dark: (data.dark_url as string | null) ?? null,
+    scale: Number.isFinite(scale) && scale > 0 ? scale : 1,
   }
 }
 
-export async function saveBranding(light: string | null, dark: string | null): Promise<void> {
+export async function saveBranding(b: Branding): Promise<void> {
   if (!supabase) throw new Error('Supabase no configurado')
-  const { error } = await supabase
-    .from('branding')
-    .upsert({ id: 1, light_url: light, dark_url: dark, updated_at: new Date().toISOString() })
+  const { error } = await supabase.from('branding').upsert({
+    id: 1,
+    light_url: b.light,
+    dark_url: b.dark,
+    img_scale: b.scale,
+    updated_at: new Date().toISOString(),
+  })
   if (error) throw error
 }
 
