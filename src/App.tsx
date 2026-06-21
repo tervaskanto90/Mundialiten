@@ -74,8 +74,8 @@ export default function App() {
     display: isDesktop ? 'flex' : 'block',
     flexDirection: 'column',
     backgroundColor: c.canvas,
-    padding: isDesktop ? '24px 32px 0' : '18px 14px 34px',
-    overflow: 'hidden',
+    padding: isDesktop ? '24px 32px 0' : '14px 14px 34px',
+    overflow: isDesktop ? 'hidden' : 'visible',
     boxShadow: dark ? '0 0 60px -10px rgba(0,0,0,.7)' : '0 0 60px -16px rgba(120,90,30,.3)',
   }
   const headerStyle: React.CSSProperties = {
@@ -97,10 +97,24 @@ export default function App() {
     : {}
   const sectionNavStyle: React.CSSProperties = isDesktop
     ? { display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '16px', paddingTop: '14px', borderTop: '1px solid ' + c.line }
-    : { display: 'flex', gap: '7px', marginTop: '13px', overflowX: 'auto', padding: '3px 2px 4px' }
+    : { display: 'flex', gap: '7px', marginTop: '8px', overflowX: 'auto', padding: '1px 1px 2px' }
   const mainStyle: React.CSSProperties = isDesktop
     ? { flex: '1 1 0', minWidth: 0, overflowY: 'auto', paddingRight: '8px', paddingBottom: '32px', animation: 'mdlUp .34s ease both' }
-    : { flex: 'none', minWidth: 0, marginTop: '6px', animation: 'mdlUp .34s ease both' }
+    : { flex: 'none', minWidth: 0, marginTop: '12px', animation: 'mdlUp .34s ease both' }
+  // En mobile, barra superior fija (sticky) con el selector de escenario y las
+  // secciones: queda siempre a mano y el contenido scrollea por debajo.
+  const mobileBarStyle: React.CSSProperties = {
+    position: 'sticky',
+    top: 0,
+    zIndex: 30,
+    background: c.canvas,
+    marginTop: '12px',
+    marginLeft: '-14px',
+    marginRight: '-14px',
+    padding: '8px 14px 9px',
+    borderBottom: '1px solid ' + c.line,
+    boxShadow: dark ? '0 7px 16px -10px rgba(0,0,0,.85)' : '0 7px 16px -12px rgba(120,90,30,.5)',
+  }
 
   const sectionBtn = (active: boolean): React.CSSProperties =>
     isDesktop
@@ -258,9 +272,8 @@ export default function App() {
         </div>
 
         {/* BODY */}
-        <div style={bodyWrapStyle}>
-          <div style={sidebarStyle} className="mdl-noscroll">
-            <TabBar />
+        {(() => {
+          const sectionNav = (
             <div style={sectionNavStyle} className="mdl-noscroll">
               {NAV.map((n) => (
                 <button key={n.id} onClick={() => setView(n.id)} style={sectionBtn(view === n.id)}>
@@ -268,30 +281,48 @@ export default function App() {
                 </button>
               ))}
             </div>
-          </div>
+          )
+          const mainContent = (
+            <main style={mainStyle} key={view}>
+              {view === 'calendario' && <CalendarView ctx={ctx} onEdit={setEditingMatch} />}
+              {view === 'grupos' && <GroupsView ctx={ctx} />}
+              {view === 'llaves' && <BracketView ctx={ctx} onEdit={setEditingMatch} />}
+              {view === 'precision' && <AccuracyView />}
+              {view === 'ranking' && <RankingView />}
 
-          <main style={mainStyle} key={view}>
-            {view === 'calendario' && <CalendarView ctx={ctx} onEdit={setEditingMatch} />}
-            {view === 'grupos' && <GroupsView ctx={ctx} />}
-            {view === 'llaves' && <BracketView ctx={ctx} onEdit={setEditingMatch} />}
-            {view === 'precision' && <AccuracyView />}
-            {view === 'ranking' && <RankingView />}
+              {ctx.scenario.type === 'real' && (
+                <div style={{ marginTop: '14px' }}>
+                  <LiveSyncBar />
+                </div>
+              )}
 
-            {ctx.scenario.type === 'real' && (
-              <div style={{ marginTop: '14px' }}>
-                <LiveSyncBar />
+              <div style={{ textAlign: 'center', marginTop: '22px', fontSize: '10px', color: c.faint, fontWeight: 600, letterSpacing: '.3px' }}>
+                Mundialiten · {t('hecho por', 'made by')} Octavio Boggiano ·{' '}
+                {ctx.resolution.bestThirds
+                  ? t('fase de grupos completa', 'group stage complete')
+                  : t('fase de grupos en curso', 'group stage in progress')}{' '}
+                · v1.0.0
               </div>
-            )}
-
-            <div style={{ textAlign: 'center', marginTop: '22px', fontSize: '10px', color: c.faint, fontWeight: 600, letterSpacing: '.3px' }}>
-              Mundialiten · {t('hecho por', 'made by')} Octavio Boggiano ·{' '}
-              {ctx.resolution.bestThirds
-                ? t('fase de grupos completa', 'group stage complete')
-                : t('fase de grupos en curso', 'group stage in progress')}{' '}
-              · v1.0.0
+            </main>
+          )
+          return isDesktop ? (
+            <div style={bodyWrapStyle}>
+              <div style={sidebarStyle} className="mdl-noscroll">
+                <TabBar />
+                {sectionNav}
+              </div>
+              {mainContent}
             </div>
-          </main>
-        </div>
+          ) : (
+            <>
+              <div style={mobileBarStyle}>
+                <TabBar />
+                {sectionNav}
+              </div>
+              {mainContent}
+            </>
+          )
+        })()}
       </div>
 
       <Band offset={5} dark={dark} thin={!isDesktop} />

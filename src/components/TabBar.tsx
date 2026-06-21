@@ -73,30 +73,30 @@ export function TabBar() {
 
   const rowStyle: React.CSSProperties = isDesktop
     ? { display: 'flex', flexDirection: 'column', gap: '7px' }
-    : { display: 'flex', gap: '7px', marginTop: '15px', overflowX: 'auto', paddingBottom: '2px' }
+    : { display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '1px' }
 
   const tabStyle = (active: boolean, type: ScenarioType): React.CSSProperties => {
     const accent = TYPE_ACCENT[type]
     return {
-      flex: isDesktop ? '1 1 auto' : 'none',
+      flex: 'none',
       display: 'flex',
-      flexDirection: isDesktop ? 'row' : 'column',
+      flexDirection: 'row',
       alignItems: 'center',
       justifyContent: isDesktop ? 'flex-start' : 'center',
-      gap: isDesktop ? '9px' : '4px',
+      gap: isDesktop ? '9px' : '6px',
       fontFamily: "'Noto Sans'",
-      fontSize: isDesktop ? '12.5px' : '11px',
+      fontSize: isDesktop ? '12.5px' : '12px',
       fontWeight: 800,
       cursor: 'pointer',
       whiteSpace: 'nowrap',
-      padding: isDesktop ? '11px 14px' : '11px 8px',
-      borderRadius: '14px',
+      padding: isDesktop ? '11px 14px' : '7px 12px',
+      borderRadius: isDesktop ? '14px' : '99px',
       transition: 'all .2s ease',
       color: active ? '#fff' : c.muted,
       background: active ? accent : dark ? 'rgba(255,255,255,.04)' : 'rgba(0,0,0,.035)',
       border: '1px solid ' + (active ? accent : c.line),
-      boxShadow: active ? '0 8px 20px -10px ' + accent : 'none',
-      transform: active ? 'translateY(-1px)' : 'none',
+      boxShadow: active && isDesktop ? '0 8px 20px -10px ' + accent : 'none',
+      transform: active && isDesktop ? 'translateY(-1px)' : 'none',
     }
   }
 
@@ -152,20 +152,22 @@ export function TabBar() {
         </button>
       </div>
 
-      <div
-        style={{
-          marginTop: '10px',
-          fontSize: '11.5px',
-          color: c.muted,
-          fontWeight: 600,
-          padding: '0 3px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px',
-        }}
-      >
-        <span style={{ fontSize: '11px' }}>{note.icon}</span> {t(note.es, note.en)}
-      </div>
+      {isDesktop && (
+        <div
+          style={{
+            marginTop: '10px',
+            fontSize: '11.5px',
+            color: c.muted,
+            fontWeight: 600,
+            padding: '0 3px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+          }}
+        >
+          <span style={{ fontSize: '11px' }}>{note.icon}</span> {t(note.es, note.en)}
+        </div>
+      )}
 
       {dialog && (
         <Modal

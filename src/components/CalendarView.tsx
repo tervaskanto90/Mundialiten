@@ -149,7 +149,7 @@ export function CalendarView({ ctx, onEdit }: Props) {
       )}
 
       {/* Cambio de vista: Calendario ↔ Grupos */}
-      <div className="flex items-center justify-between gap-2 mb-3">
+      <div className="flex items-center justify-between gap-2 mb-2">
         <div className="inline-flex gap-1.5">
           <button onClick={() => setView('calendar')} style={pill(view === 'calendar')}>
             🗓️ {t('Calendario', 'Calendar')}
@@ -165,7 +165,7 @@ export function CalendarView({ ctx, onEdit }: Props) {
 
       {/* Filtros por etapa: sólo en la vista calendario. */}
       {view === 'calendar' && (
-        <div className="flex flex-wrap gap-1.5 mb-3">
+        <div className="flex flex-wrap gap-1.5 mb-2">
           {FILTERS.map((f) => (
             <button key={f.id} onClick={() => setFilter(f.id)} style={pill(filter === f.id)}>
               {lang === 'en' ? f.en : f.es}
@@ -174,7 +174,7 @@ export function CalendarView({ ctx, onEdit }: Props) {
         </div>
       )}
 
-      <div className="text-xs mb-3" style={{ color: c.faint, fontWeight: 600 }}>
+      <div className="text-xs mb-2" style={{ color: c.faint, fontWeight: 600 }}>
         {playedCount}/{MATCHES.length}{' '}
         {t(`partidos cargados en «${ctx.scenario.name}»`, `matches set in “${ctx.scenario.name}”`)}
       </div>
