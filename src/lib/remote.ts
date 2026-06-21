@@ -17,6 +17,41 @@ export interface RankingRow {
   last_points?: number // puntos que le dio ese último partido
 }
 
+// ─── Imagen compartida del encabezado (una para modo claro, otra para oscuro) ──
+// La sube SÓLO el admin (RLS por email en Supabase) pero la ve todo el mundo.
+export interface Branding {
+  light: string | null
+  dark: string | null
+}
+
+export async function fetchBranding(): Promise<Branding | null> {
+  if (!supabase) return null
+  const { data, error } = await supabase
+    .from('branding')
+    .select('light_url, dark_url')
+    .eq('id', 1)
+    .maybeSingle()
+  if (error) {
+    // Si la tabla todavía no existe (migración sin correr) no rompemos la app:
+    // simplemente no hay imagen custom y se usa el escudo por defecto.
+    console.warn('[branding] fetch', error.message)
+    return null
+  }
+  if (!data) return null
+  return {
+    light: (data.light_url as string | null) ?? null,
+    dark: (data.dark_url as string | null) ?? null,
+  }
+}
+
+export async function saveBranding(light: string | null, dark: string | null): Promise<void> {
+  if (!supabase) throw new Error('Supabase no configurado')
+  const { error } = await supabase
+    .from('branding')
+    .upsert({ id: 1, light_url: light, dark_url: dark, updated_at: new Date().toISOString() })
+  if (error) throw error
+}
+
 export async function fetchRealResults(): Promise<Record<number, MatchResult> | null> {
   if (!supabase) return null
   const { data, error } = await supabase

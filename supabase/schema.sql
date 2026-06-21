@@ -62,6 +62,32 @@ create policy "real_insert_auth" on public.real_results
 create policy "real_update_auth" on public.real_results
   for update to authenticated using (true);
 
+-- Imagen compartida del encabezado: una sola fila (id = 1) con la imagen para
+-- modo claro y la de modo oscuro (guardadas como data URL en texto). La VEN
+-- todos (incluso sin login), pero sólo el admin (por su email en el JWT) puede
+-- crearla o cambiarla.
+create table if not exists public.branding (
+  id int primary key default 1 check (id = 1),
+  light_url text,
+  dark_url text,
+  updated_at timestamptz not null default now()
+);
+alter table public.branding enable row level security;
+-- Lectura para cualquiera: la imagen la ve todo el mundo.
+drop policy if exists "branding_select_all" on public.branding;
+create policy "branding_select_all" on public.branding
+  for select using (true);
+-- Escritura SÓLO para el admin, identificado por su email en el JWT.
+drop policy if exists "branding_insert_admin" on public.branding;
+create policy "branding_insert_admin" on public.branding
+  for insert to authenticated
+  with check ((auth.jwt() ->> 'email') = 'boggianooctavio@gmail.com');
+drop policy if exists "branding_update_admin" on public.branding;
+create policy "branding_update_admin" on public.branding
+  for update to authenticated
+  using ((auth.jwt() ->> 'email') = 'boggianooctavio@gmail.com')
+  with check ((auth.jwt() ->> 'email') = 'boggianooctavio@gmail.com');
+
 -- Recordatorios por mail ya enviados (para no repetir). La usa SÓLO el cron con
 -- la service role key (que saltea RLS), así que no hace falta ninguna policy:
 -- con RLS activado y sin policies, ningún usuario común puede leerla/escribirla.

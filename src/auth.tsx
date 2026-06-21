@@ -7,12 +7,22 @@ interface AuthState {
   loading: boolean
   user: User | null
   displayName: string
+  isAdmin: boolean
   signIn: (email: string, password: string) => Promise<void>
   signUp: (email: string, password: string, displayName: string) => Promise<void>
   signOut: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthState | null>(null)
+
+// Cuenta administradora: la única que puede subir/cambiar la imagen compartida
+// del encabezado. El resto la ve pero no la edita (reforzado además por RLS en
+// Supabase, ver supabase/schema.sql → tabla `branding`).
+export const ADMIN_EMAIL = 'boggianooctavio@gmail.com'
+
+function isAdminUser(user: User | null): boolean {
+  return (user?.email ?? '').trim().toLowerCase() === ADMIN_EMAIL
+}
 
 function nameFromUser(user: User | null): string {
   if (!user) return ''
@@ -41,6 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loading,
     user: session?.user ?? null,
     displayName: nameFromUser(session?.user ?? null),
+    isAdmin: isAdminUser(session?.user ?? null),
     signIn: async (email, password) => {
       if (!supabase) throw new Error('Supabase no configurado')
       const { error } = await supabase.auth.signInWithPassword({ email, password })

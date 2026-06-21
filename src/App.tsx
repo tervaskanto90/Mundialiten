@@ -12,7 +12,7 @@ import { useAuth } from './auth'
 import { useSupabaseSync } from './lib/sync'
 import { useT, type Lang } from './i18n'
 import { HowToPlay } from './components/HowToPlay'
-import { Emblem } from './components/Emblem'
+import { HeaderBrand } from './components/HeaderBrand'
 import { Band } from './components/Bands'
 import { useTheme } from './theme'
 import { useIsDesktop } from './hooks/useIsDesktop'
@@ -70,8 +70,8 @@ export default function App() {
   const headerStyle: React.CSSProperties = {
     display: 'flex',
     alignItems: 'center',
-    gap: '12px',
-    padding: '13px 14px',
+    gap: '14px',
+    padding: '18px 16px',
     borderRadius: '18px',
     background: c.cardGrad,
     border: '1px solid ' + c.line,
@@ -142,9 +142,7 @@ export default function App() {
 
         {/* HEADER */}
         <header style={headerStyle}>
-          <div style={{ width: 50, height: 50, flex: 'none', filter: 'drop-shadow(0 4px 10px rgba(124,63,242,.4))' }}>
-            <Emblem size={50} />
-          </div>
+          <HeaderBrand size={58} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontFamily: "'Archivo'", fontWeight: 900, fontSize: '18px', lineHeight: 1, letterSpacing: '-.3px', color: c.text }}>
               MUNDIALITEN
