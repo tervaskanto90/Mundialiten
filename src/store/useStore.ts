@@ -13,9 +13,11 @@ export const ACCOUNT_PRED_ID = 'account-pred'
 // forzamos el marcador correcto por nº de partido: se aplica tanto al hidratar
 // desde Supabase como en CADA sincronización en vivo, así la API no lo vuelve a
 // pisar. Quitar la entrada cuando el proveedor corrija el dato.
+//   #14 · España 0-0 Cabo Verde (15-jun-2026)
 //   #38 · España 4-0 Arabia Saudí (21-jun-2026): la API lo marcaba 5-0 por error.
 // ─────────────────────────────────────────────────────────────────────────────
 const RESULT_OVERRIDES: Record<number, { homeScore: number; awayScore: number }> = {
+  14: { homeScore: 0, awayScore: 0 },
   38: { homeScore: 4, awayScore: 0 },
 }
 
