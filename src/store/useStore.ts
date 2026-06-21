@@ -7,6 +7,33 @@ const REAL_ID = 'real'
 // Id fijo de la predicción única atada a la cuenta (cuando hay login).
 export const ACCOUNT_PRED_ID = 'account-pred'
 
+// ─────────────────────────────────────────────────────────────────────────────
+// CORRECCIONES MANUALES DE RESULTADOS REALES
+// A veces el proveedor (football-data) reporta un marcador equivocado. Acá
+// forzamos el marcador correcto por nº de partido: se aplica tanto al hidratar
+// desde Supabase como en CADA sincronización en vivo, así la API no lo vuelve a
+// pisar. Quitar la entrada cuando el proveedor corrija el dato.
+//   #14 · España 4-0 Cabo Verde (15-jun-2026): la API lo marcaba 5-0 por error.
+// ─────────────────────────────────────────────────────────────────────────────
+const RESULT_OVERRIDES: Record<number, { homeScore: number; awayScore: number }> = {
+  14: { homeScore: 4, awayScore: 0 },
+}
+
+function applyResultOverride(matchId: number, r: MatchResult): MatchResult {
+  const o = RESULT_OVERRIDES[matchId]
+  if (!o) return r
+  return { ...r, homeScore: o.homeScore, awayScore: o.awayScore }
+}
+
+function applyOverridesToMap(results: Record<number, MatchResult>): Record<number, MatchResult> {
+  let out = results
+  for (const idStr of Object.keys(RESULT_OVERRIDES)) {
+    const id = Number(idStr)
+    if (out[id]) out = { ...out, [id]: applyResultOverride(id, out[id]) }
+  }
+  return out
+}
+
 const SCENARIO_COLORS = [
   '#2f6df0',
   '#e0529c',
@@ -262,7 +289,7 @@ export const useStore = create<State>()(
               const results = { ...sc.results }
               for (const u of updates) {
                 const prev = results[u.matchId]
-                results[u.matchId] = {
+                results[u.matchId] = applyResultOverride(u.matchId, {
                   played: true,
                   homeScore: u.homeScore,
                   awayScore: u.awayScore,
@@ -271,7 +298,7 @@ export const useStore = create<State>()(
                   events: prev?.events ?? [],
                   varCount: prev?.varCount, // preservar el VAR cargado a mano
                   finished: u.finished, // EN VIVO si played && !finished
-                }
+                })
               }
               return { ...sc, results }
             }),
@@ -292,9 +319,10 @@ export const useStore = create<State>()(
         })),
 
       hydrateReal: (results) =>
-        set((s) => ({
-          scenarios: s.scenarios.map((sc) => (sc.id === REAL_ID ? { ...sc, results } : sc)),
-        })),
+        set((s) => {
+          const corrected = applyOverridesToMap(results)
+          return { scenarios: s.scenarios.map((sc) => (sc.id === REAL_ID ? { ...sc, results: corrected } : sc)) }
+        }),
 
       hydratePrediction: (results, name) =>
         set((s) => {
