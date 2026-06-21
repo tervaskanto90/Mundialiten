@@ -13,6 +13,7 @@ import { useSupabaseSync } from './lib/sync'
 import { useT, type Lang } from './i18n'
 import { HowToPlay } from './components/HowToPlay'
 import { HeaderBrand } from './components/HeaderBrand'
+import { Drawer } from './components/Drawer'
 import { Band } from './components/Bands'
 import { useTheme } from './theme'
 import { useIsDesktop } from './hooks/useIsDesktop'
@@ -33,9 +34,12 @@ const LANGS: { id: Lang; flag: string }[] = [
   { id: 'en', flag: '🇬🇧' },
 ]
 
+const SCN_ICON: Record<string, string> = { real: '🔴', prediction: '🔮', whatif: '🧪' }
+
 export default function App() {
   const [view, setView] = useState<View>('calendario')
   const [editingMatch, setEditingMatch] = useState<number | null>(null)
+  const [menuOpen, setMenuOpen] = useState(false)
   const ctx = useActiveContext()
   const { enabled, user, displayName, signOut } = useAuth()
   const { t, lang, setLang } = useT()
@@ -101,17 +105,20 @@ export default function App() {
   const mainStyle: React.CSSProperties = isDesktop
     ? { flex: '1 1 0', minWidth: 0, overflowY: 'auto', paddingRight: '8px', paddingBottom: '32px', animation: 'mdlUp .34s ease both' }
     : { flex: 'none', minWidth: 0, marginTop: '12px', animation: 'mdlUp .34s ease both' }
-  // En mobile, barra superior fija (sticky) con el selector de escenario y las
-  // secciones: queda siempre a mano y el contenido scrollea por debajo.
+  // En mobile, barra superior fija (sticky) MÍNIMA: hamburguesa + sección actual
+  // + escenario. Todo lo demás (escenarios y secciones) vive en el drawer.
   const mobileBarStyle: React.CSSProperties = {
     position: 'sticky',
     top: 0,
     zIndex: 30,
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
     background: c.canvas,
     marginTop: '12px',
     marginLeft: '-14px',
     marginRight: '-14px',
-    padding: '8px 14px 9px',
+    padding: '9px 14px',
     borderBottom: '1px solid ' + c.line,
     boxShadow: dark ? '0 7px 16px -10px rgba(0,0,0,.85)' : '0 7px 16px -12px rgba(120,90,30,.5)',
   }
@@ -305,20 +312,114 @@ export default function App() {
               </div>
             </main>
           )
-          return isDesktop ? (
-            <div style={bodyWrapStyle}>
-              <div style={sidebarStyle} className="mdl-noscroll">
-                <TabBar />
-                {sectionNav}
+          if (isDesktop) {
+            return (
+              <div style={bodyWrapStyle}>
+                <div style={sidebarStyle} className="mdl-noscroll">
+                  <TabBar />
+                  {sectionNav}
+                </div>
+                {mainContent}
               </div>
-              {mainContent}
-            </div>
-          ) : (
+            )
+          }
+          // ── MOBILE ──
+          const curNav = NAV.find((n) => n.id === view)
+          const curLabel = curNav ? (lang === 'en' ? curNav.en : curNav.es) : ''
+          const scnType = ctx.scenario.type
+          const scnName = scnType === 'real' ? t('Resultados', 'Results') : ctx.scenario.name
+          const drawerLabel: React.CSSProperties = {
+            fontSize: '10.5px',
+            fontWeight: 800,
+            letterSpacing: '.6px',
+            textTransform: 'uppercase',
+            color: c.faint,
+            margin: '2px 2px 8px',
+          }
+          const drawerNavBtn = (active: boolean): React.CSSProperties => ({
+            width: '100%',
+            textAlign: 'left',
+            fontFamily: "'Archivo'",
+            fontSize: '14.5px',
+            fontWeight: 700,
+            cursor: 'pointer',
+            padding: '12px 15px',
+            borderRadius: '12px',
+            color: active ? (dark ? '#0C0904' : '#FBF6EA') : c.text,
+            background: active ? c.text : dark ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.035)',
+            border: '1px solid ' + (active ? c.text : c.line),
+          })
+          return (
             <>
               <div style={mobileBarStyle}>
-                <TabBar />
-                {sectionNav}
+                <button
+                  onClick={() => setMenuOpen(true)}
+                  aria-label={t('Menú', 'Menu')}
+                  style={{
+                    width: '38px',
+                    height: '38px',
+                    flex: 'none',
+                    borderRadius: '11px',
+                    cursor: 'pointer',
+                    fontSize: '17px',
+                    border: '1px solid ' + c.line,
+                    background: dark ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.04)',
+                    color: c.text,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  ☰
+                </button>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontFamily: "'Archivo'", fontWeight: 800, fontSize: '16px', color: c.text, lineHeight: 1, letterSpacing: '-.2px' }}>
+                    {curLabel}
+                  </div>
+                </div>
+                <button
+                  onClick={() => setMenuOpen(true)}
+                  style={{
+                    flex: 'none',
+                    maxWidth: '42%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    cursor: 'pointer',
+                    padding: '7px 11px',
+                    borderRadius: '99px',
+                    fontSize: '12px',
+                    fontWeight: 800,
+                    color: c.text,
+                    background: dark ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.04)',
+                    border: '1px solid ' + c.line,
+                  }}
+                >
+                  <span style={{ fontSize: '11px', flex: 'none' }}>{SCN_ICON[scnType]}</span>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{scnName}</span>
+                </button>
               </div>
+
+              <Drawer open={menuOpen} onClose={() => setMenuOpen(false)} title={t('Menú', 'Menu')}>
+                <div style={drawerLabel}>{t('Sección', 'Section')}</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '18px' }}>
+                  {NAV.map((n) => (
+                    <button
+                      key={n.id}
+                      onClick={() => {
+                        setView(n.id)
+                        setMenuOpen(false)
+                      }}
+                      style={drawerNavBtn(view === n.id)}
+                    >
+                      {lang === 'en' ? n.en : n.es}
+                    </button>
+                  ))}
+                </div>
+                <div style={drawerLabel}>{t('Vista de datos', 'Data view')}</div>
+                <TabBar onSelect={() => setMenuOpen(false)} />
+              </Drawer>
+
               {mainContent}
             </>
           )

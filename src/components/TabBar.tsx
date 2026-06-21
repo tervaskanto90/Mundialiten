@@ -20,7 +20,7 @@ const TYPE_NOTE: Record<ScenarioType, { es: string; en: string; icon: string }> 
   whatif: { icon: '🧪', es: 'Sandbox: cambiá resultados y mirá cómo se mueve el ranking.', en: 'Sandbox: change results and watch the ranking move.' },
 }
 
-export function TabBar() {
+export function TabBar({ onSelect }: { onSelect?: () => void } = {}) {
   const scenarios = useStore((s) => s.scenarios)
   const activeId = useStore((s) => s.activeId)
   const setActive = useStore((s) => s.setActive)
@@ -106,7 +106,14 @@ export function TabBar() {
         {scenarios.map((sc) => {
           const active = sc.id === activeId
           return (
-            <div key={sc.id} style={tabStyle(active, sc.type)} onClick={() => setActive(sc.id)}>
+            <div
+              key={sc.id}
+              style={tabStyle(active, sc.type)}
+              onClick={() => {
+                setActive(sc.id)
+                onSelect?.()
+              }}
+            >
               <span style={{ fontSize: '11px' }}>{TYPE_ICON[sc.type]}</span>
               <span style={{ flex: isDesktop ? 1 : undefined, textAlign: 'left' }}>{tabName(sc)}</span>
               {sc.type === 'prediction' && sc.predictionDate && isDesktop && (

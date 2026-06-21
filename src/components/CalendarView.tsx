@@ -121,6 +121,34 @@ export function CalendarView({ ctx, onEdit }: Props) {
     border: '1px solid ' + (active ? accent : c.line),
   })
 
+  // Botón de un control segmentado (Lista / Por grupos).
+  const seg = (active: boolean): React.CSSProperties => ({
+    fontSize: '12px',
+    fontWeight: 700,
+    fontFamily: "'Archivo'",
+    cursor: 'pointer',
+    padding: '6px 12px',
+    borderRadius: '99px',
+    whiteSpace: 'nowrap',
+    border: 'none',
+    transition: 'all .18s ease',
+    color: active ? '#fff' : c.muted,
+    background: active ? ACCENT.blue : 'transparent',
+  })
+
+  // Desplegable de etapa (reemplaza la fila de 7 botones).
+  const selectStyle: React.CSSProperties = {
+    fontSize: '12px',
+    fontWeight: 700,
+    fontFamily: "'Archivo'",
+    cursor: 'pointer',
+    padding: '7px 12px',
+    borderRadius: '99px',
+    color: c.text,
+    background: dark ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.04)',
+    border: '1px solid ' + c.line,
+  }
+
   return (
     <div>
       {ctx.scenario.type === 'real' && <LiveBanner realResults={ctx.real.results} />}
@@ -148,31 +176,39 @@ export function CalendarView({ ctx, onEdit }: Props) {
         </div>
       )}
 
-      {/* Cambio de vista: Calendario ↔ Grupos */}
-      <div className="flex items-center justify-between gap-2 mb-2">
-        <div className="inline-flex gap-1.5">
-          <button onClick={() => setView('calendar')} style={pill(view === 'calendar')}>
-            🗓️ {t('Calendario', 'Calendar')}
+      {/* Filtros condensados en una sola fila: vista (Lista/Por grupos) +
+          desplegable de etapa + sólo pendientes. */}
+      <div className="flex items-center gap-2 mb-3 flex-wrap">
+        <div
+          className="inline-flex p-0.5 rounded-full"
+          style={{ background: dark ? 'rgba(0,0,0,.28)' : 'rgba(0,0,0,.05)', border: '1px solid ' + c.line }}
+        >
+          <button onClick={() => setView('calendar')} style={seg(view === 'calendar')}>
+            🗓️ {t('Lista', 'List')}
           </button>
-          <button onClick={() => setView('groups')} style={pill(view === 'groups')}>
-            🗂️ {t('Grupos', 'Groups')}
+          <button onClick={() => setView('groups')} style={seg(view === 'groups')}>
+            🗂️ {t('Por grupos', 'By group')}
           </button>
         </div>
-        <button onClick={() => setOnlyPending((v) => !v)} style={pill(onlyPending, ACCENT.gold)}>
-          {onlyPending ? t('⏳ Sólo pendientes', '⏳ Only pending') : t('Mostrar todos', 'Show all')}
+
+        {view === 'calendar' && (
+          <select value={filter} onChange={(e) => setFilter(e.target.value as Filter)} style={selectStyle}>
+            {FILTERS.map((f) => (
+              <option key={f.id} value={f.id}>
+                {(f.id === 'all' ? t('Etapa: todas', 'Stage: all') : lang === 'en' ? f.en : f.es)}
+              </option>
+            ))}
+          </select>
+        )}
+
+        <button
+          onClick={() => setOnlyPending((v) => !v)}
+          style={pill(onlyPending, ACCENT.gold)}
+          title={t('Mostrar sólo partidos sin cargar', 'Show only matches not set yet')}
+        >
+          ⏳ {t('Pendientes', 'Pending')}
         </button>
       </div>
-
-      {/* Filtros por etapa: sólo en la vista calendario. */}
-      {view === 'calendar' && (
-        <div className="flex flex-wrap gap-1.5 mb-2">
-          {FILTERS.map((f) => (
-            <button key={f.id} onClick={() => setFilter(f.id)} style={pill(filter === f.id)}>
-              {lang === 'en' ? f.en : f.es}
-            </button>
-          ))}
-        </div>
-      )}
 
       <div className="text-xs mb-2" style={{ color: c.faint, fontWeight: 600 }}>
         {playedCount}/{MATCHES.length}{' '}

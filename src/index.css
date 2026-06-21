@@ -91,6 +91,10 @@ body {
   from { opacity: 0; transform: translateY(20px) scale(0.96); }
   to { opacity: 1; transform: none; }
 }
+@keyframes mdlDrawerIn {
+  from { transform: translateX(-100%); }
+  to { transform: none; }
+}
 @keyframes mdlBandIn {
   from { opacity: 0; transform: scale(0.6); }
   to { opacity: 1; transform: scale(1); }
