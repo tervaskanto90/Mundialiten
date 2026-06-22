@@ -83,6 +83,81 @@ function parseItems(xml) {
     .sort((a, b) => (b.ts || 0) - (a.ts || 0))
 }
 
+// ── Imagen de portada del artículo (og:image) ───────────────────────────────
+// El <link> del RSS es un redirect de Google News. Lo seguimos hasta el medio y
+// sacamos la og:image (la foto que el propio artículo declara para compartir).
+function parseOg(html) {
+  const pats = [
+    /<meta[^>]+(?:property|name)=["']og:image(?::secure_url)?["'][^>]+content=["']([^"']+)["']/i,
+    /<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["']og:image["']/i,
+    /<meta[^>]+name=["']twitter:image(?::src)?["'][^>]+content=["']([^"']+)["']/i,
+  ]
+  for (const re of pats) {
+    const m = re.exec(html)
+    if (m && m[1] && /^https?:\/\//i.test(m[1])) return decodeEntities(m[1])
+  }
+  return ''
+}
+
+function extractPublisherUrl(html) {
+  let m = /<meta[^>]+http-equiv=["']refresh["'][^>]+content=["'][^"']*url=([^"']+)["']/i.exec(html)
+  if (m) return decodeEntities(m[1])
+  m = /data-n-au=["']([^"']+)["']/i.exec(html)
+  if (m) return m[1]
+  m = /https?:\/\/(?!news\.google|www\.google|accounts\.google|policies\.google|support\.google|gstatic\.com|googleusercontent)[^"'\s<>]+/i.exec(html)
+  return m ? m[0] : ''
+}
+
+async function getHtml(url, ms) {
+  const ctrl = new AbortController()
+  const timer = setTimeout(() => ctrl.abort(), ms)
+  try {
+    const r = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; MundialitenBot/1.0; +https://vercel.com)' },
+      redirect: 'follow',
+      signal: ctrl.signal,
+    })
+    if (!r.ok) return { html: '', finalUrl: r.url }
+    const html = (await r.text()).slice(0, 220000) // con el <head> alcanza
+    return { html, finalUrl: r.url }
+  } catch {
+    return { html: '', finalUrl: '' }
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+async function fetchOgImage(link) {
+  const first = await getHtml(link, 3800)
+  if (first.html) {
+    const og = parseOg(first.html)
+    if (og && first.finalUrl && !/news\.google\.com/.test(first.finalUrl)) return og
+    // Seguía en Google (interstitial): saltamos al medio real.
+    const pub = extractPublisherUrl(first.html)
+    if (pub) {
+      const second = await getHtml(pub, 3800)
+      const og2 = parseOg(second.html)
+      if (og2) return og2
+    }
+    if (og) return og
+  }
+  return ''
+}
+
+async function enrichImages(items, deadline, max = 12) {
+  const targets = items.slice(0, max)
+  let i = 0
+  const worker = async () => {
+    while (i < targets.length && Date.now() < deadline) {
+      const it = targets[i++]
+      if (it.image) continue
+      const img = await fetchOgImage(it.link)
+      if (img) it.image = img
+    }
+  }
+  await Promise.all(Array.from({ length: 6 }, worker))
+}
+
 export default async function handler(req, res) {
   const lang = String(req.query.lang || 'es').toLowerCase() === 'en' ? 'en' : 'es'
   const preset = PRESETS[lang]
@@ -104,6 +179,9 @@ export default async function handler(req, res) {
     }
     const xml = await r.text()
     const items = parseItems(xml)
+    // Enriquecemos con la og:image del artículo (con presupuesto de tiempo para
+    // no agotar el límite de la función serverless).
+    await enrichImages(items, Date.now() + 7000)
     // Cache 10 min en el edge: las noticias no cambian a cada segundo.
     res.setHeader('Cache-Control', 's-maxage=600, stale-while-revalidate=1800')
     res.status(200).json({ items, generatedAt: new Date().toISOString(), lang })

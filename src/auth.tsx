@@ -11,6 +11,7 @@ interface AuthState {
   signIn: (email: string, password: string) => Promise<void>
   signUp: (email: string, password: string, displayName: string) => Promise<void>
   signOut: () => Promise<void>
+  changePassword: (newPassword: string) => Promise<void>
 }
 
 const AuthContext = createContext<AuthState | null>(null)
@@ -69,6 +70,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signOut: async () => {
       if (!supabase) return
       await supabase.auth.signOut()
+    },
+    changePassword: async (newPassword) => {
+      if (!supabase) throw new Error('Supabase no configurado')
+      const { error } = await supabase.auth.updateUser({ password: newPassword })
+      if (error) throw error
     },
   }
 

@@ -51,10 +51,12 @@ export function HeaderBrand({
   branding,
   onChange,
   size = 58,
+  onClick,
 }: {
   branding: Branding
   onChange: (b: Branding) => void
   size?: number
+  onClick?: () => void
 }) {
   const { isAdmin } = useAuth()
   const { dark, c } = useTheme()
@@ -65,7 +67,7 @@ export function HeaderBrand({
 
   return (
     <>
-      <div style={{ position: 'relative', height: size, flex: 'none', display: 'inline-flex', alignItems: 'center' }}>
+      <div onClick={onClick} style={{ position: 'relative', height: size, flex: 'none', display: 'inline-flex', alignItems: 'center', cursor: onClick ? 'pointer' : undefined }}>
         {current ? (
           <img
             src={current}
@@ -87,7 +89,10 @@ export function HeaderBrand({
         )}
         {isAdmin && (
           <button
-            onClick={() => setEditing(true)}
+            onClick={(e) => {
+              e.stopPropagation()
+              setEditing(true)
+            }}
             title={t('Cambiar imagen del encabezado', 'Change header image')}
             style={{
               position: 'absolute',

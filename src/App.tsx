@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { TabBar } from './components/TabBar'
+import { ScenarioToggle } from './components/ScenarioToggle'
+import { AccountModal } from './components/AccountModal'
 import { CalendarView } from './components/CalendarView'
 import { GroupsView } from './components/GroupsView'
 import { BracketView } from './components/BracketView'
@@ -44,6 +45,7 @@ export default function App() {
   const [view, setView] = useState<View>('home')
   const [editingMatch, setEditingMatch] = useState<number | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [accountOpen, setAccountOpen] = useState(false)
   const ctx = useActiveContext()
   const { enabled, user, displayName, signOut } = useAuth()
   const { t, lang, setLang } = useT()
@@ -219,19 +221,16 @@ export default function App() {
     </button>
   )
   const userChip = (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '9px', flex: 'none', paddingLeft: '4px' }}>
+    <button
+      onClick={() => setAccountOpen(true)}
+      title={t('Mi cuenta', 'My account')}
+      style={{ display: 'flex', alignItems: 'center', gap: '9px', flex: 'none', paddingLeft: '4px', background: 'none', border: 'none', cursor: 'pointer' }}
+    >
       <div style={{ minWidth: 0, textAlign: 'right' }}>
         <div style={{ fontSize: '13px', fontWeight: 800, color: c.text, lineHeight: 1 }}>{name}</div>
-        {enabled && user ? (
-          <button
-            onClick={() => signOut()}
-            style={{ fontSize: '10.5px', color: c.muted, fontWeight: 700, marginTop: '2px', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
-          >
-            {t('Salir', 'Sign out')}
-          </button>
-        ) : (
-          <div style={{ fontSize: '10.5px', color: c.muted, fontWeight: 700, marginTop: '2px' }}>{t('Modo local', 'Local mode')}</div>
-        )}
+        <div style={{ fontSize: '10.5px', color: c.muted, fontWeight: 700, marginTop: '2px' }}>
+          {enabled && user ? t('Mi cuenta', 'My account') : t('Modo local', 'Local mode')}
+        </div>
       </div>
       <div
         style={{
@@ -251,7 +250,7 @@ export default function App() {
       >
         {initial}
       </div>
-    </div>
+    </button>
   )
 
   return (
@@ -274,8 +273,8 @@ export default function App() {
         {isDesktop ? (
           <header style={headerStyle}>
             {hamburgerBtn}
-            <HeaderBrand branding={branding} onChange={setBranding} size={Math.round(52 * hs)} />
-            <div style={{ minWidth: 0 }}>
+            <HeaderBrand branding={branding} onChange={setBranding} size={Math.round(52 * hs)} onClick={() => setView('home')} />
+            <div style={{ minWidth: 0, cursor: 'pointer' }} onClick={() => setView('home')} title={t('Ir al inicio', 'Go home')}>
               <div style={{ fontFamily: "'Archivo'", fontWeight: 900, fontSize: px(18), lineHeight: 1, letterSpacing: '-.3px', color: c.text }}>
                 MUNDIALITEN
               </div>
@@ -294,8 +293,8 @@ export default function App() {
         ) : (
           <>
             <header style={headerStyle}>
-              <HeaderBrand branding={branding} onChange={setBranding} size={Math.round(58 * hs)} />
-              <div style={{ flex: 1, minWidth: 0 }}>
+              <HeaderBrand branding={branding} onChange={setBranding} size={Math.round(58 * hs)} onClick={() => setView('home')} />
+              <div style={{ flex: 1, minWidth: 0, cursor: 'pointer' }} onClick={() => setView('home')}>
                 <div style={{ fontFamily: "'Archivo'", fontWeight: 900, fontSize: px(18), lineHeight: 1, letterSpacing: '-.3px', color: c.text }}>
                   MUNDIALITEN
                 </div>
@@ -377,12 +376,19 @@ export default function App() {
                   </button>
                 ))}
               </div>
-              <div style={drawerLabel}>{t('Vista de datos', 'Data view')}</div>
-              <TabBar onSelect={() => setMenuOpen(false)} />
             </Drawer>
           )
           const mainContent = (
             <main style={mainStyle} key={view}>
+              <div
+                style={
+                  isDesktop
+                    ? { position: 'sticky', top: 0, zIndex: 20, background: c.canvas, paddingTop: '2px', paddingBottom: '12px', marginBottom: '6px' }
+                    : { marginBottom: '12px' }
+                }
+              >
+                <ScenarioToggle />
+              </div>
               {view === 'home' && <HomeView ctx={ctx} onJump={setView} onEditMatch={setEditingMatch} />}
               {view === 'calendario' && <CalendarView ctx={ctx} onEdit={setEditingMatch} />}
               {view === 'grupos' && <GroupsView ctx={ctx} />}
@@ -456,6 +462,8 @@ export default function App() {
       {editingMatch != null && (
         <ResultEditor matchId={editingMatch} ctx={ctx} onClose={() => setEditingMatch(null)} />
       )}
+
+      {accountOpen && <AccountModal onClose={() => setAccountOpen(false)} />}
     </div>
   )
 }
