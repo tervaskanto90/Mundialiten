@@ -237,7 +237,7 @@ function AuthScreen() {
     <Shell>
       <div style={{ position: 'relative', minHeight: 'calc(100vh - 32px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         {centerColumn}
-        <div style={{ position: 'absolute', right: '4%', top: '50%', transform: 'translateY(calc(-50% - 38px))' }}>
+        <div style={{ position: 'absolute', right: '4%', top: '50%', transform: 'translateY(calc(-50% - 70px))' }}>
           {rightSide}
         </div>
       </div>
