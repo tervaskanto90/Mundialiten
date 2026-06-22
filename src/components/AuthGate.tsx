@@ -27,9 +27,9 @@ function Shell({ children }: { children: ReactNode }) {
   const { c, dark } = useTheme()
   const isDesktop = useIsDesktop()
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'stretch', justifyContent: 'center', background: c.page, color: c.text }}>
+    <div style={{ height: isDesktop ? '100vh' : undefined, minHeight: '100vh', display: 'flex', alignItems: 'stretch', justifyContent: 'center', overflow: isDesktop ? 'hidden' : undefined, background: c.page, color: c.text }}>
       <Band offset={0} dark={dark} thin={!isDesktop} />
-      <div style={{ flex: isDesktop ? '0 1 1060px' : '0 1 472px', width: '100%', maxWidth: isDesktop ? 1060 : 472, background: c.canvas, padding: isDesktop ? '24px 32px 40px' : '18px 16px 34px', boxShadow: dark ? '0 0 60px -10px rgba(0,0,0,.7)' : '0 0 60px -16px rgba(120,90,30,.3)', position: 'relative' }}>
+      <div style={{ flex: isDesktop ? '0 1 880px' : '0 1 472px', width: '100%', maxWidth: isDesktop ? 880 : 472, height: isDesktop ? '100vh' : undefined, overflowY: isDesktop ? 'auto' : undefined, background: c.canvas, padding: isDesktop ? '24px 32px 40px' : '18px 16px 34px', boxShadow: dark ? '0 0 60px -10px rgba(0,0,0,.7)' : '0 0 60px -16px rgba(120,90,30,.3)', position: 'relative' }}>
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, background: 'linear-gradient(90deg,#2F6DF0,#7B3FF2,#EC1C7D,#FF7A1A,#FFC21A,#1FA85C)' }} />
         {children}
       </div>
@@ -101,7 +101,7 @@ function LoadingScreen() {
 function AuthScreen() {
   const { signIn, signUp, resetPassword } = useAuth()
   const { t } = useT()
-  const { c } = useTheme()
+  const { c, dark } = useTheme()
   const isDesktop = useIsDesktop()
   const [mode, setMode] = useState<'login' | 'signup' | 'forgot'>('login')
   const [email, setEmail] = useState('')
@@ -201,11 +201,13 @@ function AuthScreen() {
   return (
     <Shell>
       <TopControls />
-      <div style={{ display: 'flex', gap: isDesktop ? 32 : 24, alignItems: 'flex-start', flexDirection: isDesktop ? 'row' : 'column' }}>
+      <div style={{ display: 'flex', gap: isDesktop ? 28 : 24, alignItems: 'flex-start', justifyContent: 'center', flexDirection: isDesktop ? 'row' : 'column' }}>
         {loginCol}
-        <div style={{ flex: '1 1 auto', minWidth: 0, width: '100%' }}>
-          <ProjectsShowcase />
-        </div>
+        <aside style={{ flex: isDesktop ? '0 0 280px' : '1 1 auto', width: '100%', maxWidth: isDesktop ? 280 : 472, margin: isDesktop ? undefined : '0 auto' }}>
+          <div className="rounded-2xl p-3" style={{ background: dark ? 'rgba(0,0,0,.18)' : 'rgba(0,0,0,.03)', border: '1px solid ' + c.line }}>
+            <ProjectsShowcase compact />
+          </div>
+        </aside>
       </div>
     </Shell>
   )

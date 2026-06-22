@@ -43,14 +43,6 @@ const PROJECTS: Project[] = [
     link: SITE,
     visual: 'nix',
   },
-  {
-    name: 'Mundialiten',
-    tagline: 'The 2026 World Cup, gamified',
-    desc: 'A companion app for the 2026 World Cup — fixtures, groups and predictions with friends, shipped just in time for kickoff.',
-    tags: ['TypeScript', 'Next.js', 'Real-time'],
-    link: SITE,
-    visual: 'pitch',
-  },
 ]
 
 export function ProjectsShowcase({ compact = false }: { compact?: boolean }) {
@@ -59,12 +51,12 @@ export function ProjectsShowcase({ compact = false }: { compact?: boolean }) {
   return (
     <div>
       <a href={SITE} target="_blank" rel="noopener noreferrer" className="block mb-3">
-        <div className="font-bold flex items-center gap-1.5" style={{ fontFamily: "'Archivo'", color: c.text, fontSize: compact ? '14px' : '18px' }}>
+        <div className="font-bold flex items-center gap-1.5" style={{ fontFamily: "'Archivo'", color: c.text, fontSize: '14px' }}>
           🛠️ {t('Mirá otras cosas que construí', 'Other things I’ve built')} <span style={{ color: c.muted }}>↗</span>
         </div>
         <div className="text-[11px]" style={{ color: c.muted }}>{t('Proyectos de Octavio Boggiano', 'Projects by Octavio Boggiano')}</div>
       </a>
-      <div className={compact ? 'grid grid-cols-1 gap-2.5' : 'grid grid-cols-1 gap-3'}>
+      <div className="flex flex-col gap-2.5">
         {PROJECTS.map((p) => (
           <ProjectCard key={p.name} p={p} compact={compact} />
         ))}
@@ -83,19 +75,18 @@ function ProjectCard({ p, compact }: { p: Project; compact: boolean }) {
       className="block rounded-xl overflow-hidden transition"
       style={{ background: c.cardGrad, border: '1px solid ' + c.line, boxShadow: c.shadow }}
     >
-      <div className="px-3 pt-3">
+      <div className="px-2.5 pt-2.5">
         <Visual kind={p.visual} dark={dark} compact={compact} />
       </div>
-      <div className="px-3.5 pb-3 pt-2.5">
+      <div className="px-3 pb-2.5 pt-2">
         <div className="flex items-center justify-between">
-          <div className="font-bold" style={{ fontFamily: "'Archivo'", color: c.text, fontSize: compact ? '14px' : '16px' }}>{p.name}</div>
+          <div className="font-bold" style={{ fontFamily: "'Archivo'", color: c.text, fontSize: '14px' }}>{p.name}</div>
           <span style={{ color: c.muted }}>↗</span>
         </div>
-        <div className="text-[10px] uppercase tracking-wide font-bold mt-0.5" style={{ color: c.faint }}>{p.tagline}</div>
-        {!compact && <p className="text-xs mt-1.5 leading-snug" style={{ color: c.muted }}>{p.desc}</p>}
-        <div className="flex flex-wrap gap-1.5 mt-2.5">
+        <div className="text-[9.5px] uppercase tracking-wide font-bold mt-0.5" style={{ color: c.faint }}>{p.tagline}</div>
+        <div className="flex flex-wrap gap-1 mt-2">
           {p.tags.map((tg) => (
-            <span key={tg} className="text-[9px] font-bold uppercase tracking-wide px-2 py-1 rounded-full" style={{ color: c.muted, border: '1px solid ' + c.line }}>
+            <span key={tg} className="text-[8.5px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full" style={{ color: c.muted, border: '1px solid ' + c.line }}>
               {tg}
             </span>
           ))}
@@ -106,7 +97,7 @@ function ProjectCard({ p, compact }: { p: Project; compact: boolean }) {
 }
 
 function Visual({ kind, dark, compact }: { kind: Project['visual']; dark: boolean; compact: boolean }) {
-  const h = compact ? 56 : 78
+  const h = compact ? 58 : 70
   const box: React.CSSProperties = {
     height: h,
     borderRadius: 10,
