@@ -231,14 +231,17 @@ function AuthScreen() {
     )
   }
 
-  // Desktop: login centrado en el viewport; el panel derecho va absoluto a la
-  // derecha (descentrado) para no correr el login del centro.
+  // Desktop: grilla 1fr | login(360) | 1fr. El login queda centrado y el panel
+  // de la derecha alineado al tope del login (align-items: start). El panel se
+  // sube 44px para que su recuadro arranque justo a la altura del login (los
+  // toggles quedan encima).
   return (
     <Shell>
-      <div style={{ position: 'relative', minHeight: 'calc(100vh - 32px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        {centerColumn}
-        <div style={{ position: 'absolute', right: '4%', top: '50%', transform: 'translateY(calc(-50% - 70px))' }}>
-          {rightSide}
+      <div style={{ minHeight: 'calc(100vh - 32px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px 1fr', alignItems: 'start', width: '100%' }}>
+          <div />
+          <div style={{ justifySelf: 'center' }}>{centerColumn}</div>
+          <div style={{ justifySelf: 'end', paddingRight: '2%', marginTop: -44 }}>{rightSide}</div>
         </div>
       </div>
     </Shell>
