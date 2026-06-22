@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ScenarioToggle } from './components/ScenarioToggle'
 import { AccountModal } from './components/AccountModal'
+import { ProjectsShowcase } from './components/ProjectsShowcase'
 import { FixtureView } from './components/FixtureView'
 import { AccuracyView } from './components/AccuracyView'
 import { ResultEditor } from './components/ResultEditor'
@@ -50,6 +51,19 @@ export default function App() {
   const [branding, setBranding] = useBranding()
   useLiveSyncPolling()
   useSupabaseSync()
+
+  // Favicon = imagen del sitio en modo oscuro (o la clara si no hay oscura).
+  useEffect(() => {
+    const icon = branding.dark || branding.light
+    if (!icon) return
+    let link = document.querySelector("link[rel='icon']") as HTMLLinkElement | null
+    if (!link) {
+      link = document.createElement('link')
+      link.rel = 'icon'
+      document.head.appendChild(link)
+    }
+    link.href = icon
+  }, [branding.dark, branding.light])
 
   const name = (enabled && user && displayName) || 'Invitado'
   const initial = name.slice(0, 1).toUpperCase()
@@ -357,6 +371,7 @@ export default function App() {
                   </button>
                 ))}
               </div>
+              <ProjectsShowcase compact />
             </Drawer>
           )
           const mainContent = (

@@ -9,11 +9,14 @@ interface AuthState {
   displayName: string
   avatarUrl: string | null
   isAdmin: boolean
+  recovery: boolean
   signIn: (email: string, password: string) => Promise<void>
   signUp: (email: string, password: string, displayName: string) => Promise<void>
   signOut: () => Promise<void>
   changePassword: (newPassword: string) => Promise<void>
   updateAvatar: (dataUrl: string | null) => Promise<void>
+  resetPassword: (email: string) => Promise<void>
+  endRecovery: () => void
 }
 
 const AuthContext = createContext<AuthState | null>(null)
@@ -35,6 +38,7 @@ function nameFromUser(user: User | null): string {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(isSupabaseEnabled)
+  const [recovery, setRecovery] = useState(false)
 
   useEffect(() => {
     if (!supabase) {
@@ -45,7 +49,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(data.session)
       setLoading(false)
     })
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => setSession(s))
+    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
+      setSession(s)
+      // El usuario abrió el link del mail de recupero: pedimos contraseña nueva.
+      if (event === 'PASSWORD_RECOVERY') setRecovery(true)
+    })
     return () => sub.subscription.unsubscribe()
   }, [])
 
@@ -56,6 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     displayName: nameFromUser(session?.user ?? null),
     avatarUrl: (session?.user?.user_metadata?.avatar_url as string) || null,
     isAdmin: isAdminUser(session?.user ?? null),
+    recovery,
     signIn: async (email, password) => {
       if (!supabase) throw new Error('Supabase no configurado')
       const { error } = await supabase.auth.signInWithPassword({ email, password })
@@ -84,6 +93,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { error } = await supabase.auth.updateUser({ data: { avatar_url: dataUrl } })
       if (error) throw error
     },
+    resetPassword: async (email) => {
+      if (!supabase) throw new Error('Supabase no configurado')
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: typeof window !== 'undefined' ? window.location.origin : undefined,
+      })
+      if (error) throw error
+    },
+    endRecovery: () => setRecovery(false),
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
