@@ -7,6 +7,7 @@ import { resolve } from '../engine/resolve'
 import { TEAM_BY_ID } from '../data/teams'
 import { rankDeltas, tieGroups } from '../lib/rankDelta'
 import { LiveBanner } from './LiveBanner'
+import { Avatar } from './Avatar'
 import { useTheme, ACCENT } from '../theme'
 
 const MEDALS = ['🥇', '🥈', '🥉']
@@ -300,6 +301,7 @@ export function RankingView() {
               >
                 <div className="flex items-center gap-3">
                   <span className="w-7 text-center text-lg">{medal}</span>
+                  <Avatar src={r.avatar_url} name={r.display_name} size={30} />
                   <span className="flex-1 truncate font-medium" style={{ color: c.text }}>
                     {r.display_name}
                     {mine && <span className="text-[10px] ml-1" style={{ color: ACCENT.blue }}>{t('(vos)', '(you)')}</span>}

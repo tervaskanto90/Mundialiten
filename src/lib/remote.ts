@@ -15,6 +15,16 @@ export interface RankingRow {
   last_pred_home?: number | null // marcador que predijo (local), o null si no predijo
   last_pred_away?: number | null
   last_points?: number // puntos que le dio ese último partido
+  avatar_url?: string | null // foto de perfil (data URL), opcional
+}
+
+// Guarda/actualiza la foto de perfil del usuario en su fila del ranking.
+export async function saveAvatar(userId: string, displayName: string, avatarUrl: string | null): Promise<void> {
+  if (!supabase) return
+  const { error } = await supabase
+    .from('scores')
+    .upsert({ user_id: userId, display_name: displayName, avatar_url: avatarUrl, updated_at: new Date().toISOString() })
+  if (error) throw error
 }
 
 // ─── Imagen compartida del encabezado (una para modo claro, otra para oscuro) ──
@@ -125,7 +135,13 @@ export async function upsertScore(
 
 export async function fetchRanking(): Promise<RankingRow[]> {
   if (!supabase) return []
-  // Intentamos con las columnas del snapshot del último partido.
+  // 1) con avatar + snapshot del último partido.
+  const withAvatar = await supabase
+    .from('scores')
+    .select('user_id, display_name, accuracy, points, last_match_id, last_pred_home, last_pred_away, last_points, avatar_url')
+    .order('points', { ascending: false })
+  if (!withAvatar.error) return (withAvatar.data as RankingRow[]) ?? []
+  // 2) sin avatar (migración de avatar sin correr), con snapshot.
   const full = await supabase
     .from('scores')
     .select('user_id, display_name, accuracy, points, last_match_id, last_pred_home, last_pred_away, last_points')

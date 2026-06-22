@@ -40,6 +40,7 @@ alter table public.scores add column if not exists last_match_id int;
 alter table public.scores add column if not exists last_pred_home int;
 alter table public.scores add column if not exists last_pred_away int;
 alter table public.scores add column if not exists last_points numeric not null default 0;
+alter table public.scores add column if not exists avatar_url text; -- foto de perfil (data URL)
 alter table public.scores enable row level security;
 create policy "scores_select_all" on public.scores
   for select to authenticated using (true);

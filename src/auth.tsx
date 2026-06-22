@@ -7,11 +7,13 @@ interface AuthState {
   loading: boolean
   user: User | null
   displayName: string
+  avatarUrl: string | null
   isAdmin: boolean
   signIn: (email: string, password: string) => Promise<void>
   signUp: (email: string, password: string, displayName: string) => Promise<void>
   signOut: () => Promise<void>
   changePassword: (newPassword: string) => Promise<void>
+  updateAvatar: (dataUrl: string | null) => Promise<void>
 }
 
 const AuthContext = createContext<AuthState | null>(null)
@@ -52,6 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loading,
     user: session?.user ?? null,
     displayName: nameFromUser(session?.user ?? null),
+    avatarUrl: (session?.user?.user_metadata?.avatar_url as string) || null,
     isAdmin: isAdminUser(session?.user ?? null),
     signIn: async (email, password) => {
       if (!supabase) throw new Error('Supabase no configurado')
@@ -74,6 +77,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     changePassword: async (newPassword) => {
       if (!supabase) throw new Error('Supabase no configurado')
       const { error } = await supabase.auth.updateUser({ password: newPassword })
+      if (error) throw error
+    },
+    updateAvatar: async (dataUrl) => {
+      if (!supabase) throw new Error('Supabase no configurado')
+      const { error } = await supabase.auth.updateUser({ data: { avatar_url: dataUrl } })
       if (error) throw error
     },
   }

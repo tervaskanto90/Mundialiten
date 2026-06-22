@@ -6,6 +6,7 @@ import { useOdds, oddsForMatch, type OddsState } from '../lib/odds'
 import { useStore, getScenario, ACCOUNT_PRED_ID } from '../store/useStore'
 import { computeRankingScore, computePredStats } from '../engine/accuracy'
 import { fetchRanking, type RankingRow } from '../lib/remote'
+import { Avatar } from './Avatar'
 import type { ActiveContext } from '../hooks'
 import { useAuth } from '../auth'
 import { useT } from '../i18n'
@@ -19,7 +20,7 @@ interface NewsItem {
   image?: string
 }
 
-type View = 'calendario' | 'grupos' | 'llaves' | 'precision' | 'ranking' | 'noticias' | 'home'
+type View = 'home' | 'fixture' | 'precision' | 'ranking'
 
 // Alto fijo de cada renglón en Pronóstico y Tu predicción, para que matcheen
 // fila a fila entre los dos cuadrantes.
@@ -39,6 +40,15 @@ export function HomeView({
 }) {
   const { t } = useT()
   const odds = useOdds()
+  const scenarios = useStore((s) => s.scenarios)
+  const setActive = useStore((s) => s.setActive)
+  const addScenario = useStore((s) => s.addScenario)
+
+  const goToPrediction = () => {
+    const pred = getScenario(scenarios, ACCOUNT_PRED_ID) ?? scenarios.find((s) => s.type === 'prediction')
+    setActive(pred ? pred.id : addScenario('prediction', t('Mi predicción', 'My prediction')))
+    onJump('fixture')
+  }
 
   const realResults = ctx.real.results
   const now = Date.now()
@@ -63,7 +73,7 @@ export function HomeView({
           <OddsList ctx={ctx} ids={dashIds.ids} liveSet={dashIds.liveSet} odds={odds} onEditMatch={onEditMatch} />
         </Panel>
 
-        <Panel title={t('🔮 Tu predicción', '🔮 Your prediction')} subtitle={t('Mismos partidos', 'Same matches')}>
+        <Panel title={t('🔮 Tu predicción', '🔮 Your prediction')} subtitle={t('Mismos partidos', 'Same matches')} action={{ label: t('Ir a tu predicción →', 'Go to your prediction →'), onClick: goToPrediction }}>
           <PredictionList ctx={ctx} ids={dashIds.ids} liveSet={dashIds.liveSet} odds={odds} onEditMatch={onEditMatch} />
         </Panel>
 
@@ -280,7 +290,8 @@ function RankingSummary() {
         const mine = r.user_id === user.id
         return (
           <div key={r.user_id} className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs" style={mine ? { background: dark ? 'rgba(47,109,240,.18)' : 'rgba(47,109,240,.1)', border: '1px solid ' + ACCENT.blue } : { background: dark ? 'rgba(255,255,255,.03)' : 'rgba(0,0,0,.025)', border: '1px solid ' + c.line }}>
-            <span className="w-6 text-center font-bold" style={{ color: c.muted }}>{pos}</span>
+            <span className="w-5 text-center font-bold" style={{ color: c.muted }}>{pos}</span>
+            <Avatar src={r.avatar_url} name={r.display_name} size={24} />
             <span className="flex-1 truncate font-medium" style={{ color: c.text }}>
               {r.display_name}{mine && <span className="text-[9px] ml-1" style={{ color: ACCENT.blue }}>{t('(vos)', '(you)')}</span>}
             </span>
@@ -336,7 +347,7 @@ function NewsCard({ item, index }: { item: NewsItem; index: number }) {
     <a href={item.link} target="_blank" rel="noopener noreferrer" className="shrink-0 rounded-xl overflow-hidden flex flex-col" style={{ width: 200, background: c.cardGrad, border: '1px solid ' + c.line, boxShadow: c.shadow }}>
       <div style={{ width: '100%', height: 130, background: grad, position: 'relative' }}>
         {item.image && imgOk ? (
-          <img src={item.image} alt="" loading="lazy" onError={() => setImgOk(false)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          <img src={`/api/img?u=${encodeURIComponent(item.image)}`} alt="" loading="lazy" onError={() => setImgOk(false)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         ) : (
           <div className="flex items-center justify-center h-full text-2xl">📰</div>
         )}

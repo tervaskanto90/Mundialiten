@@ -1,15 +1,14 @@
 import { useState } from 'react'
 import { ScenarioToggle } from './components/ScenarioToggle'
 import { AccountModal } from './components/AccountModal'
-import { CalendarView } from './components/CalendarView'
-import { GroupsView } from './components/GroupsView'
-import { BracketView } from './components/BracketView'
+import { FixtureView } from './components/FixtureView'
 import { AccuracyView } from './components/AccuracyView'
 import { ResultEditor } from './components/ResultEditor'
 import { LiveSyncBar } from './components/LiveSyncBar'
 import { RankingView } from './components/RankingView'
-import { NewsView } from './components/NewsView'
 import { HomeView } from './components/HomeView'
+import { HeaderScore } from './components/HeaderScore'
+import { Avatar } from './components/Avatar'
 import { useActiveContext, useLiveSyncPolling } from './hooks'
 import { useAuth } from './auth'
 import { useSupabaseSync } from './lib/sync'
@@ -22,16 +21,13 @@ import { useTheme } from './theme'
 import { useIsDesktop } from './hooks/useIsDesktop'
 import { useBranding } from './lib/branding'
 
-type View = 'home' | 'calendario' | 'grupos' | 'llaves' | 'precision' | 'ranking' | 'noticias'
+type View = 'home' | 'fixture' | 'precision' | 'ranking'
 
 const NAV: { id: View; es: string; en: string; icon: string }[] = [
   { id: 'home', es: 'Inicio', en: 'Home', icon: '🏠' },
-  { id: 'calendario', es: 'Calendario', en: 'Calendar', icon: '🗓️' },
-  { id: 'grupos', es: 'Grupos', en: 'Groups', icon: '🗂️' },
-  { id: 'llaves', es: 'Llaves', en: 'Bracket', icon: '🗝️' },
+  { id: 'fixture', es: 'Fixture y Tablas', en: 'Fixtures & Tables', icon: '🗓️' },
   { id: 'precision', es: 'Precisión', en: 'Accuracy', icon: '🎯' },
   { id: 'ranking', es: 'Ranking', en: 'Ranking', icon: '🏆' },
-  { id: 'noticias', es: 'Noticias', en: 'News', icon: '📰' },
 ]
 
 const LANGS: { id: Lang; flag: string }[] = [
@@ -47,7 +43,7 @@ export default function App() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [accountOpen, setAccountOpen] = useState(false)
   const ctx = useActiveContext()
-  const { enabled, user, displayName, signOut } = useAuth()
+  const { enabled, user, displayName, avatarUrl, signOut } = useAuth()
   const { t, lang, setLang } = useT()
   const { c, dark, toggle } = useTheme()
   const isDesktop = useIsDesktop()
@@ -232,24 +228,7 @@ export default function App() {
           {enabled && user ? t('Mi cuenta', 'My account') : t('Modo local', 'Local mode')}
         </div>
       </div>
-      <div
-        style={{
-          width: '38px',
-          height: '38px',
-          borderRadius: '11px',
-          flex: 'none',
-          background: 'linear-gradient(135deg,#FF7A1A,#EC1C7D)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '17px',
-          fontFamily: "'Archivo'",
-          fontWeight: 900,
-          color: '#fff',
-        }}
-      >
-        {initial}
-      </div>
+      <Avatar src={avatarUrl} name={name} size={38} radius={11} />
     </button>
   )
 
@@ -282,7 +261,9 @@ export default function App() {
                 {t('Mundial 2026', 'World Cup 2026')} · 🇺🇸 🇨🇦 🇲🇽
               </div>
             </div>
-            <div style={{ flex: 1 }} />
+            <div style={{ flex: 1, display: 'flex', justifyContent: 'center', minWidth: 0, padding: '0 12px' }}>
+              <HeaderScore ctx={ctx} />
+            </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: px(8), flex: 'none' }}>
               <HowToPlay />
               {langToggle}
@@ -380,22 +361,21 @@ export default function App() {
           )
           const mainContent = (
             <main style={mainStyle} key={view}>
-              <div
-                style={
-                  isDesktop
-                    ? { position: 'sticky', top: 0, zIndex: 20, background: c.canvas, paddingTop: '2px', paddingBottom: '12px', marginBottom: '6px' }
-                    : { marginBottom: '12px' }
-                }
-              >
-                <ScenarioToggle />
-              </div>
+              {view === 'fixture' && (
+                <div
+                  style={
+                    isDesktop
+                      ? { position: 'sticky', top: 0, zIndex: 20, background: c.canvas, paddingTop: '2px', paddingBottom: '12px', marginBottom: '6px' }
+                      : { marginBottom: '12px' }
+                  }
+                >
+                  <ScenarioToggle />
+                </div>
+              )}
               {view === 'home' && <HomeView ctx={ctx} onJump={setView} onEditMatch={setEditingMatch} />}
-              {view === 'calendario' && <CalendarView ctx={ctx} onEdit={setEditingMatch} />}
-              {view === 'grupos' && <GroupsView ctx={ctx} />}
-              {view === 'llaves' && <BracketView ctx={ctx} onEdit={setEditingMatch} />}
+              {view === 'fixture' && <FixtureView ctx={ctx} onEdit={setEditingMatch} />}
               {view === 'precision' && <AccuracyView />}
               {view === 'ranking' && <RankingView />}
-              {view === 'noticias' && <NewsView />}
 
               <div style={{ textAlign: 'center', marginTop: '22px', fontSize: '10px', color: c.faint, fontWeight: 600, letterSpacing: '.3px' }}>
                 Mundialiten · {t('hecho por', 'made by')} Octavio Boggiano ·{' '}
