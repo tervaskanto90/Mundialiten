@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Modal } from './Modal'
 import { Emblem } from './Emblem'
 import { useAuth } from '../auth'
@@ -62,60 +62,94 @@ export function HeaderBrand({
   const { dark, c } = useTheme()
   const { t } = useT()
   const [editing, setEditing] = useState(false)
+  // Ancho del logo más ancho entre claro y oscuro: reservamos ese ancho fijo en
+  // ambos temas para que el título NO se mueva al cambiar de modo.
+  const [maxAspect, setMaxAspect] = useState(1)
+
+  useEffect(() => {
+    let alive = true
+    const urls = [branding.light, branding.dark].filter(Boolean) as string[]
+    if (urls.length === 0) {
+      setMaxAspect(1)
+      return
+    }
+    Promise.all(
+      urls.map(
+        (u) =>
+          new Promise<number>((res) => {
+            const i = new Image()
+            i.onload = () => res(i.width / i.height || 1)
+            i.onerror = () => res(1)
+            i.src = u
+          }),
+      ),
+    ).then((rs) => {
+      if (alive) setMaxAspect(Math.max(1, ...rs))
+    })
+    return () => {
+      alive = false
+    }
+  }, [branding.light, branding.dark])
 
   const current = dark ? branding.dark : branding.light
+  const boxW = Math.round(size * maxAspect)
 
   return (
     <>
-      <div onClick={onClick} style={{ position: 'relative', height: size, flex: 'none', display: 'inline-flex', alignItems: 'center', cursor: onClick ? 'pointer' : undefined }}>
-        {current ? (
-          <img
-            src={current}
-            alt="Mundialiten"
-            style={{
-              height: '100%',
-              width: 'auto',
-              maxWidth: size * 3.8,
-              objectFit: 'contain',
-              objectPosition: 'left center',
-              display: 'block',
-              filter: 'drop-shadow(0 4px 10px rgba(124,63,242,.35))',
-            }}
-          />
-        ) : (
-          <div style={{ width: size, height: size, filter: 'drop-shadow(0 4px 10px rgba(124,63,242,.4))' }}>
-            <Emblem size={size} />
-          </div>
-        )}
-        {isAdmin && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              setEditing(true)
-            }}
-            title={t('Cambiar imagen del encabezado', 'Change header image')}
-            style={{
-              position: 'absolute',
-              bottom: -7,
-              right: -9,
-              width: 22,
-              height: 22,
-              borderRadius: 8,
-              cursor: 'pointer',
-              fontSize: 11,
-              lineHeight: 1,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              border: '1px solid ' + c.line,
-              background: dark ? '#2E2312' : '#FFFDF6',
-              color: c.text,
-              boxShadow: '0 2px 7px rgba(0,0,0,.35)',
-            }}
-          >
-            ✏️
-          </button>
-        )}
+      <div
+        onClick={onClick}
+        style={{ width: boxW, height: size, flex: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-start', cursor: onClick ? 'pointer' : undefined }}
+      >
+        <div style={{ position: 'relative', height: size, display: 'inline-flex', alignItems: 'center' }}>
+          {current ? (
+            <img
+              src={current}
+              alt="Mundialiten"
+              style={{
+                height: '100%',
+                width: 'auto',
+                maxWidth: boxW,
+                objectFit: 'contain',
+                objectPosition: 'left center',
+                display: 'block',
+                filter: 'drop-shadow(0 4px 10px rgba(124,63,242,.35))',
+              }}
+            />
+          ) : (
+            <div style={{ width: size, height: size, filter: 'drop-shadow(0 4px 10px rgba(124,63,242,.4))' }}>
+              <Emblem size={size} />
+            </div>
+          )}
+          {isAdmin && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                setEditing(true)
+              }}
+              title={t('Cambiar imagen del encabezado', 'Change header image')}
+              style={{
+                position: 'absolute',
+                bottom: -7,
+                right: -9,
+                width: 22,
+                height: 22,
+                borderRadius: 8,
+                cursor: 'pointer',
+                fontSize: 11,
+                lineHeight: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '1px solid ' + c.line,
+                background: dark ? '#2E2312' : '#FFFDF6',
+                color: c.text,
+                boxShadow: '0 2px 7px rgba(0,0,0,.35)',
+              }}
+            >
+              ✏️
+            </button>
+          )}
+        </div>
       </div>
 
       {editing && (

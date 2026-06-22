@@ -323,10 +323,28 @@ function NewsStrip() {
   const { ref, handlers, nudge } = useDragScroll<HTMLDivElement>()
 
   useEffect(() => {
-    fetch(`/api/news?lang=${lang}`)
-      .then((r) => r.json())
-      .then((d) => setItems((d.items ?? []).slice(0, 10)))
-      .catch(() => setItems([]))
+    let alive = true
+    let last = 0
+    const load = () => {
+      last = Date.now()
+      fetch(`/api/news?lang=${lang}`)
+        .then((r) => r.json())
+        .then((d) => alive && setItems((d.items ?? []).slice(0, 10)))
+        .catch(() => alive && setItems([]))
+    }
+    load()
+    // Refresco automático cada 3 h (≥ 5 veces/día) + al volver a la pestaña
+    // (como mucho una vez cada 30 min) para tener siempre noticias frescas.
+    const id = setInterval(load, 3 * 60 * 60 * 1000)
+    const onVis = () => {
+      if (document.visibilityState === 'visible' && Date.now() - last > 30 * 60 * 1000) load()
+    }
+    document.addEventListener('visibilitychange', onVis)
+    return () => {
+      alive = false
+      clearInterval(id)
+      document.removeEventListener('visibilitychange', onVis)
+    }
   }, [lang])
 
   const arrowBtn: React.CSSProperties = {
@@ -381,9 +399,14 @@ const NEWS_GRADS = [
 ]
 
 function NewsCard({ item, index }: { item: NewsItem; index: number }) {
-  const { c, dark } = useTheme()
+  const { c } = useTheme()
+  const { lang } = useT()
   const [imgOk, setImgOk] = useState(true)
   const grad = NEWS_GRADS[index % NEWS_GRADS.length]
+  const dt = item.ts ? new Date(item.ts) : null
+  const when = dt
+    ? dt.toLocaleString(lang === 'en' ? 'en-GB' : 'es-AR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+    : ''
   return (
     <a href={item.link} target="_blank" rel="noopener noreferrer" className="shrink-0 rounded-xl overflow-hidden flex flex-col" style={{ width: 200, background: c.cardGrad, border: '1px solid ' + c.line, boxShadow: c.shadow }}>
       <div style={{ width: '100%', height: 130, background: grad, position: 'relative' }}>
@@ -395,7 +418,10 @@ function NewsCard({ item, index }: { item: NewsItem; index: number }) {
       </div>
       <div className="px-2.5 py-2 flex-1 flex flex-col">
         <div className="text-[12px] font-semibold leading-snug" style={{ color: c.text, fontFamily: "'Archivo'", display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{item.title}</div>
-        <div className="text-[10px] mt-auto pt-1.5" style={{ color: dark ? c.faint : c.muted }}>{item.source}</div>
+        <div className="mt-auto pt-1.5">
+          <div className="text-[10px] font-semibold truncate" style={{ color: c.muted }}>{item.source}</div>
+          {when && <div className="text-[9px]" style={{ color: c.faint }}>🕒 {when}</div>}
+        </div>
       </div>
     </a>
   )

@@ -43,9 +43,17 @@ export function HeaderScore({ ctx }: { ctx: ActiveContext }) {
           return (
             <span
               key={id}
-              className="flex items-center gap-1 text-sm font-bold tabular-nums px-2.5 py-1 rounded-lg shrink-0"
-              style={{ background: dark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.05)', border: '1px solid ' + c.line, color: c.text }}
+              className="flex items-center gap-1.5 text-sm font-bold tabular-nums px-2.5 py-1 rounded-lg shrink-0"
+              style={{
+                background: dark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.05)',
+                border: '1px solid ' + (isLive ? ACCENT.red + '66' : c.line),
+                color: c.text,
+                animation: isLive ? 'mdlLiveCard 1.8s ease-in-out infinite' : undefined,
+              }}
             >
+              {isLive && (
+                <span style={{ width: 7, height: 7, borderRadius: '50%', background: ACCENT.red, display: 'inline-block', flex: 'none', animation: 'mdlLiveDot 1s ease-in-out infinite' }} />
+              )}
               <span>{home.flag} {home.short}</span>
               <span style={{ color: isLive ? ACCENT.red : c.text }}>{r?.homeScore ?? 0}-{r?.awayScore ?? 0}</span>
               <span>{away.short} {away.flag}</span>
