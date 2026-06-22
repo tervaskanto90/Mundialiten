@@ -160,8 +160,58 @@ async function enrichImages(items, deadline, max = 12) {
   await Promise.all(Array.from({ length: 6 }, worker))
 }
 
+// ── Proveedor con imágenes confiables: GNews (gnews.io) ──────────────────────
+// Si está la env var GNEWS_API_KEY, usamos GNews, que trae el campo `image`
+// directo (URL de imagen real de la nota). Si no, caemos al RSS de Google News.
+async function fetchGnews(lang) {
+  const key = process.env.GNEWS_API_KEY
+  const conf =
+    lang === 'en'
+      ? { lang: 'en', country: 'us', q: '"World Cup 2026" OR "FIFA World Cup 2026"' }
+      : { lang: 'es', country: 'ar', q: '"Mundial 2026" OR "Copa del Mundo 2026"' }
+  const from = new Date(Date.now() - 48 * 3600 * 1000).toISOString()
+  const url =
+    `https://gnews.io/api/v4/search?q=${encodeURIComponent(conf.q)}` +
+    `&lang=${conf.lang}&country=${conf.country}&max=10&from=${encodeURIComponent(from)}` +
+    `&sortby=publishedAt&apikey=${encodeURIComponent(key)}`
+  const ctrl = new AbortController()
+  const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS)
+  try {
+    const r = await fetch(url, { signal: ctrl.signal })
+    const data = await r.json().catch(() => ({}))
+    if (!r.ok) throw new Error(data?.errors?.[0] || `GNews respondió ${r.status}`)
+    return (data.articles || []).map((a) => ({
+      title: a.title || '',
+      source: a.source?.name || '',
+      link: a.url || '',
+      pubDate: a.publishedAt || '',
+      ts: a.publishedAt ? Date.parse(a.publishedAt) : null,
+      image: a.image || '',
+    })).filter((it) => it.title && it.link)
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
 export default async function handler(req, res) {
   const lang = String(req.query.lang || 'es').toLowerCase() === 'en' ? 'en' : 'es'
+
+  // 1) GNews si hay key (imágenes confiables).
+  if (process.env.GNEWS_API_KEY) {
+    try {
+      const items = await fetchGnews(lang)
+      if (items.length) {
+        res.setHeader('Cache-Control', 's-maxage=600, stale-while-revalidate=1800')
+        res.status(200).json({ items, generatedAt: new Date().toISOString(), lang, provider: 'gnews' })
+        return
+      }
+    } catch (e) {
+      // si GNews falla (cuota, etc.) seguimos con Google News.
+      console.warn('[news] gnews', e && e.message ? e.message : e)
+    }
+  }
+
+  // 2) Fallback: RSS de Google News (sin key) + og:image best-effort.
   const preset = PRESETS[lang]
   const q = req.query.q ? String(req.query.q) : preset.q
   const url =

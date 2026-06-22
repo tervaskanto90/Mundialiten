@@ -177,7 +177,7 @@ function OddsList({ ctx, ids, liveSet, odds, onEditMatch }: { ctx: ActiveContext
 
 function PredictionList({ ctx, ids, liveSet, odds, onEditMatch }: { ctx: ActiveContext; ids: number[]; liveSet: Set<number>; odds: OddsState; onEditMatch: (id: number) => void }) {
   const { t } = useT()
-  const { c, dark } = useTheme()
+  const { c } = useTheme()
   const scenarios = useStore((s) => s.scenarios)
   const pred = getScenario(scenarios, ACCOUNT_PRED_ID) ?? scenarios.find((s) => s.type === 'prediction')
   if (ids.length === 0) return <Empty>{t('No hay partidos próximos.', 'No upcoming matches.')}</Empty>
@@ -188,11 +188,19 @@ function PredictionList({ ctx, ids, liveSet, odds, onEditMatch }: { ctx: ActiveC
         const r = pred?.results[id]
         const rm = ctx.resolution.matches[id]
         const o = oddsForMatch(odds, rm?.home, rm?.away)
-        // ¿Va contra las casas? El resultado que predijo vs el favorito de la casa.
-        let against = false
+        // Probabilidad que la casa le da a TU resultado (alineado = alto = "mejor";
+        // contra las casas = bajo = "más arriesgado").
+        let chip: { pct: number; color: string; label: string } | null = null
         if (r?.played && o) {
-          const fav: Outcome = o.home >= o.draw && o.home >= o.away ? 'home' : o.away >= o.draw ? 'away' : 'draw'
-          against = outcomeOf(r.homeScore, r.awayScore) !== fav
+          const oc = outcomeOf(r.homeScore, r.awayScore)
+          const p = oc === 'home' ? o.home : oc === 'away' ? o.away : o.draw
+          const pct = Math.round(p * 100)
+          chip =
+            pct >= 50
+              ? { pct, color: ACCENT.green, label: t('con las casas', 'with odds') }
+              : pct >= 30
+                ? { pct, color: ACCENT.gold, label: t('parejo', 'even') }
+                : { pct, color: ACCENT.red, label: t('contra las casas', 'against odds') }
         }
         return (
           <button key={id} onClick={() => onEditMatch(id)} className="w-full text-left flex items-center gap-2 border-b last:border-b-0 text-xs" style={{ height: ROW_H, borderColor: c.line }}>
@@ -200,9 +208,13 @@ function PredictionList({ ctx, ids, liveSet, odds, onEditMatch }: { ctx: ActiveC
               {liveSet.has(id) && <span style={{ color: ACCENT.red }}>●</span>}
               <TeamsLabel ctx={ctx} id={id} />
             </span>
-            {against && (
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0" style={{ color: ACCENT.gold, background: dark ? 'rgba(255,194,26,.16)' : 'rgba(255,194,26,.18)' }} title={t('Vas contra el favorito de las casas', 'Going against the bookmaker favorite')}>
-                ⚡ {t('vs casas', 'vs odds')}
+            {chip && (
+              <span
+                className="text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0 flex items-center gap-1"
+                style={{ color: chip.color, background: chip.color + '22' }}
+                title={t(`Las casas le dan ${chip.pct}% a tu resultado`, `Bookmakers give your pick ${chip.pct}%`)}
+              >
+                🏦 {chip.pct}% · {chip.label}
               </span>
             )}
             {r?.played ? (
