@@ -8,9 +8,11 @@ import {
   type RankingScore,
   type PredStats,
   type HitKind,
+  type HitEntry,
 } from '../engine/accuracy'
-import { STAGE_I18N } from '../data/schedule'
-import { formatDateShort } from '../utils/labels'
+import { resolve, type Resolution } from '../engine/resolve'
+import { STAGE_I18N, MATCH_BY_ID } from '../data/schedule'
+import { formatDateShort, sideLabelFor } from '../utils/labels'
 import type { Scenario } from '../types'
 import { useT } from '../i18n'
 import { useTheme, ACCENT } from '../theme'
@@ -35,6 +37,9 @@ export function AccuracyView() {
   const real = getScenario(scenarios, REAL_SCENARIO_ID) ?? scenarios[0]
   const { t } = useT()
   const { c } = useTheme()
+
+  // Resolución de los resultados reales: para mostrar banderas en el desglose.
+  const realRes = useMemo(() => resolve(real.results), [real.results])
 
   const cards = useMemo(() => {
     return scenarios
@@ -75,7 +80,7 @@ export function AccuracyView() {
           .slice()
           .sort((a, b) => b.score.points - a.score.points)
           .map(({ scenario, score, report, stats }) => (
-            <AccuracyCard key={scenario.id} scenario={scenario} score={score} report={report} stats={stats} />
+            <AccuracyCard key={scenario.id} scenario={scenario} score={score} report={report} stats={stats} realRes={realRes} />
           ))}
       </div>
     </div>
@@ -87,11 +92,13 @@ function AccuracyCard({
   score,
   report,
   stats,
+  realRes,
 }: {
   scenario: Scenario
   score: RankingScore
   report: AccuracyReport
   stats: PredStats
+  realRes: Resolution
 }) {
   const { t, lang } = useT()
   const { c, dark } = useTheme()
@@ -178,6 +185,13 @@ function AccuracyCard({
               ))}
             </div>
 
+            {/* Desglose por cuadrantes: todos los partidos por categoría */}
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              <HitColumn title={`🎯 ${t('Exactos', 'Exact')}`} color={HIT_COLOR.exact} entries={stats.lists.exact} realRes={realRes} />
+              <HitColumn title={`✅ ${t('Resultado', 'Result')}`} color={HIT_COLOR.result} entries={stats.lists.result} realRes={realRes} />
+              <HitColumn title={`❌ ${t('Errados', 'Missed')}`} color={HIT_COLOR.miss} entries={stats.lists.miss} realRes={realRes} />
+            </div>
+
             {/* Extras informativos (sólo cuando ya hay datos, ej. eliminatorias) */}
             {extras.length > 0 && (
               <div className="mt-4 pt-3 border-t space-y-2" style={{ borderColor: c.line }}>
@@ -193,6 +207,37 @@ function AccuracyCard({
           </>
         )}
       </div>
+    </div>
+  )
+}
+
+function HitColumn({ title, color, entries, realRes }: { title: string; color: string; entries: HitEntry[]; realRes: Resolution }) {
+  const { t } = useT()
+  const { c, dark } = useTheme()
+  return (
+    <div className="rounded-lg p-2" style={{ background: dark ? 'rgba(0,0,0,.18)' : 'rgba(0,0,0,.025)', border: '1px solid ' + c.line }}>
+      <div className="text-[11px] font-bold mb-1.5 flex items-center justify-between" style={{ color: c.text }}>
+        <span>{title}</span>
+        <span style={{ color }}>{entries.length}</span>
+      </div>
+      {entries.length === 0 ? (
+        <div className="text-[10px] py-1" style={{ color: c.faint }}>{t('—', '—')}</div>
+      ) : (
+        <div className="space-y-1">
+          {entries.map((e) => {
+            const m = MATCH_BY_ID[e.matchId]
+            const home = sideLabelFor(e.matchId, m.home, 'home', realRes)
+            const away = sideLabelFor(e.matchId, m.away, 'away', realRes)
+            return (
+              <div key={e.matchId} className="flex items-center gap-1 text-[10.5px]" style={{ color: c.muted }} title={`${home.name} ${e.rh}-${e.ra} ${away.name}`}>
+                <span className="truncate flex-1">{home.flag}{away.flag} <span className="tabular-nums">{e.rh}-{e.ra}</span></span>
+                <span className="tabular-nums shrink-0" style={{ color: c.faint }}>({e.ph}-{e.pa})</span>
+                {e.points > 0 && <span className="tabular-nums shrink-0 font-semibold" style={{ color }}>+{e.points}</span>}
+              </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }

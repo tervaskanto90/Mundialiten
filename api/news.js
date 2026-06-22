@@ -63,7 +63,17 @@ function parseItems(xml) {
     const pubDate = pick(block, 'pubDate')
     const link = pick(block, 'link')
     if (!title || !link) continue
-    items.push({ title, source: from, link, pubDate, ts: pubDate ? Date.parse(pubDate) : null })
+    // Imagen: Google News a veces la mete en la descripción (<img src>) o en
+    // media:content. Best-effort; si no hay, el front pone un placeholder.
+    let image = ''
+    const mc = /<media:(?:content|thumbnail)[^>]*url="([^"]+)"/i.exec(block)
+    if (mc) image = mc[1]
+    if (!image) {
+      const desc = pick(block, 'description')
+      const img = /<img[^>]*src="([^"]+)"/i.exec(desc)
+      if (img) image = img[1]
+    }
+    items.push({ title, source: from, link, pubDate, ts: pubDate ? Date.parse(pubDate) : null, image })
   }
   // Más nuevas primero y sólo de las últimas 48 h (defensivo, por si el feed
   // trae alguna más vieja).

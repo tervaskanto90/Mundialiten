@@ -243,11 +243,22 @@ export interface StageBreakdown {
   exact: number
 }
 
+export interface HitEntry {
+  matchId: number
+  ph: number // predicción local
+  pa: number // predicción visitante
+  rh: number // real local
+  ra: number // real visitante
+  points: number // puntos que sumó ese partido
+}
+
 export interface PredStats {
   byStage: StageBreakdown[]
   // Forma reciente: últimos partidos jugados que predijiste, del más nuevo al
   // más viejo, con qué tan bien le pegaste.
   form: { matchId: number; kind: HitKind }[]
+  // Listado completo por categoría (desglose de la pestaña Precisión).
+  lists: { exact: HitEntry[]; result: HitEntry[]; miss: HitEntry[] }
   exact: number
   result: number
   miss: number
@@ -270,12 +281,15 @@ export function computePredStats(
 ): PredStats {
   const stageMap = new Map<StageId, StageBreakdown>()
   const timeline: { matchId: number; kind: HitKind; ts: number }[] = []
+  const lists: PredStats['lists'] = { exact: [], result: [], miss: [] }
   let exact = 0
   let result = 0
   let miss = 0
 
   for (const m of MATCHES) {
-    const kind = classifyHit(predResults[m.id], realResults[m.id])
+    const pred = predResults[m.id]
+    const real = realResults[m.id]
+    const kind = classifyHit(pred, real)
     if (!kind) continue
     const pts = STAGE_POINTS[m.stage]
     let row = stageMap.get(m.stage)
@@ -285,15 +299,20 @@ export function computePredStats(
     }
     row.played++
     row.max += pts.exact
+    const gained = kind === 'exact' ? pts.exact : kind === 'result' ? pts.tendency : 0
+    const entry = { matchId: m.id, ph: pred!.homeScore, pa: pred!.awayScore, rh: real!.homeScore, ra: real!.awayScore, points: gained }
     if (kind === 'exact') {
       row.points += pts.exact
       row.exact++
       exact++
+      lists.exact.push(entry)
     } else if (kind === 'result') {
       row.points += pts.tendency
       result++
+      lists.result.push(entry)
     } else {
       miss++
+      lists.miss.push(entry)
     }
     timeline.push({ matchId: m.id, kind, ts: Date.parse(m.kickoff) })
   }
@@ -305,5 +324,5 @@ export function computePredStats(
     .slice(0, formLimit)
     .map(({ matchId, kind }) => ({ matchId, kind }))
 
-  return { byStage, form, exact, result, miss }
+  return { byStage, form, lists, exact, result, miss }
 }

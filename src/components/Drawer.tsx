@@ -2,17 +2,20 @@ import { type ReactNode, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useTheme } from '../theme'
 
-/** Panel lateral (menú hamburguesa) para mobile. Entra desde la izquierda. */
+/** Panel lateral (menú hamburguesa). Entra desde la izquierda. `footer` queda
+ *  fijo abajo de todo (lo usamos para el sincronizador en vivo). */
 export function Drawer({
   open,
   onClose,
   title,
   children,
+  footer,
 }: {
   open: boolean
   onClose: () => void
   title?: string
   children: ReactNode
+  footer?: ReactNode
 }) {
   const { c, dark } = useTheme()
   useEffect(() => {
@@ -47,11 +50,11 @@ export function Drawer({
           display: 'flex',
           flexDirection: 'column',
           animation: 'mdlDrawerIn .26s cubic-bezier(.4,1.15,.5,1) both',
-          overflowY: 'auto',
+          overflow: 'hidden',
         }}
       >
         <div style={{ height: 4, flex: 'none', background: 'linear-gradient(90deg,#2F6DF0,#7B3FF2,#EC1C7D,#FF7A1A,#FFC21A,#1FA85C)' }} />
-        <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid ' + c.line }}>
+        <div className="flex items-center justify-between px-4 py-3" style={{ flex: 'none', borderBottom: '1px solid ' + c.line }}>
           <span className="font-bold" style={{ fontFamily: "'Archivo'", color: c.text }}>
             {title}
           </span>
@@ -63,7 +66,12 @@ export function Drawer({
             ✕
           </button>
         </div>
-        <div className="px-4 py-4">{children}</div>
+        <div className="px-4 py-4" style={{ flex: '1 1 auto', overflowY: 'auto' }}>{children}</div>
+        {footer && (
+          <div className="px-4 py-3" style={{ flex: 'none', borderTop: '1px solid ' + c.line }}>
+            {footer}
+          </div>
+        )}
       </div>
     </div>,
     document.body,

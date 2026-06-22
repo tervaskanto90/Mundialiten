@@ -8,6 +8,7 @@ import { ResultEditor } from './components/ResultEditor'
 import { LiveSyncBar } from './components/LiveSyncBar'
 import { RankingView } from './components/RankingView'
 import { NewsView } from './components/NewsView'
+import { HomeView } from './components/HomeView'
 import { useActiveContext, useLiveSyncPolling } from './hooks'
 import { useAuth } from './auth'
 import { useSupabaseSync } from './lib/sync'
@@ -20,15 +21,16 @@ import { useTheme } from './theme'
 import { useIsDesktop } from './hooks/useIsDesktop'
 import { useBranding } from './lib/branding'
 
-type View = 'calendario' | 'grupos' | 'llaves' | 'precision' | 'ranking' | 'noticias'
+type View = 'home' | 'calendario' | 'grupos' | 'llaves' | 'precision' | 'ranking' | 'noticias'
 
-const NAV: { id: View; es: string; en: string }[] = [
-  { id: 'calendario', es: 'Calendario', en: 'Calendar' },
-  { id: 'grupos', es: 'Grupos', en: 'Groups' },
-  { id: 'llaves', es: 'Llaves', en: 'Bracket' },
-  { id: 'precision', es: 'Precisión', en: 'Accuracy' },
-  { id: 'ranking', es: 'Ranking', en: 'Ranking' },
-  { id: 'noticias', es: 'Noticias', en: 'News' },
+const NAV: { id: View; es: string; en: string; icon: string }[] = [
+  { id: 'home', es: 'Inicio', en: 'Home', icon: '🏠' },
+  { id: 'calendario', es: 'Calendario', en: 'Calendar', icon: '🗓️' },
+  { id: 'grupos', es: 'Grupos', en: 'Groups', icon: '🗂️' },
+  { id: 'llaves', es: 'Llaves', en: 'Bracket', icon: '🗝️' },
+  { id: 'precision', es: 'Precisión', en: 'Accuracy', icon: '🎯' },
+  { id: 'ranking', es: 'Ranking', en: 'Ranking', icon: '🏆' },
+  { id: 'noticias', es: 'Noticias', en: 'News', icon: '📰' },
 ]
 
 const LANGS: { id: Lang; flag: string }[] = [
@@ -39,7 +41,7 @@ const LANGS: { id: Lang; flag: string }[] = [
 const SCN_ICON: Record<string, string> = { real: '🔴', prediction: '🔮', whatif: '🧪' }
 
 export default function App() {
-  const [view, setView] = useState<View>('calendario')
+  const [view, setView] = useState<View>('home')
   const [editingMatch, setEditingMatch] = useState<number | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const ctx = useActiveContext()
@@ -72,9 +74,9 @@ export default function App() {
   }
   const canvasStyle: React.CSSProperties = {
     position: 'relative',
-    flex: isDesktop ? '0 1 1120px' : '0 1 472px',
+    flex: isDesktop ? '0 1 1600px' : '0 1 472px',
     width: '100%',
-    maxWidth: isDesktop ? 1120 : 472,
+    maxWidth: isDesktop ? 1600 : 472,
     minWidth: 0,
     height: isDesktop ? '100vh' : undefined,
     display: isDesktop ? 'flex' : 'block',
@@ -95,17 +97,8 @@ export default function App() {
     border: '1px solid ' + c.line,
     boxShadow: c.shadow,
   }
-  const bodyWrapStyle: React.CSSProperties = isDesktop
-    ? { flex: '1 1 0', minHeight: 0, display: 'flex', gap: '28px', alignItems: 'stretch', marginTop: '18px', overflow: 'hidden' }
-    : { display: 'block' }
-  const sidebarStyle: React.CSSProperties = isDesktop
-    ? { width: '252px', flex: 'none', display: 'flex', flexDirection: 'column', overflowY: 'auto', paddingRight: '4px' }
-    : {}
-  const sectionNavStyle: React.CSSProperties = isDesktop
-    ? { display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '16px', paddingTop: '14px', borderTop: '1px solid ' + c.line }
-    : { display: 'flex', gap: '7px', marginTop: '8px', overflowX: 'auto', padding: '1px 1px 2px' }
   const mainStyle: React.CSSProperties = isDesktop
-    ? { flex: '1 1 0', minWidth: 0, overflowY: 'auto', paddingRight: '8px', paddingBottom: '32px', animation: 'mdlUp .34s ease both' }
+    ? { flex: '1 1 0', minWidth: 0, marginTop: '16px', overflowY: 'auto', paddingRight: '8px', paddingBottom: '32px', animation: 'mdlUp .34s ease both' }
     : { flex: 'none', minWidth: 0, marginTop: '12px', animation: 'mdlUp .34s ease both' }
   // En mobile, barra superior fija (sticky) MÍNIMA: hamburguesa + sección actual
   // + escenario. Todo lo demás (escenarios y secciones) vive en el drawer.
@@ -125,36 +118,141 @@ export default function App() {
     boxShadow: dark ? '0 7px 16px -10px rgba(0,0,0,.85)' : '0 7px 16px -12px rgba(120,90,30,.5)',
   }
 
-  const sectionBtn = (active: boolean): React.CSSProperties =>
-    isDesktop
-      ? {
-          width: '100%',
-          textAlign: 'left',
-          fontFamily: "'Archivo'",
-          fontSize: '13.5px',
-          fontWeight: 700,
-          cursor: 'pointer',
-          padding: '11px 15px',
-          borderRadius: '12px',
-          transition: 'all .18s ease',
-          color: active ? (dark ? '#0C0904' : '#FBF6EA') : c.text,
-          background: active ? c.text : dark ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.035)',
-          border: '1px solid ' + (active ? c.text : c.line),
-        }
-      : {
+  // Botón de navegación dentro del menú hamburguesa (desktop y mobile).
+  const drawerNavBtn = (active: boolean): React.CSSProperties => ({
+    width: '100%',
+    textAlign: 'left',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    fontFamily: "'Archivo'",
+    fontSize: '14.5px',
+    fontWeight: 700,
+    cursor: 'pointer',
+    padding: '12px 15px',
+    borderRadius: '12px',
+    transition: 'all .18s ease',
+    color: active ? (dark ? '#0C0904' : '#FBF6EA') : c.text,
+    background: active ? c.text : dark ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.035)',
+    border: '1px solid ' + (active ? c.text : c.line),
+  })
+
+  // Cluster de controles de la derecha del header (idioma + tema).
+  const langToggle = (
+    <div
+      style={{
+        display: 'flex',
+        background: dark ? 'rgba(0,0,0,.3)' : 'rgba(0,0,0,.04)',
+        border: '1px solid ' + c.line,
+        borderRadius: '11px',
+        padding: '3px',
+        gap: '2px',
+        flex: 'none',
+      }}
+    >
+      {LANGS.map((l) => {
+        const active = lang === l.id
+        return (
+          <button
+            key={l.id}
+            onClick={() => setLang(l.id)}
+            style={{
+              fontSize: px(13),
+              lineHeight: 1,
+              padding: `${px(5)} ${px(8)}`,
+              borderRadius: '8px',
+              cursor: 'pointer',
+              border: 'none',
+              transition: 'all .18s ease',
+              background: active ? (dark ? 'rgba(255,194,26,.22)' : 'rgba(47,109,240,.16)') : 'transparent',
+              filter: active ? 'none' : 'grayscale(.7) opacity(.5)',
+              transform: active ? 'scale(1.05)' : 'scale(1)',
+            }}
+          >
+            {l.flag}
+          </button>
+        )
+      })}
+    </div>
+  )
+  const themeBtn = (
+    <button
+      onClick={toggle}
+      title={dark ? t('Modo claro', 'Light mode') : t('Modo oscuro', 'Dark mode')}
+      style={{
+        width: px(34),
+        height: px(34),
+        flex: 'none',
+        borderRadius: '11px',
+        cursor: 'pointer',
+        fontSize: px(15),
+        border: '1px solid ' + c.line,
+        background: dark ? 'rgba(255,194,26,.14)' : 'rgba(47,109,240,.1)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      {dark ? '☀️' : '🌙'}
+    </button>
+  )
+  const hamburgerBtn = (
+    <button
+      onClick={() => setMenuOpen(true)}
+      aria-label={t('Menú', 'Menu')}
+      style={{
+        width: px(40),
+        height: px(40),
+        flex: 'none',
+        borderRadius: '12px',
+        cursor: 'pointer',
+        fontSize: px(18),
+        border: '1px solid ' + c.line,
+        background: dark ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.04)',
+        color: c.text,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      ☰
+    </button>
+  )
+  const userChip = (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '9px', flex: 'none', paddingLeft: '4px' }}>
+      <div style={{ minWidth: 0, textAlign: 'right' }}>
+        <div style={{ fontSize: '13px', fontWeight: 800, color: c.text, lineHeight: 1 }}>{name}</div>
+        {enabled && user ? (
+          <button
+            onClick={() => signOut()}
+            style={{ fontSize: '10.5px', color: c.muted, fontWeight: 700, marginTop: '2px', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+          >
+            {t('Salir', 'Sign out')}
+          </button>
+        ) : (
+          <div style={{ fontSize: '10.5px', color: c.muted, fontWeight: 700, marginTop: '2px' }}>{t('Modo local', 'Local mode')}</div>
+        )}
+      </div>
+      <div
+        style={{
+          width: '38px',
+          height: '38px',
+          borderRadius: '11px',
           flex: 'none',
-          whiteSpace: 'nowrap',
+          background: 'linear-gradient(135deg,#FF7A1A,#EC1C7D)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '17px',
           fontFamily: "'Archivo'",
-          fontSize: '12.5px',
-          fontWeight: 700,
-          cursor: 'pointer',
-          padding: '8px 15px',
-          borderRadius: '99px',
-          transition: 'all .2s ease',
-          color: active ? (dark ? '#0C0904' : '#FBF6EA') : c.text,
-          background: active ? c.text : dark ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.04)',
-          border: '1px solid ' + (active ? c.text : c.line),
-        }
+          fontWeight: 900,
+          color: '#fff',
+        }}
+      >
+        {initial}
+      </div>
+    </div>
+  )
 
   return (
     <div style={pageStyle}>
@@ -173,138 +271,125 @@ export default function App() {
         />
 
         {/* HEADER */}
-        <header style={headerStyle}>
-          <HeaderBrand branding={branding} onChange={setBranding} size={Math.round(58 * hs)} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontFamily: "'Archivo'", fontWeight: 900, fontSize: px(18), lineHeight: 1, letterSpacing: '-.3px', color: c.text }}>
-              MUNDIALITEN
-            </div>
-            <div style={{ fontSize: px(11), color: c.muted, fontWeight: 700, letterSpacing: '.3px', marginTop: '3px' }}>
-              {t('Mundial 2026', 'World Cup 2026')} · 🇺🇸 🇨🇦 🇲🇽
-            </div>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: px(7), flex: 'none' }}>
-            <div
-              style={{
-                display: 'flex',
-                background: dark ? 'rgba(0,0,0,.3)' : 'rgba(0,0,0,.04)',
-                border: '1px solid ' + c.line,
-                borderRadius: '11px',
-                padding: '3px',
-                gap: '2px',
-              }}
-            >
-              {LANGS.map((l) => {
-                const active = lang === l.id
-                return (
-                  <button
-                    key={l.id}
-                    onClick={() => setLang(l.id)}
-                    style={{
-                      fontSize: px(13),
-                      lineHeight: 1,
-                      padding: `${px(5)} ${px(8)}`,
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      border: 'none',
-                      transition: 'all .18s ease',
-                      background: active ? (dark ? 'rgba(255,194,26,.22)' : 'rgba(47,109,240,.16)') : 'transparent',
-                      filter: active ? 'none' : 'grayscale(.7) opacity(.5)',
-                      transform: active ? 'scale(1.05)' : 'scale(1)',
-                    }}
-                  >
-                    {l.flag}
-                  </button>
-                )
-              })}
-            </div>
-            <button
-              onClick={toggle}
-              title={dark ? t('Modo claro', 'Light mode') : t('Modo oscuro', 'Dark mode')}
-              style={{
-                width: px(34),
-                height: px(34),
-                flex: 'none',
-                borderRadius: '11px',
-                cursor: 'pointer',
-                fontSize: px(15),
-                border: '1px solid ' + c.line,
-                background: dark ? 'rgba(255,194,26,.14)' : 'rgba(47,109,240,.1)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              {dark ? '☀️' : '🌙'}
-            </button>
-          </div>
-        </header>
-
-        {/* USER CARD */}
-        <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginTop: '12px', padding: '0 2px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '9px', minWidth: 0 }}>
-            <div
-              style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '10px',
-                flex: 'none',
-                background: 'linear-gradient(135deg,#FF7A1A,#EC1C7D)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '15px',
-                fontFamily: "'Archivo'",
-                fontWeight: 900,
-                color: '#fff',
-              }}
-            >
-              {initial}
-            </div>
+        {isDesktop ? (
+          <header style={headerStyle}>
+            {hamburgerBtn}
+            <HeaderBrand branding={branding} onChange={setBranding} size={Math.round(52 * hs)} />
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: '13px', fontWeight: 800, color: c.text, lineHeight: 1 }}>{name}</div>
-              {enabled && user ? (
-                <button
-                  onClick={() => signOut()}
-                  style={{ fontSize: '10.5px', color: c.muted, fontWeight: 700, marginTop: '2px', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
-                >
-                  {t('Salir', 'Sign out')}
-                </button>
-              ) : (
-                <div style={{ fontSize: '10.5px', color: c.muted, fontWeight: 700, marginTop: '2px' }}>
-                  {t('Modo local', 'Local mode')}
-                </div>
-              )}
+              <div style={{ fontFamily: "'Archivo'", fontWeight: 900, fontSize: px(18), lineHeight: 1, letterSpacing: '-.3px', color: c.text }}>
+                MUNDIALITEN
+              </div>
+              <div style={{ fontSize: px(11), color: c.muted, fontWeight: 700, letterSpacing: '.3px', marginTop: '3px' }}>
+                {t('Mundial 2026', 'World Cup 2026')} · 🇺🇸 🇨🇦 🇲🇽
+              </div>
             </div>
-          </div>
-          <HowToPlay />
-        </div>
+            <div style={{ flex: 1 }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: px(8), flex: 'none' }}>
+              <HowToPlay />
+              {langToggle}
+              {themeBtn}
+              {userChip}
+            </div>
+          </header>
+        ) : (
+          <>
+            <header style={headerStyle}>
+              <HeaderBrand branding={branding} onChange={setBranding} size={Math.round(58 * hs)} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontFamily: "'Archivo'", fontWeight: 900, fontSize: px(18), lineHeight: 1, letterSpacing: '-.3px', color: c.text }}>
+                  MUNDIALITEN
+                </div>
+                <div style={{ fontSize: px(11), color: c.muted, fontWeight: 700, letterSpacing: '.3px', marginTop: '3px' }}>
+                  {t('Mundial 2026', 'World Cup 2026')} · 🇺🇸 🇨🇦 🇲🇽
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: px(7), flex: 'none' }}>
+                {langToggle}
+                {themeBtn}
+              </div>
+            </header>
+            {/* USER CARD (mobile) */}
+            <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginTop: '12px', padding: '0 2px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '9px', minWidth: 0 }}>
+                <div
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '10px',
+                    flex: 'none',
+                    background: 'linear-gradient(135deg,#FF7A1A,#EC1C7D)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '15px',
+                    fontFamily: "'Archivo'",
+                    fontWeight: 900,
+                    color: '#fff',
+                  }}
+                >
+                  {initial}
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: '13px', fontWeight: 800, color: c.text, lineHeight: 1 }}>{name}</div>
+                  {enabled && user ? (
+                    <button
+                      onClick={() => signOut()}
+                      style={{ fontSize: '10.5px', color: c.muted, fontWeight: 700, marginTop: '2px', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+                    >
+                      {t('Salir', 'Sign out')}
+                    </button>
+                  ) : (
+                    <div style={{ fontSize: '10.5px', color: c.muted, fontWeight: 700, marginTop: '2px' }}>
+                      {t('Modo local', 'Local mode')}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <HowToPlay />
+            </div>
+          </>
+        )}
 
         {/* BODY */}
         {(() => {
-          const sectionNav = (
-            <div style={sectionNavStyle} className="mdl-noscroll">
-              {NAV.map((n) => (
-                <button key={n.id} onClick={() => setView(n.id)} style={sectionBtn(view === n.id)}>
-                  {lang === 'en' ? n.en : n.es}
-                </button>
-              ))}
-            </div>
+          const drawerLabel: React.CSSProperties = {
+            fontSize: '10.5px',
+            fontWeight: 800,
+            letterSpacing: '.6px',
+            textTransform: 'uppercase',
+            color: c.faint,
+            margin: '2px 2px 8px',
+          }
+          const drawer = (
+            <Drawer open={menuOpen} onClose={() => setMenuOpen(false)} title={t('Menú', 'Menu')} footer={<LiveSyncBar />}>
+              <div style={drawerLabel}>{t('Sección', 'Section')}</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '18px' }}>
+                {NAV.map((n) => (
+                  <button
+                    key={n.id}
+                    onClick={() => {
+                      setView(n.id)
+                      setMenuOpen(false)
+                    }}
+                    style={drawerNavBtn(view === n.id)}
+                  >
+                    <span>{n.icon}</span> {lang === 'en' ? n.en : n.es}
+                  </button>
+                ))}
+              </div>
+              <div style={drawerLabel}>{t('Vista de datos', 'Data view')}</div>
+              <TabBar onSelect={() => setMenuOpen(false)} />
+            </Drawer>
           )
           const mainContent = (
             <main style={mainStyle} key={view}>
+              {view === 'home' && <HomeView ctx={ctx} onJump={setView} onEditMatch={setEditingMatch} />}
               {view === 'calendario' && <CalendarView ctx={ctx} onEdit={setEditingMatch} />}
               {view === 'grupos' && <GroupsView ctx={ctx} />}
               {view === 'llaves' && <BracketView ctx={ctx} onEdit={setEditingMatch} />}
               {view === 'precision' && <AccuracyView />}
               {view === 'ranking' && <RankingView />}
               {view === 'noticias' && <NewsView />}
-
-              {ctx.scenario.type === 'real' && (
-                <div style={{ marginTop: '14px' }}>
-                  <LiveSyncBar />
-                </div>
-              )}
 
               <div style={{ textAlign: 'center', marginTop: '22px', fontSize: '10px', color: c.faint, fontWeight: 600, letterSpacing: '.3px' }}>
                 Mundialiten · {t('hecho por', 'made by')} Octavio Boggiano ·{' '}
@@ -317,13 +402,10 @@ export default function App() {
           )
           if (isDesktop) {
             return (
-              <div style={bodyWrapStyle}>
-                <div style={sidebarStyle} className="mdl-noscroll">
-                  <TabBar />
-                  {sectionNav}
-                </div>
+              <>
                 {mainContent}
-              </div>
+                {drawer}
+              </>
             )
           }
           // ── MOBILE ──
@@ -331,50 +413,10 @@ export default function App() {
           const curLabel = curNav ? (lang === 'en' ? curNav.en : curNav.es) : ''
           const scnType = ctx.scenario.type
           const scnName = scnType === 'real' ? t('Resultados', 'Results') : ctx.scenario.name
-          const drawerLabel: React.CSSProperties = {
-            fontSize: '10.5px',
-            fontWeight: 800,
-            letterSpacing: '.6px',
-            textTransform: 'uppercase',
-            color: c.faint,
-            margin: '2px 2px 8px',
-          }
-          const drawerNavBtn = (active: boolean): React.CSSProperties => ({
-            width: '100%',
-            textAlign: 'left',
-            fontFamily: "'Archivo'",
-            fontSize: '14.5px',
-            fontWeight: 700,
-            cursor: 'pointer',
-            padding: '12px 15px',
-            borderRadius: '12px',
-            color: active ? (dark ? '#0C0904' : '#FBF6EA') : c.text,
-            background: active ? c.text : dark ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.035)',
-            border: '1px solid ' + (active ? c.text : c.line),
-          })
           return (
             <>
               <div style={mobileBarStyle}>
-                <button
-                  onClick={() => setMenuOpen(true)}
-                  aria-label={t('Menú', 'Menu')}
-                  style={{
-                    width: '38px',
-                    height: '38px',
-                    flex: 'none',
-                    borderRadius: '11px',
-                    cursor: 'pointer',
-                    fontSize: '17px',
-                    border: '1px solid ' + c.line,
-                    background: dark ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.04)',
-                    color: c.text,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  ☰
-                </button>
+                {hamburgerBtn}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontFamily: "'Archivo'", fontWeight: 800, fontSize: '16px', color: c.text, lineHeight: 1, letterSpacing: '-.2px' }}>
                     {curLabel}
@@ -402,27 +444,7 @@ export default function App() {
                   <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{scnName}</span>
                 </button>
               </div>
-
-              <Drawer open={menuOpen} onClose={() => setMenuOpen(false)} title={t('Menú', 'Menu')}>
-                <div style={drawerLabel}>{t('Sección', 'Section')}</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '18px' }}>
-                  {NAV.map((n) => (
-                    <button
-                      key={n.id}
-                      onClick={() => {
-                        setView(n.id)
-                        setMenuOpen(false)
-                      }}
-                      style={drawerNavBtn(view === n.id)}
-                    >
-                      {lang === 'en' ? n.en : n.es}
-                    </button>
-                  ))}
-                </div>
-                <div style={drawerLabel}>{t('Vista de datos', 'Data view')}</div>
-                <TabBar onSelect={() => setMenuOpen(false)} />
-              </Drawer>
-
+              {drawer}
               {mainContent}
             </>
           )
