@@ -9,6 +9,7 @@ import { fetchRanking, type RankingRow } from '../lib/remote'
 import { Avatar } from './Avatar'
 import type { ActiveContext } from '../hooks'
 import { useAuth } from '../auth'
+import { useDragScroll } from '../hooks/useDragScroll'
 import { useT } from '../i18n'
 import { useTheme, ACCENT } from '../theme'
 
@@ -319,6 +320,7 @@ function NewsStrip() {
   const { t, lang } = useT()
   const { c, dark } = useTheme()
   const [items, setItems] = useState<NewsItem[] | null>(null)
+  const { ref, handlers, nudge } = useDragScroll<HTMLDivElement>()
 
   useEffect(() => {
     fetch(`/api/news?lang=${lang}`)
@@ -327,10 +329,37 @@ function NewsStrip() {
       .catch(() => setItems([]))
   }, [lang])
 
+  const arrowBtn: React.CSSProperties = {
+    width: 26,
+    height: 26,
+    borderRadius: 8,
+    cursor: 'pointer',
+    fontSize: 11,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    border: '1px solid ' + c.line,
+    background: c.cardGrad,
+    color: c.text,
+  }
+
   return (
     <div>
-      <div className="text-[10px] uppercase tracking-wide mb-1.5 font-bold" style={{ color: c.muted }}>📰 {t('Noticias del Mundial', 'World Cup news')}</div>
-      <div className="flex gap-3 overflow-x-auto pb-2 mdl-noscroll">
+      <div className="flex items-center justify-between mb-1.5">
+        <div className="text-[10px] uppercase tracking-wide font-bold" style={{ color: c.muted }}>
+          📰 {t('Noticias del Mundial', 'World Cup news')} <span style={{ color: c.faint }}>· {t('arrastrá →', 'drag →')}</span>
+        </div>
+        <div className="flex gap-1.5">
+          <button onClick={() => nudge(-1)} style={arrowBtn} aria-label={t('Anterior', 'Previous')}>◀</button>
+          <button onClick={() => nudge(1)} style={arrowBtn} aria-label={t('Siguiente', 'Next')}>▶</button>
+        </div>
+      </div>
+      <div
+        ref={ref}
+        {...handlers}
+        className="flex gap-3 overflow-x-auto pb-2 mdl-noscroll"
+        style={{ cursor: 'grab', touchAction: 'pan-x pan-y' }}
+      >
         {items == null
           ? Array.from({ length: 6 }).map((_, i) => (
               <div key={i} className="rounded-xl animate-pulse shrink-0" style={{ width: 200, height: 210, background: dark ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.05)' }} />
