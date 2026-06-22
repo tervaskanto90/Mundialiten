@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Modal } from './Modal'
 import { Emblem } from './Emblem'
 import { useAuth } from '../auth'
@@ -62,55 +62,28 @@ export function HeaderBrand({
   const { dark, c } = useTheme()
   const { t } = useT()
   const [editing, setEditing] = useState(false)
-  // Ancho del logo más ancho entre claro y oscuro: reservamos ese ancho fijo en
-  // ambos temas para que el título NO se mueva al cambiar de modo.
-  const [maxAspect, setMaxAspect] = useState(1)
-
-  useEffect(() => {
-    let alive = true
-    const urls = [branding.light, branding.dark].filter(Boolean) as string[]
-    if (urls.length === 0) {
-      setMaxAspect(1)
-      return
-    }
-    Promise.all(
-      urls.map(
-        (u) =>
-          new Promise<number>((res) => {
-            const i = new Image()
-            i.onload = () => res(i.width / i.height || 1)
-            i.onerror = () => res(1)
-            i.src = u
-          }),
-      ),
-    ).then((rs) => {
-      if (alive) setMaxAspect(Math.max(1, ...rs))
-    })
-    return () => {
-      alive = false
-    }
-  }, [branding.light, branding.dark])
 
   const current = dark ? branding.dark : branding.light
-  const boxW = Math.round(size * maxAspect)
 
+  // Caja CUADRADA fija (size × size), idéntica en claro y oscuro: la imagen se
+  // mete con object-fit contain, así el logo y el título quedan SIEMPRE en el
+  // mismo lugar, sin importar el ancho de cada imagen.
   return (
     <>
       <div
         onClick={onClick}
-        style={{ width: boxW, height: size, flex: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-start', cursor: onClick ? 'pointer' : undefined }}
+        style={{ width: size, height: size, flex: 'none', position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: onClick ? 'pointer' : undefined }}
       >
-        <div style={{ position: 'relative', height: size, display: 'inline-flex', alignItems: 'center' }}>
+        <div style={{ position: 'relative', width: size, height: size, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {current ? (
             <img
               src={current}
               alt="Mundialiten"
               style={{
+                width: '100%',
                 height: '100%',
-                width: 'auto',
-                maxWidth: boxW,
                 objectFit: 'contain',
-                objectPosition: 'left center',
+                objectPosition: 'center',
                 display: 'block',
                 filter: 'drop-shadow(0 4px 10px rgba(124,63,242,.35))',
               }}
