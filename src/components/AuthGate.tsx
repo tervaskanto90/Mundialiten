@@ -231,17 +231,16 @@ function AuthScreen() {
     )
   }
 
-  // Desktop: grilla 1fr | login(360) | 1fr. El login queda centrado y el panel
-  // de la derecha alineado al tope del login (align-items: start). El panel se
-  // sube 44px para que su recuadro arranque justo a la altura del login (los
-  // toggles quedan encima).
+  // Desktop: login centrado (igual que antes, 360px). El wrapper interno tiene
+  // la altura del login, así el panel de la derecha (absoluto) se ancla a su
+  // tope: top:-44 sube el panel para que su recuadro arranque justo a la altura
+  // del login (los toggles, 44px, quedan encima).
   return (
     <Shell>
       <div style={{ minHeight: 'calc(100vh - 32px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px 1fr', alignItems: 'start', width: '100%' }}>
-          <div />
-          <div style={{ justifySelf: 'center' }}>{centerColumn}</div>
-          <div style={{ justifySelf: 'end', paddingRight: '2%', marginTop: -44 }}>{rightSide}</div>
+        <div style={{ position: 'relative', width: '100%', display: 'flex', justifyContent: 'center' }}>
+          {centerColumn}
+          <div style={{ position: 'absolute', top: -44, right: '3%' }}>{rightSide}</div>
         </div>
       </div>
     </Shell>
