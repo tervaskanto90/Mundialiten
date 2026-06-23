@@ -320,10 +320,9 @@ function diversify(items, total = 12) {
     const s = (it.source || '?').toLowerCase()
     count[s] = (count[s] || 0) + 1
   }
-  // 1) FRESCURA garantizada: las 2 notas más nuevas entran sí o sí (con o sin
-  //    imagen), para que la "última noticia" sea siempre lo más reciente.
+  // 1) FRESCURA garantizada: la nota más nueva entra sí o sí (con o sin imagen),
+  //    para que la "última noticia" sea siempre lo más reciente.
   add(all[0])
-  add(all[1])
   // 2) Resto: priorizando notas CON imagen y repartiendo por fuente (1 por medio,
   //    luego 2, 3…) para diversidad.
   const withImg = all.filter((i) => i.image)
