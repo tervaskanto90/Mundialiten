@@ -129,21 +129,76 @@ async function getHtml(url, ms) {
   }
 }
 
+// Decodifica el link de Google News (news.google.com/.../articles/<ID>) a la URL
+// real del medio, usando el endpoint batchexecute (firma + timestamp de la
+// página). Best-effort: si Google cambia el formato, devuelve '' y caemos al
+// método de redirect. Así las notas FRESCAS del RSS consiguen su og:image.
+async function decodeGNewsUrl(link) {
+  try {
+    const idm = /\/(?:rss\/)?articles\/([^?/]+)/.exec(link)
+    if (!idm) return ''
+    const id = idm[1]
+    const pg = await getHtml(`https://news.google.com/rss/articles/${id}`, 2600)
+    if (!pg.html) return ''
+    const sig = /data-n-a-sg="([^"]+)"/.exec(pg.html)
+    const ts = /data-n-a-ts="([^"]+)"/.exec(pg.html)
+    if (!sig || !ts) return ''
+    const inner = JSON.stringify([
+      'garturlreq',
+      [['X', 'X', ['X', 'X'], null, null, 1, 1, 'US:en', null, 1, null, null, null, null, null, 0, 1], 'X', 'X', 1, [1, 1, 1], 1, 1, null, 0, 0, null, 0],
+      id,
+      Number(ts[1]),
+      sig[1],
+    ])
+    const freq = JSON.stringify([[['Fbv4je', inner, null, 'generic']]])
+    const ctrl = new AbortController()
+    const t = setTimeout(() => ctrl.abort(), 3000)
+    try {
+      const r = await fetch('https://news.google.com/_/DotsSplashUi/data/batchexecute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8', 'User-Agent': 'Mozilla/5.0 (compatible; MundialitenBot/1.0)' },
+        body: 'f.req=' + encodeURIComponent(freq),
+        signal: ctrl.signal,
+      })
+      const txt = (await r.text()).replace(/\\u003d/g, '=').replace(/\\\//g, '/')
+      const mm = /(https?:\/\/(?!news\.google|www\.google|gstatic\.com|googleusercontent)[^"\\\s]+)/.exec(txt)
+      return mm ? mm[1] : ''
+    } finally {
+      clearTimeout(t)
+    }
+  } catch {
+    return ''
+  }
+}
+
 async function fetchOgImage(link) {
-  const first = await getHtml(link, 3800)
+  // 1) Para links de Google News, decodificar a la URL real del medio.
+  if (/news\.google\.com\/(?:rss\/)?articles\//.test(link)) {
+    const real = await decodeGNewsUrl(link)
+    if (real) {
+      const r = await getHtml(real, 3500)
+      const og = parseOg(r.html)
+      if (og) return og
+    }
+  }
+  // 2) Fallback: seguir el redirect y, si hace falta, saltar al medio.
+  const first = await getHtml(link, 3500)
   if (first.html) {
     const og = parseOg(first.html)
     if (og && first.finalUrl && !/news\.google\.com/.test(first.finalUrl)) return og
-    // Seguía en Google (interstitial): saltamos al medio real.
     const pub = extractPublisherUrl(first.html)
     if (pub) {
-      const second = await getHtml(pub, 3800)
+      const second = await getHtml(pub, 3500)
       const og2 = parseOg(second.html)
       if (og2) return og2
     }
     if (og) return og
   }
   return ''
+}
+
+function raceTimeout(promise, ms) {
+  return Promise.race([promise, new Promise((res) => setTimeout(() => res(''), ms))])
 }
 
 async function enrichImages(items, deadline, max = 12) {
@@ -153,11 +208,12 @@ async function enrichImages(items, deadline, max = 12) {
     while (i < targets.length && Date.now() < deadline) {
       const it = targets[i++]
       if (it.image) continue
-      const img = await fetchOgImage(it.link)
+      // Tope duro por nota para no agotar el tiempo de la función serverless.
+      const img = await raceTimeout(fetchOgImage(it.link), 4200)
       if (img) it.image = img
     }
   }
-  await Promise.all(Array.from({ length: 6 }, worker))
+  await Promise.all(Array.from({ length: 8 }, worker))
 }
 
 // ── Proveedor con imágenes confiables: GNews (gnews.io) ──────────────────────
@@ -249,35 +305,37 @@ function dedupeMerge(lists) {
 // medio. Si faltan, completa con más imágenes y, recién al final, sin imagen.
 function diversify(items, total = 12) {
   const byTs = (a, b) => (b.ts || 0) - (a.ts || 0)
-  const withImg = items.filter((i) => i.image).sort(byTs)
-  const noImg = items.filter((i) => !i.image).sort(byTs)
+  const all = [...items].sort(byTs)
   const out = []
   const seen = new Set()
   const count = {}
-  // Llena respetando un tope por fuente; el tope arranca en 1 (máxima
-  // diversidad) y sólo sube si no se llega al total.
-  const fill = (list, cap) => {
-    for (const it of list) {
-      if (out.length >= total) break
-      if (seen.has(it)) continue
-      const s = (it.source || '?').toLowerCase()
-      if ((count[s] || 0) >= cap) continue
-      count[s] = (count[s] || 0) + 1
-      seen.add(it)
-      out.push(it)
-    }
+  const add = (it) => {
+    if (!it || seen.has(it) || out.length >= total) return
+    seen.add(it)
+    out.push(it)
+    const s = (it.source || '?').toLowerCase()
+    count[s] = (count[s] || 0) + 1
   }
-  // Primero con imagen, repartiendo: 1 por medio, después 2, 3… y al final sin tope.
+  // 1) FRESCURA garantizada: las 2 notas más nuevas entran sí o sí (con o sin
+  //    imagen), para que la "última noticia" sea siempre lo más reciente.
+  add(all[0])
+  add(all[1])
+  // 2) Resto: priorizando notas CON imagen y repartiendo por fuente (1 por medio,
+  //    luego 2, 3…) para diversidad.
+  const withImg = all.filter((i) => i.image)
   for (const cap of [1, 2, 3, 99]) {
     if (out.length >= total) break
-    fill(withImg, cap)
+    for (const it of withImg) {
+      if (out.length >= total) break
+      const s = (it.source || '?').toLowerCase()
+      if ((count[s] || 0) >= cap) continue
+      add(it)
+    }
   }
-  // Si todavía faltan, completa con notas sin imagen.
-  for (const cap of [2, 99]) {
-    if (out.length >= total) break
-    fill(noImg, cap)
-  }
-  return out
+  // 3) Completar con lo que quede.
+  for (const it of all) add(it)
+  // Orden final por fecha: la más nueva primero.
+  return out.sort(byTs)
 }
 
 export default async function handler(req, res) {
@@ -291,9 +349,10 @@ export default async function handler(req, res) {
   try {
     const lists = await Promise.all(tasks)
     let merged = dedupeMerge(lists)
-    // Completamos imágenes faltantes (items del RSS) con la og:image del artículo.
+    // Completamos imágenes faltantes (items del RSS) con la og:image del artículo,
+    // empezando por las MÁS FRESCAS (para que la última noticia tenga foto).
     merged.sort((a, b) => (b.ts || 0) - (a.ts || 0))
-    await enrichImages(merged, Date.now() + 6000, 14)
+    await enrichImages(merged, Date.now() + 4500, 14)
     const items = diversify(merged, 12)
     // Cache corto en el edge para mantener la frescura (el front además refresca).
     res.setHeader('Cache-Control', 's-maxage=180, stale-while-revalidate=900')
