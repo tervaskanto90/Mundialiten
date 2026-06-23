@@ -193,53 +193,97 @@ async function fetchGnews(lang) {
   }
 }
 
-export default async function handler(req, res) {
-  const lang = String(req.query.lang || 'es').toLowerCase() === 'en' ? 'en' : 'es'
-
-  // 1) GNews si hay key (imágenes confiables).
-  if (process.env.GNEWS_API_KEY) {
-    try {
-      const items = await fetchGnews(lang)
-      if (items.length) {
-        res.setHeader('Cache-Control', 's-maxage=600, stale-while-revalidate=1800')
-        res.status(200).json({ items, generatedAt: new Date().toISOString(), lang, provider: 'gnews' })
-        return
-      }
-    } catch (e) {
-      // si GNews falla (cuota, etc.) seguimos con Google News.
-      console.warn('[news] gnews', e && e.message ? e.message : e)
-    }
-  }
-
-  // 2) Fallback: RSS de Google News (sin key) + og:image best-effort.
+// RSS de Google News (sin key): muy fresco y con muchas fuentes.
+async function fetchGoogleRss(lang) {
   const preset = PRESETS[lang]
-  const q = req.query.q ? String(req.query.q) : preset.q
   const url =
-    `https://news.google.com/rss/search?q=${encodeURIComponent(q)}` +
+    `https://news.google.com/rss/search?q=${encodeURIComponent(preset.q)}` +
     `&hl=${preset.hl}&gl=${preset.gl}&ceid=${encodeURIComponent(preset.ceid)}`
-
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS)
   try {
-    const r = await fetch(url, {
-      headers: { 'User-Agent': 'Mundialiten/1.0 (+vercel)' },
-      signal: ctrl.signal,
-    })
-    if (!r.ok) {
-      res.status(502).json({ error: `Google News respondió ${r.status}`, items: [] })
-      return
+    const r = await fetch(url, { headers: { 'User-Agent': 'Mundialiten/1.0 (+vercel)' }, signal: ctrl.signal })
+    if (!r.ok) return []
+    return parseItems(await r.text())
+  } catch {
+    return []
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+function normTitle(s) {
+  return String(s || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+}
+
+// Junta varias listas y deduplica por título; conserva la imagen si alguna la
+// trae y se queda con la versión más nueva.
+function dedupeMerge(lists) {
+  const byKey = new Map()
+  for (const list of lists) {
+    for (const it of list) {
+      if (!it.title || !it.link) continue
+      const key = normTitle(it.title).slice(0, 60)
+      const prev = byKey.get(key)
+      if (!prev) {
+        byKey.set(key, { ...it })
+        continue
+      }
+      // El más nuevo manda, pero nos quedamos con la imagen que exista.
+      const newer = (it.ts || 0) >= (prev.ts || 0) ? it : prev
+      byKey.set(key, { ...newer, image: newer.image || it.image || prev.image })
     }
-    const xml = await r.text()
-    const items = parseItems(xml)
-    // Enriquecemos con la og:image del artículo (con presupuesto de tiempo para
-    // no agotar el límite de la función serverless).
-    await enrichImages(items, Date.now() + 7000)
-    // Cache 10 min en el edge: las noticias no cambian a cada segundo.
-    res.setHeader('Cache-Control', 's-maxage=600, stale-while-revalidate=1800')
+  }
+  return [...byKey.values()]
+}
+
+// Ordena por fecha (más nuevas primero) y limita la cantidad por fuente para que
+// no sea todo del mismo medio. Si faltan, completa sin el tope.
+function diversify(items, total = 12, perSource = 2) {
+  const sorted = [...items].sort((a, b) => (b.ts || 0) - (a.ts || 0))
+  const count = {}
+  const out = []
+  for (const it of sorted) {
+    const s = (it.source || '?').toLowerCase()
+    if ((count[s] || 0) >= perSource) continue
+    count[s] = (count[s] || 0) + 1
+    out.push(it)
+    if (out.length >= total) break
+  }
+  if (out.length < total) {
+    for (const it of sorted) {
+      if (out.indexOf(it) !== -1) continue
+      out.push(it)
+      if (out.length >= total) break
+    }
+  }
+  return out
+}
+
+export default async function handler(req, res) {
+  const lang = String(req.query.lang || 'es').toLowerCase() === 'en' ? 'en' : 'es'
+
+  // Traemos en paralelo el RSS de Google News (fresco + diverso) y GNews
+  // (imágenes confiables, si hay key). Después fusionamos y ordenamos por fecha.
+  const tasks = [fetchGoogleRss(lang).catch(() => [])]
+  if (process.env.GNEWS_API_KEY) tasks.push(fetchGnews(lang).catch(() => []))
+
+  try {
+    const lists = await Promise.all(tasks)
+    let merged = dedupeMerge(lists)
+    // Completamos imágenes faltantes (items del RSS) con la og:image del artículo.
+    merged.sort((a, b) => (b.ts || 0) - (a.ts || 0))
+    await enrichImages(merged, Date.now() + 6000, 14)
+    const items = diversify(merged, 12, 2)
+    // Cache corto en el edge para mantener la frescura (el front además refresca).
+    res.setHeader('Cache-Control', 's-maxage=180, stale-while-revalidate=900')
     res.status(200).json({ items, generatedAt: new Date().toISOString(), lang })
   } catch (e) {
     res.status(502).json({ error: e && e.message ? e.message : 'No se pudo traer las noticias', items: [] })
-  } finally {
-    clearTimeout(timer)
   }
 }
