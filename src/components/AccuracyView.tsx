@@ -12,6 +12,7 @@ import { resolve, type Resolution } from '../engine/resolve'
 import { STAGE_I18N, MATCH_BY_ID } from '../data/schedule'
 import { formatDateShort, sideLabelFor } from '../utils/labels'
 import type { Scenario } from '../types'
+import { CompetitionStats } from './CompetitionStats'
 import { useT } from '../i18n'
 import { useTheme, ACCENT } from '../theme'
 
@@ -62,6 +63,7 @@ export function AccuracyView() {
             <StatsCard key={scenario.id} scenario={scenario} score={score} stats={stats} realRes={realRes} />
           ))}
       </div>
+      <CompetitionStats realResults={real.results} realRes={realRes} />
     </div>
   )
 }
