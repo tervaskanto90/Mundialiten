@@ -175,12 +175,6 @@ async function decodeGNewsUrl(link) {
   }
 }
 
-// Miniatura del propio Google News (googleusercontent/gstatic) como último recurso.
-function findThumb(html) {
-  const m = /https?:\/\/(?:lh\d\.googleusercontent\.com|[a-z0-9.-]*gstatic\.com)\/[^"'\s)]+/i.exec(html || '')
-  return m ? m[0] : ''
-}
-
 async function fetchOgImage(link) {
   // 1) Para links de Google News, decodificar a la URL real del medio.
   if (/news\.google\.com\/(?:rss\/)?articles\//.test(link)) {
@@ -203,9 +197,6 @@ async function fetchOgImage(link) {
       if (og2) return og2
     }
     if (og) return og
-    // 3) Último recurso: miniatura que el propio Google News embebe.
-    const thumb = findThumb(first.html)
-    if (thumb) return thumb
   }
   return ''
 }
