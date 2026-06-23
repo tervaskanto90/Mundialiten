@@ -4,7 +4,7 @@ import type { StageId } from '../types'
 import { sideLabel, sideLabelFor } from '../utils/labels'
 import type { ActiveContext } from '../hooks'
 import { useT } from '../i18n'
-import { useTheme } from '../theme'
+import { useTheme, ACCENT } from '../theme'
 import { useIsDesktop } from '../hooks/useIsDesktop'
 
 interface Props {
@@ -246,6 +246,7 @@ function BracketCard({
         score={played ? res!.homeScore : undefined}
         pens={res?.homePens}
         winner={!!played && rm?.winner === home.short}
+        loser={!!played && !!rm?.winner && home.resolved && rm.winner !== home.short}
       />
       <div style={{ borderTop: '1px solid ' + c.line }} />
       <BracketSide
@@ -253,6 +254,7 @@ function BracketCard({
         score={played ? res!.awayScore : undefined}
         pens={res?.awayPens}
         winner={!!played && rm?.winner === away.short}
+        loser={!!played && !!rm?.winner && away.resolved && rm.winner !== away.short}
       />
     </button>
   )
@@ -262,30 +264,33 @@ function BracketSide({
   label,
   score,
   winner,
+  loser,
   pens,
 }: {
   label: { flag: string; name: string; resolved: boolean }
   score?: number
   winner?: boolean
+  loser?: boolean
   pens?: number
 }) {
   const { c } = useTheme()
+  const nameColor = winner ? ACCENT.green : loser ? ACCENT.red : label.resolved ? c.muted : c.faint
   return (
     <div
       className="flex items-center gap-1.5 px-2 py-1"
       style={{ background: winner ? 'linear-gradient(90deg, rgba(31,168,92,.18), transparent)' : 'transparent' }}
     >
-      <span className="shrink-0 text-sm">{label.flag}</span>
+      <span className="shrink-0 text-sm" style={{ filter: loser ? 'grayscale(1)' : 'none', opacity: loser ? 0.6 : 1 }}>{label.flag}</span>
       <span
         className="text-xs truncate flex-1"
-        style={{ color: winner ? c.text : label.resolved ? c.muted : c.faint, fontWeight: winner ? 800 : 600 }}
+        style={{ color: nameColor, fontWeight: winner || loser ? 800 : 600, textDecoration: loser ? 'line-through' : 'none' }}
       >
         {label.name}
       </span>
       {pens != null && <span className="text-[9px]" style={{ color: c.faint }}>({pens})</span>}
       <span
         className="text-xs tabular-nums w-4 text-right"
-        style={{ color: winner ? c.text : c.muted, fontFamily: "'Archivo'", fontWeight: winner ? 800 : 600 }}
+        style={{ color: winner ? ACCENT.green : c.muted, fontFamily: "'Archivo'", fontWeight: winner ? 800 : 600 }}
       >
         {score ?? ''}
       </span>

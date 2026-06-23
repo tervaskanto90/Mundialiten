@@ -62,6 +62,7 @@ export function MatchRow({ matchId, ctx, onEdit, showVenue = true, showDate = fa
             name={home.name}
             winner={!!played && rm?.winner === home.short}
             eliminated={!!home.short && ctx.resolution.eliminated.has(home.short)}
+            qualified={!!home.short && ctx.resolution.qualified.has(home.short)}
             c={c}
           />
           <Score played={!!played} h={res?.homeScore} a={res?.awayScore} hp={res?.homePens} ap={res?.awayPens} live={live} c={c} />
@@ -70,6 +71,7 @@ export function MatchRow({ matchId, ctx, onEdit, showVenue = true, showDate = fa
             name={away.name}
             winner={!!played && rm?.winner === away.short}
             eliminated={!!away.short && ctx.resolution.eliminated.has(away.short)}
+            qualified={!!away.short && ctx.resolution.qualified.has(away.short)}
             right
             c={c}
           />
@@ -90,6 +92,7 @@ function Side({
   right,
   winner,
   eliminated,
+  qualified,
   c,
 }: {
   flag: string
@@ -97,8 +100,10 @@ function Side({
   right?: boolean
   winner?: boolean
   eliminated?: boolean
+  qualified?: boolean
   c: { text: string; muted: string; faint: string }
 }) {
+  const nameColor = eliminated ? ACCENT.red : qualified ? ACCENT.green : winner ? c.text : c.muted
   return (
     <div className={`flex items-center gap-1.5 min-w-0 flex-1 ${right ? 'flex-row-reverse text-right' : ''}`}>
       <span className="text-lg shrink-0" style={{ filter: eliminated ? 'grayscale(1)' : 'none', opacity: eliminated ? 0.5 : 1 }}>
@@ -107,8 +112,8 @@ function Side({
       <span
         className="text-sm truncate"
         style={{
-          color: eliminated ? c.faint : winner ? c.text : c.muted,
-          fontWeight: winner ? 800 : 600,
+          color: nameColor,
+          fontWeight: winner || qualified || eliminated ? 800 : 600,
           textDecoration: eliminated ? 'line-through' : 'none',
         }}
       >

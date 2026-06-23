@@ -27,7 +27,7 @@ type View = 'home' | 'fixture' | 'precision' | 'ranking'
 const NAV: { id: View; es: string; en: string; icon: string }[] = [
   { id: 'home', es: 'Inicio', en: 'Home', icon: '🏠' },
   { id: 'fixture', es: 'Fixture y Tablas', en: 'Fixtures & Tables', icon: '🗓️' },
-  { id: 'precision', es: 'Precisión', en: 'Accuracy', icon: '🎯' },
+  { id: 'precision', es: 'Estadísticas', en: 'Stats', icon: '📊' },
   { id: 'ranking', es: 'Ranking', en: 'Ranking', icon: '🏆' },
 ]
 
@@ -273,16 +273,15 @@ export default function App() {
               </div>
               <div style={{ fontSize: px(11), color: c.muted, fontWeight: 700, letterSpacing: '.3px', marginTop: '3px' }}>
                 {t('Mundial 2026', 'World Cup 2026')} · 🇺🇸 🇨🇦 🇲🇽
-                <span style={{ color: c.faint, fontWeight: 600 }}> · {t('hecho por', 'made by')} Octavio Boggiano</span>
                 <a
                   href="https://oboggiano.vercel.app"
                   target="_blank"
                   rel="noopener noreferrer"
                   title="oboggiano.vercel.app"
                   onClick={(e) => e.stopPropagation()}
-                  style={{ color: c.muted, textDecoration: 'none', marginLeft: 4 }}
+                  style={{ color: '#5aa9f0', textDecoration: 'none', fontWeight: 700, marginLeft: 5 }}
                 >
-                  🌐
+                  · {t('hecho por', 'made by')} Octavio Boggiano 🌐
                 </a>
               </div>
             </div>
@@ -382,7 +381,7 @@ export default function App() {
                   </button>
                 ))}
               </div>
-              <div style={{ marginTop: 22 }}>
+              <div style={{ marginTop: 30, paddingTop: 18, borderTop: '1px solid ' + c.line }}>
                 <ProjectsShowcase tiny />
               </div>
             </Drawer>
