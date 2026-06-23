@@ -145,7 +145,7 @@ as $$
     where e.key ~ '^[0-9]+$' and (e.value->>'played') = 'true'
   ),
   calc as (
-    select p.user_id,
+    select p.user_id, r.mid as mid,
       (case when r.mid<=72 then 3 when r.mid<=88 then 4 when r.mid<=96 then 5
             when r.mid<=100 then 6 when r.mid<=102 then 8 else 10 end) as exact_pts,
       case
