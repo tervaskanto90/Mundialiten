@@ -12,7 +12,6 @@ import { useTheme, ACCENT } from '../theme'
 
 const MEDALS = ['🥇', '🥈', '🥉']
 
-/** Bandera + código de 3 letras de una selección (el id ya es el código). */
 function TeamMini({ id }: { id?: string }) {
   const team = id ? TEAM_BY_ID[id] : undefined
   return (
@@ -22,53 +21,82 @@ function TeamMini({ id }: { id?: string }) {
   )
 }
 
-function Arrow({ delta }: { delta: number }) {
+// Puesto: medalla para el top 3, número en círculo para el resto.
+function RankBadge({ rank }: { rank: number }) {
+  const { c, dark } = useTheme()
+  if (rank <= 3) return <span className="shrink-0 text-center" style={{ width: 30, fontSize: 22, lineHeight: 1 }}>{MEDALS[rank - 1]}</span>
+  return (
+    <span
+      className="shrink-0 flex items-center justify-center"
+      style={{ width: 30, height: 30, borderRadius: 10, fontFamily: "'Archivo'", fontWeight: 800, fontSize: 13, color: c.muted, background: dark ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.05)', border: '1px solid ' + c.line }}
+    >
+      {rank}
+    </span>
+  )
+}
+
+// Cambio de puesto: chip verde (subió) / rojo (bajó) / gris (igual).
+function DeltaBadge({ delta }: { delta: number }) {
   const { c } = useTheme()
-  if (delta > 0) return <span style={{ color: ACCENT.green }} title="Subió">▲</span>
-  if (delta < 0) return <span style={{ color: ACCENT.red }} title="Bajó">▼</span>
-  return <span style={{ color: c.faint }} title="Se mantuvo">▬</span>
+  if (delta === 0) {
+    return <span className="text-[10px]" style={{ color: c.faint }}>▬</span>
+  }
+  const up = delta > 0
+  const col = up ? ACCENT.green : ACCENT.red
+  return (
+    <span className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums" style={{ color: col, background: col + '1F' }}>
+      {up ? '▲' : '▼'} {Math.abs(delta)}
+    </span>
+  )
+}
+
+// Predicción del último partido, coloreada por acierto (exacto/resultado/error).
+function PredScore({ ph, pa, rh, ra, homeFlag, awayFlag, points }: { ph: number; pa: number; rh: number; ra: number; homeFlag: string; awayFlag: string; points: number }) {
+  const { c } = useTheme()
+  const exact = ph === rh && pa === ra
+  const result = Math.sign(ph - pa) === Math.sign(rh - ra)
+  const col = exact ? ACCENT.green : result ? ACCENT.blue : '#9b8d6e'
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-sm font-bold shrink-0" style={{ background: col + '1A', border: '1px solid ' + col + '55', color: c.text }}>
+      <span>{homeFlag}</span>
+      <span className="tabular-nums" style={{ color: col }}>{ph}-{pa}</span>
+      <span>{awayFlag}</span>
+      {points > 0 && <span className="text-[10px]" style={{ color: col }}>+{points}</span>}
+    </span>
+  )
 }
 
 export function RankingView() {
   const { enabled, user } = useAuth()
-  const { t, lang } = useT()
+  const { t } = useT()
   const { c, dark } = useTheme()
   const [rows, setRows] = useState<RankingRow[] | null>(null)
   const [error, setError] = useState('')
 
-  // Resultados reales (para el recuadro del último partido y las banderas).
   const real = useStore((s) => getScenario(s.scenarios, REAL_SCENARIO_ID))
   const realResults = real?.results ?? {}
   const realRes = useMemo(() => resolve(realResults), [realResults])
 
-  // Último partido sincronizado (lo marca el servidor en cada fila, igual para todos).
   const lastMatchId = rows?.find((r) => r.last_match_id != null)?.last_match_id ?? null
   const lastTeams = lastMatchId != null ? realRes.matches[lastMatchId] : undefined
   const lastReal = lastMatchId != null ? realResults[lastMatchId] : undefined
+  const lastHomeFlag = TEAM_BY_ID[lastTeams?.home ?? '']?.flag ?? '🏳️'
+  const lastAwayFlag = TEAM_BY_ID[lastTeams?.away ?? '']?.flag ?? '🏳️'
 
-  // Cambio de puesto por efecto del último partido (se calcula en el cliente).
   const deltas = useMemo(
     () =>
       rankDeltas(
-        (rows ?? []).map((r) => ({
-          user_id: r.user_id,
-          points: Number(r.points),
-          last_points: Number(r.last_points ?? 0),
-        })),
+        (rows ?? []).map((r) => ({ user_id: r.user_id, points: Number(r.points), last_points: Number(r.last_points ?? 0) })),
       ),
     [rows],
   )
 
-  // Agrupa por PUESTO: usuarios con los mismos puntos comparten puesto y van en
-  // el mismo renglón (repartido en partes iguales). El rank es la posición del
-  // primero del grupo (1, 2, 2, 4… competición estándar).
-  const groups = useMemo(
+  // Aplanado: cada usuario una fila full-width; los empatados comparten el mismo puesto.
+  const rowList = useMemo(
     () =>
-      tieGroups(rows ?? [], (r) => Number(r.points)).map((g) => ({
-        key: g.members.map((m) => m.user_id).join('|'),
-        rank: g.rank,
-        members: g.members,
-      })),
+      tieGroups(rows ?? [], (r) => Number(r.points)).flatMap((g) =>
+        g.members.map((r) => ({ r, rank: g.rank })),
+      ),
     [rows],
   )
 
@@ -79,7 +107,6 @@ export function RankingView() {
       .catch((e) => setError(e instanceof Error ? e.message : t('No se pudo cargar', 'Could not load')))
   }
 
-  // Carga inicial + refresco periódico (respaldo) mientras la pestaña está abierta.
   useEffect(() => {
     if (!(enabled && user)) return
     load()
@@ -88,8 +115,6 @@ export function RankingView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, user])
 
-  // Refresco al terminar cada sincronización en vivo (con un margen para que el
-  // servidor recalcule el ranking tras guardarse los resultados reales).
   const lastSync = useStore((s) => s.lastSync)
   useEffect(() => {
     if (!(enabled && user) || !lastSync) return
@@ -99,14 +124,7 @@ export function RankingView() {
   }, [lastSync, enabled, user])
 
   if (!enabled) {
-    return (
-      <Empty>
-        {t(
-          'El ranking compartido necesita el login con Supabase configurado. Por ahora estás en modo local.',
-          'The shared ranking needs login with Supabase configured. You are currently in local mode.',
-        )}
-      </Empty>
-    )
+    return <Empty>{t('El ranking compartido necesita el login con Supabase configurado. Por ahora estás en modo local.', 'The shared ranking needs login with Supabase configured. You are currently in local mode.')}</Empty>
   }
   if (!user) {
     return <Empty>{t('Iniciá sesión para ver el ranking de toda la plataforma.', 'Sign in to see the platform-wide ranking.')}</Empty>
@@ -116,26 +134,16 @@ export function RankingView() {
     <div>
       <div className="flex items-center justify-between mb-3">
         <h2 className="font-semibold" style={{ fontFamily: "'Archivo'", color: c.text }}>🏆 Ranking{rows && rows.length > 0 ? ` · ${rows.length}` : ''}</h2>
-        <button onClick={load} className="text-xs px-2 py-1 rounded-lg" style={{ color: c.muted }}>
-          ↻ {t('Actualizar', 'Refresh')}
-        </button>
+        <button onClick={load} className="text-xs px-2 py-1 rounded-lg" style={{ color: c.muted }}>↻ {t('Actualizar', 'Refresh')}</button>
       </div>
 
       <LiveBanner realResults={realResults} />
 
       {lastMatchId != null && lastReal?.played && (
-        <div
-          className="rounded-xl px-3 py-2 mb-3 text-sm flex items-center gap-2 flex-wrap"
-          style={{
-            background: dark ? 'rgba(31,168,92,.14)' : 'rgba(31,168,92,.12)',
-            border: '1px solid rgba(31,168,92,.35)',
-            color: c.text,
-          }}
-        >
+        <div className="rounded-xl px-3 py-2 mb-3 text-sm flex items-center gap-2 flex-wrap" style={{ background: dark ? 'rgba(31,168,92,.14)' : 'rgba(31,168,92,.12)', border: '1px solid rgba(31,168,92,.35)', color: c.text }}>
           <span className="font-semibold" style={{ color: ACCENT.green }}>🟢 {t('Último resultado:', 'Latest result:')}</span>
           <span className="font-medium tabular-nums whitespace-nowrap">
-            <TeamMini id={lastTeams?.home} /> {lastReal.homeScore}-{lastReal.awayScore}{' '}
-            <TeamMini id={lastTeams?.away} />
+            <TeamMini id={lastTeams?.home} /> {lastReal.homeScore}-{lastReal.awayScore} <TeamMini id={lastTeams?.away} />
             {lastReal.homePens != null && lastReal.awayPens != null && (
               <span style={{ color: c.muted }}> ({lastReal.homePens}-{lastReal.awayPens} pen)</span>
             )}
@@ -143,74 +151,22 @@ export function RankingView() {
         </div>
       )}
 
-      <div
-        className="rounded-xl p-3 mb-4 text-xs space-y-1.5"
-        style={{ background: c.cardGrad, border: '1px solid '+c.line, color: c.muted }}
-      >
-        {lang === 'en' ? (
-          <>
-            <p className="font-semibold" style={{ color: c.text }}>📋 How scoring works</p>
-            <p>
-              The ranking counts <strong>only match results</strong>, which the app verifies
-              automatically from the live scores:
-            </p>
-            <ul className="list-disc pl-4 space-y-0.5" style={{ color: c.muted }}>
-              <li>
-                <strong style={{ color: ACCENT.green }}>Exact score</strong> (e.g. you predicted 2-1 and
-                it ended 2-1) or <strong style={{ color: ACCENT.gold }}>just the result</strong>
-                (win/draw/loss, without the exact score; e.g. you predicted 1-1 and it ended 0-0).
-              </li>
-              <li>Wrong result: 0 points.</li>
-            </ul>
-            <p style={{ color: c.muted }}>
-              Points are <strong>worth more as the tournament advances</strong> (exact / result):
-              Groups 3/1 · R32 4/2 · R16 5/2 · QF 6/3 · SF 8/4 · Final & 3rd 10/5. The ranking is
-              ordered by <strong>total points accumulated over the whole World Cup</strong>.
-            </p>
-            <p style={{ color: c.muted }}>
-              📣 You predict <strong>one stage at a time</strong>: only the current stage is open
-              (groups → R32 → R16 → QF → semis+final+3rd). Each knockout stage shows the teams that
-              <strong> actually qualified</strong>, and you can <strong>join at any stage</strong>.
-            </p>
-            <p style={{ color: c.muted }}>
-              ⏱️ Each match <strong>closes 5 minutes before</strong> kick-off. <strong>Scorers, cards
-              and VAR</strong> can be predicted but <strong>do not count</strong> for the ranking.
-            </p>
-          </>
-        ) : (
-          <>
-            <p className="font-semibold" style={{ color: c.text }}>📋 Cómo se puntúa</p>
-            <p>
-              El ranking cuenta <strong>sólo los resultados de los partidos</strong>, que es lo que la
-              app verifica automáticamente con los marcadores en vivo:
-            </p>
-            <ul className="list-disc pl-4 space-y-0.5" style={{ color: c.muted }}>
-              <li>
-                <strong style={{ color: ACCENT.green }}>Marcador exacto</strong> (ej: predijiste 2-1 y
-                salió 2-1) o <strong style={{ color: ACCENT.gold }}>sólo el resultado</strong>
-                (ganó/empató/perdió, sin el marcador; ej: predijiste 1-1 y salió 0-0).
-              </li>
-              <li>Errar el resultado: 0 puntos.</li>
-            </ul>
-            <p style={{ color: c.muted }}>
-              Los puntos <strong>valen más a medida que avanza el torneo</strong> (exacto / sólo
-              resultado): Grupos 3/1 · 16avos 4/2 · 8vos 5/2 · 4tos 6/3 · Semis 8/4 · Final y 3º 10/5.
-              El ranking se ordena por el <strong>total de puntos acumulados en todo el Mundial</strong>.
-            </p>
-            <p style={{ color: c.muted }}>
-              📣 Se predice <strong>una etapa por vez</strong>: sólo está abierta la etapa en curso
-              (grupos → 16avos → 8avos → 4tos → semis+final+3º). Cada etapa de eliminatoria muestra los
-              equipos que <strong>realmente clasificaron</strong>, y podés <strong>entrar en cualquier
-              instancia</strong>.
-            </p>
-            <p style={{ color: c.muted }}>
-              ⏱️ Cada partido <strong>se cierra 5 minutos antes</strong> de empezar.
-              <strong> Goleadores, tarjetas y VAR</strong> se pueden pronosticar pero <strong>no suman
-              al ranking</strong>.
-            </p>
-          </>
-        )}
+      <div className="rounded-xl p-3 mb-4 text-xs space-y-1.5" style={{ background: c.cardGrad, border: '1px solid ' + c.line, color: c.muted }}>
+        <p className="font-semibold" style={{ color: c.text }}>📋 {t('Cómo se puntúa', 'How scoring works')}</p>
+        <p>
+          {t('El ranking cuenta sólo los resultados de los partidos, que es lo que la app verifica con los marcadores en vivo:', 'The ranking counts only match results, which the app verifies from the live scores:')}
+        </p>
+        <ul className="list-disc pl-4 space-y-0.5" style={{ color: c.muted }}>
+          <li>
+            <strong style={{ color: ACCENT.green }}>{t('Marcador exacto', 'Exact score')}</strong> {t('o', 'or')} <strong style={{ color: ACCENT.blue }}>{t('sólo el resultado', 'just the result')}</strong> {t('(ganó/empató/perdió).', '(win/draw/loss).')}
+          </li>
+          <li>{t('Errar el resultado: 0 puntos.', 'Wrong result: 0 points.')}</li>
+        </ul>
+        <p style={{ color: c.muted }}>
+          {t('Los puntos valen más a medida que avanza el torneo (exacto / resultado): Grupos 3/1 · 16avos 4/2 · 8vos 5/2 · 4tos 6/3 · Semis 8/4 · Final y 3º 10/5.', 'Points are worth more as the tournament advances (exact / result): Groups 3/1 · R32 4/2 · R16 5/2 · QF 6/3 · SF 8/4 · Final & 3rd 10/5.')}
+        </p>
       </div>
+
       {error && <p className="text-xs mb-2" style={{ color: ACCENT.red }}>{error}</p>}
       {rows == null ? (
         <p className="text-sm" style={{ color: c.muted }}>{t('Cargando…', 'Loading…')}</p>
@@ -218,120 +174,46 @@ export function RankingView() {
         <Empty>{t('Todavía no hay puntajes cargados. ¡Sé el primero en armar tu predicción!', 'No scores yet. Be the first to make your prediction!')}</Empty>
       ) : (
         <div className="space-y-2">
-          {groups.map((g) => {
-            const medal = MEDALS[g.rank - 1] ?? g.rank
-            // Puesto compartido por 2+ usuarios → mismo renglón, repartido en partes iguales.
-            if (g.members.length > 1) {
-              return (
-                <div
-                  key={g.key}
-                  className="rounded-xl px-3 py-2.5 flex items-center gap-2"
-                  style={{ background: c.cardGrad, border: '1px solid '+c.line }}
-                >
-                  <span className="w-7 text-center text-lg shrink-0">{medal}</span>
-                  <div className="flex-1 min-w-0 flex gap-2">
-                    {g.members.map((r) => {
-                      const mine = r.user_id === user.id
-                      const predicted = r.last_pred_home != null && r.last_pred_away != null
-                      return (
-                        <div
-                          key={r.user_id}
-                          className="flex-1 basis-0 min-w-0 rounded-lg px-2 py-1.5"
-                          style={
-                            mine
-                              ? {
-                                  border: '1px solid '+ACCENT.blue,
-                                  background: dark ? 'rgba(47,109,240,.18)' : 'rgba(47,109,240,.10)',
-                                }
-                              : { border: '1px solid '+c.line, background: c.cardGrad }
-                          }
-                        >
-                          <div className="truncate font-medium text-sm" style={{ color: c.text }}>
-                            {r.display_name}
-                            {mine && <span className="text-[9px] ml-0.5" style={{ color: ACCENT.blue }}>{t('(vos)', '(you)')}</span>}
-                          </div>
-                          <div className="flex items-baseline gap-1">
-                            <span className="font-bold tabular-nums text-sm" style={{ fontFamily: "'Archivo'", color: c.text }}>
-                              {Math.round(Number(r.points))} {t('pts', 'pts')}
-                            </span>
-                            <span className="text-[9px] tabular-nums" style={{ color: c.faint }}>
-                              {Number(r.accuracy).toFixed(0)}%
-                            </span>
-                          </div>
-                          {lastMatchId != null && (
-                            <div className="flex items-center gap-1 mt-1 text-[10px] min-w-0" style={{ color: c.muted }}>
-                              <Arrow delta={deltas.get(r.user_id) ?? 0} />
-                              {predicted && <span className="tabular-nums shrink-0">+{Number(r.last_points ?? 0)}</span>}
-                              <span className="ml-auto truncate text-right">
-                                {predicted ? (
-                                  <span className="tabular-nums whitespace-nowrap">
-                                    <TeamMini id={lastTeams?.home} /> {r.last_pred_home}-{r.last_pred_away}{' '}
-                                    <TeamMini id={lastTeams?.away} />
-                                  </span>
-                                ) : (
-                                  <span className="italic" style={{ color: c.faint }}>{t('Sin pred.', 'No pred.')}</span>
-                                )}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              )
-            }
-
-            // Puesto de un solo usuario → renglón completo (igual que siempre).
-            const r = g.members[0]
+          {rowList.map(({ r, rank }) => {
             const mine = r.user_id === user.id
             const predicted = r.last_pred_home != null && r.last_pred_away != null
             return (
               <div
-                key={g.key}
-                className="rounded-xl px-3 py-2.5"
-                style={
-                  mine
-                    ? {
-                        border: '1px solid '+ACCENT.blue,
-                        background: dark ? 'rgba(47,109,240,.18)' : 'rgba(47,109,240,.10)',
-                      }
-                    : { border: '1px solid '+c.line, background: c.cardGrad, boxShadow: c.shadow }
-                }
+                key={r.user_id}
+                className="rounded-2xl px-3 py-2.5"
+                style={mine ? { border: '1px solid ' + ACCENT.blue, background: dark ? 'rgba(47,109,240,.16)' : 'rgba(47,109,240,.09)' } : { border: '1px solid ' + c.line, background: c.cardGrad, boxShadow: c.shadow }}
               >
-                <div className="flex items-center gap-3">
-                  <span className="w-7 text-center text-lg">{medal}</span>
-                  <Avatar src={r.avatar_url} name={r.display_name} size={30} />
-                  <span className="flex-1 truncate font-medium" style={{ color: c.text }}>
-                    {r.display_name}
-                    {mine && <span className="text-[10px] ml-1" style={{ color: ACCENT.blue }}>{t('(vos)', '(you)')}</span>}
-                  </span>
-                  <div className="text-right">
-                    <div className="font-bold tabular-nums" style={{ fontFamily: "'Archivo'", color: c.text }}>
-                      {Math.round(Number(r.points))} {t('pts', 'pts')}
+                <div className="flex items-center gap-2.5">
+                  <RankBadge rank={rank} />
+                  <Avatar src={r.avatar_url} name={r.display_name} size={36} />
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold truncate" style={{ color: c.text, fontFamily: "'Archivo'" }}>
+                      {r.display_name}
+                      {mine && <span className="text-[10px] ml-1" style={{ color: ACCENT.blue }}>{t('(vos)', '(you)')}</span>}
                     </div>
-                    <div className="text-[10px] tabular-nums" style={{ color: c.faint }}>{Number(r.accuracy).toFixed(0)}%</div>
+                    {lastMatchId != null && (
+                      <div className="mt-0.5 flex items-center gap-1.5">
+                        <DeltaBadge delta={deltas.get(r.user_id) ?? 0} />
+                        <span className="text-[10px]" style={{ color: c.faint }}>{Number(r.accuracy).toFixed(0)}% {t('efectiv.', 'acc.')}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="font-bold tabular-nums leading-none" style={{ fontFamily: "'Archivo'", fontSize: 20, color: c.text }}>
+                      {Math.round(Number(r.points))}
+                      <span className="text-[10px] ml-0.5 font-semibold" style={{ color: c.muted }}>{t('pts', 'pts')}</span>
+                    </div>
                   </div>
                 </div>
 
-                {lastMatchId != null && (
-                  <div className="flex items-center gap-2 mt-1.5 pl-10 text-xs">
-                    <span className="flex items-center gap-1 shrink-0">
-                      <Arrow delta={deltas.get(r.user_id) ?? 0} />
-                      {predicted && (
-                        <span className="tabular-nums" style={{ color: c.muted }}>+{Number(r.last_points ?? 0)}</span>
-                      )}
-                    </span>
-                    <span className="ml-auto text-right truncate" style={{ color: c.muted }}>
-                      {predicted ? (
-                        <span className="tabular-nums whitespace-nowrap">
-                          <TeamMini id={lastTeams?.home} /> {r.last_pred_home}-{r.last_pred_away}{' '}
-                          <TeamMini id={lastTeams?.away} />
-                        </span>
-                      ) : (
-                        <span className="italic" style={{ color: c.faint }}>{t('Sin predicción', 'No prediction')}</span>
-                      )}
-                    </span>
+                {lastMatchId != null && lastReal?.played && (
+                  <div className="mt-2 flex items-center justify-between gap-2" style={{ paddingLeft: 40 }}>
+                    <span className="text-[10px]" style={{ color: c.faint }}>{t('Su pronóstico del último', 'Last match pick')}</span>
+                    {predicted ? (
+                      <PredScore ph={r.last_pred_home!} pa={r.last_pred_away!} rh={lastReal.homeScore} ra={lastReal.awayScore} homeFlag={lastHomeFlag} awayFlag={lastAwayFlag} points={Number(r.last_points ?? 0)} />
+                    ) : (
+                      <span className="text-xs italic" style={{ color: c.faint }}>{t('Sin predicción', 'No prediction')}</span>
+                    )}
                   </div>
                 )}
               </div>
