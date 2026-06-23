@@ -413,7 +413,13 @@ function NewsCard({ item, index }: { item: NewsItem; index: number }) {
         {item.image && imgOk ? (
           <img src={`/api/img?u=${encodeURIComponent(item.image)}`} alt="" loading="lazy" onError={() => setImgOk(false)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         ) : (
-          <div className="flex items-center justify-center h-full text-2xl">📰</div>
+          <div className="flex items-center justify-center h-full" style={{ color: 'rgba(255,255,255,.85)' }}>
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 5h13a1 1 0 0 1 1 1v12a1 1 0 0 0 1 1 1 1 0 0 0 1-1V8" />
+              <path d="M4 5a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h15" />
+              <line x1="7" y1="9" x2="14" y2="9" /><line x1="7" y1="12.5" x2="14" y2="12.5" /><line x1="7" y1="16" x2="11" y2="16" />
+            </svg>
+          </div>
         )}
       </div>
       <div className="px-2.5 py-2 flex-1 flex flex-col">

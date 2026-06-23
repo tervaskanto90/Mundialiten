@@ -8,6 +8,10 @@
 //   lang = 'es' (default) | 'en'   → idioma/región del feed
 //   q    = búsqueda opcional (si no, usa una por defecto del Mundial 2026)
 
+// Damos más margen de ejecución: resolver la og:image de las notas frescas
+// (decodificar Google News + bajar la página del medio) lleva varios segundos.
+export const config = { maxDuration: 25 }
+
 const TIMEOUT_MS = 9000
 
 const PRESETS = {
@@ -138,7 +142,7 @@ async function decodeGNewsUrl(link) {
     const idm = /\/(?:rss\/)?articles\/([^?/]+)/.exec(link)
     if (!idm) return ''
     const id = idm[1]
-    const pg = await getHtml(`https://news.google.com/rss/articles/${id}`, 2600)
+    const pg = await getHtml(`https://news.google.com/rss/articles/${id}`, 3500)
     if (!pg.html) return ''
     const sig = /data-n-a-sg="([^"]+)"/.exec(pg.html)
     const ts = /data-n-a-ts="([^"]+)"/.exec(pg.html)
@@ -171,28 +175,37 @@ async function decodeGNewsUrl(link) {
   }
 }
 
+// Miniatura del propio Google News (googleusercontent/gstatic) como último recurso.
+function findThumb(html) {
+  const m = /https?:\/\/(?:lh\d\.googleusercontent\.com|[a-z0-9.-]*gstatic\.com)\/[^"'\s)]+/i.exec(html || '')
+  return m ? m[0] : ''
+}
+
 async function fetchOgImage(link) {
   // 1) Para links de Google News, decodificar a la URL real del medio.
   if (/news\.google\.com\/(?:rss\/)?articles\//.test(link)) {
     const real = await decodeGNewsUrl(link)
     if (real) {
-      const r = await getHtml(real, 3500)
+      const r = await getHtml(real, 4500)
       const og = parseOg(r.html)
       if (og) return og
     }
   }
-  // 2) Fallback: seguir el redirect y, si hace falta, saltar al medio.
-  const first = await getHtml(link, 3500)
+  // 2) Seguir el redirect y, si hace falta, saltar al medio.
+  const first = await getHtml(link, 4500)
   if (first.html) {
     const og = parseOg(first.html)
     if (og && first.finalUrl && !/news\.google\.com/.test(first.finalUrl)) return og
     const pub = extractPublisherUrl(first.html)
     if (pub) {
-      const second = await getHtml(pub, 3500)
+      const second = await getHtml(pub, 4500)
       const og2 = parseOg(second.html)
       if (og2) return og2
     }
     if (og) return og
+    // 3) Último recurso: miniatura que el propio Google News embebe.
+    const thumb = findThumb(first.html)
+    if (thumb) return thumb
   }
   return ''
 }
@@ -209,11 +222,11 @@ async function enrichImages(items, deadline, max = 12) {
       const it = targets[i++]
       if (it.image) continue
       // Tope duro por nota para no agotar el tiempo de la función serverless.
-      const img = await raceTimeout(fetchOgImage(it.link), 4200)
+      const img = await raceTimeout(fetchOgImage(it.link), 8000)
       if (img) it.image = img
     }
   }
-  await Promise.all(Array.from({ length: 8 }, worker))
+  await Promise.all(Array.from({ length: 10 }, worker))
 }
 
 // ── Proveedor con imágenes confiables: GNews (gnews.io) ──────────────────────
@@ -352,7 +365,7 @@ export default async function handler(req, res) {
     // Completamos imágenes faltantes (items del RSS) con la og:image del artículo,
     // empezando por las MÁS FRESCAS (para que la última noticia tenga foto).
     merged.sort((a, b) => (b.ts || 0) - (a.ts || 0))
-    await enrichImages(merged, Date.now() + 4500, 14)
+    await enrichImages(merged, Date.now() + 18000, 14)
     const items = diversify(merged, 12)
     // Cache corto en el edge para mantener la frescura (el front además refresca).
     res.setHeader('Cache-Control', 's-maxage=180, stale-while-revalidate=900')
