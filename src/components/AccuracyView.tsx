@@ -13,6 +13,7 @@ import { STAGE_I18N, MATCH_BY_ID } from '../data/schedule'
 import { formatDateShort, sideLabelFor } from '../utils/labels'
 import type { Scenario } from '../types'
 import { CompetitionStats } from './CompetitionStats'
+import { UserComparison } from './UserComparison'
 import { useT } from '../i18n'
 import { useTheme, ACCENT } from '../theme'
 
@@ -63,6 +64,7 @@ export function AccuracyView() {
             <StatsCard key={scenario.id} scenario={scenario} score={score} stats={stats} realRes={realRes} />
           ))}
       </div>
+      <UserComparison />
       <CompetitionStats realResults={real.results} realRes={realRes} />
     </div>
   )
@@ -131,6 +133,14 @@ function StatsCard({
   ]
   const list = tab === 'exact' ? stats.lists.exact : tab === 'result' ? stats.lists.result : tab === 'miss' ? stats.lists.miss : []
 
+  // Métricas avanzadas (de tu predicción vs los resultados reales).
+  const streak = (() => { let n = 0; for (const f of stats.form) { if (f.kind === 'miss') break; n++ } return n })()
+  const strongest = [...stats.byStage].filter((b) => b.played > 0).sort((a, b) => b.exact / b.played - a.exact / a.played || b.points / b.max - a.points / a.max)[0]
+  const best = [...stats.lists.exact].sort((a, b) => b.points - a.points || b.matchId - a.matchId)[0]
+  const bestM = best ? MATCH_BY_ID[best.matchId] : null
+  const bestHome = bestM ? sideLabelFor(best!.matchId, bestM.home, 'home', realRes) : null
+  const bestAway = bestM ? sideLabelFor(best!.matchId, bestM.away, 'away', realRes) : null
+
   return (
     <div className="rounded-2xl overflow-hidden" style={{ background: c.cardGrad, border: '1px solid ' + c.line, boxShadow: c.shadow }}>
       <div className="flex items-center gap-3 px-4 py-3" style={{ borderLeft: `4px solid ${scenario.color}` }}>
@@ -185,6 +195,32 @@ function StatsCard({
                 </div>
               </>
             )}
+
+            {/* Tus métricas avanzadas */}
+            <div className="text-[10px] uppercase tracking-wide mt-3 mb-1.5" style={{ color: c.muted }}>{t('Tus métricas', 'Your metrics')}</div>
+            <div className="grid grid-cols-3 gap-2 mb-1">
+              <div className="rounded-xl px-2 py-2 text-center" style={{ background: dark ? 'rgba(0,0,0,.18)' : 'rgba(0,0,0,.025)', border: '1px solid ' + c.line }}>
+                <div className="text-lg font-bold leading-none" style={{ fontFamily: "'Archivo'", color: streak > 0 ? ACCENT.green : c.text }}>🔥 {streak}</div>
+                <div className="text-[9.5px] mt-1" style={{ color: c.muted }}>{t('racha de aciertos', 'hit streak')}</div>
+              </div>
+              <div className="rounded-xl px-2 py-2 text-center" style={{ background: dark ? 'rgba(0,0,0,.18)' : 'rgba(0,0,0,.025)', border: '1px solid ' + c.line }}>
+                <div className="text-[13px] font-bold leading-tight" style={{ fontFamily: "'Archivo'", color: c.text }}>{strongest ? t(STAGE_I18N[strongest.stage].es, STAGE_I18N[strongest.stage].en) : '—'}</div>
+                <div className="text-[9.5px] mt-1" style={{ color: c.muted }}>{t('fase más fuerte', 'strongest stage')}</div>
+              </div>
+              <div className="rounded-xl px-2 py-2 text-center" style={{ background: dark ? 'rgba(0,0,0,.18)' : 'rgba(0,0,0,.025)', border: '1px solid ' + c.line }}>
+                {best && bestHome && bestAway ? (
+                  <>
+                    <div className="text-[13px] font-bold leading-none tabular-nums" style={{ fontFamily: "'Archivo'", color: ACCENT.green }}>{bestHome.flag}{bestAway.flag} {best.rh}-{best.ra}</div>
+                    <div className="text-[9.5px] mt-1" style={{ color: c.muted }}>{t('mejor acierto', 'best call')} +{best.points}</div>
+                  </>
+                ) : (
+                  <>
+                    <div className="text-[13px] font-bold" style={{ color: c.text }}>—</div>
+                    <div className="text-[9.5px] mt-1" style={{ color: c.muted }}>{t('mejor acierto', 'best call')}</div>
+                  </>
+                )}
+              </div>
+            </div>
 
             {/* Detalle por categoría (aparece al tocar) */}
             <div className="flex gap-2 mt-3">
