@@ -273,6 +273,17 @@ export default function App() {
               </div>
               <div style={{ fontSize: px(11), color: c.muted, fontWeight: 700, letterSpacing: '.3px', marginTop: '3px' }}>
                 {t('Mundial 2026', 'World Cup 2026')} · 🇺🇸 🇨🇦 🇲🇽
+                <span style={{ color: c.faint, fontWeight: 600 }}> · {t('hecho por', 'made by')} Octavio Boggiano</span>
+                <a
+                  href="https://oboggiano.vercel.app"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="oboggiano.vercel.app"
+                  onClick={(e) => e.stopPropagation()}
+                  style={{ color: c.muted, textDecoration: 'none', marginLeft: 4 }}
+                >
+                  🌐
+                </a>
               </div>
             </div>
             <div style={{ flex: 1, display: 'flex', justifyContent: 'center', minWidth: 0, padding: '0 12px' }}>
@@ -371,7 +382,9 @@ export default function App() {
                   </button>
                 ))}
               </div>
-              <ProjectsShowcase compact />
+              <div style={{ marginTop: 22 }}>
+                <ProjectsShowcase tiny />
+              </div>
             </Drawer>
           )
           const mainContent = (

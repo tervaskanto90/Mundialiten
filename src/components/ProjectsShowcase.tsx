@@ -45,28 +45,49 @@ const PROJECTS: Project[] = [
   },
 ]
 
-export function ProjectsShowcase({ compact = false }: { compact?: boolean }) {
+export function ProjectsShowcase({ compact = false, tiny = false }: { compact?: boolean; tiny?: boolean }) {
   const { c } = useTheme()
   const { t } = useT()
   return (
     <div>
-      <a href={SITE} target="_blank" rel="noopener noreferrer" className="block mb-3">
-        <div className="font-bold flex items-center gap-1.5" style={{ fontFamily: "'Archivo'", color: c.text, fontSize: '14px' }}>
+      <a href={SITE} target="_blank" rel="noopener noreferrer" className="block mb-2.5">
+        <div className="font-bold flex items-center gap-1.5" style={{ fontFamily: "'Archivo'", color: c.text, fontSize: tiny ? '12.5px' : '14px' }}>
           🛠️ {t('Mirá otras cosas que construí', 'Other things I’ve built')} <span style={{ color: c.muted }}>↗</span>
         </div>
-        <div className="text-[11px]" style={{ color: c.muted }}>{t('Proyectos de Octavio Boggiano', 'Projects by Octavio Boggiano')}</div>
+        {!tiny && <div className="text-[11px]" style={{ color: c.muted }}>{t('Proyectos de Octavio Boggiano', 'Projects by Octavio Boggiano')}</div>}
       </a>
-      <div className="flex flex-col gap-2.5">
+      <div className={tiny ? 'flex flex-col gap-2' : 'flex flex-col gap-2.5'}>
         {PROJECTS.map((p) => (
-          <ProjectCard key={p.name} p={p} compact={compact} />
+          <ProjectCard key={p.name} p={p} compact={compact} tiny={tiny} />
         ))}
       </div>
     </div>
   )
 }
 
-function ProjectCard({ p, compact }: { p: Project; compact: boolean }) {
+function ProjectCard({ p, compact, tiny }: { p: Project; compact: boolean; tiny: boolean }) {
   const { c, dark } = useTheme()
+  if (tiny) {
+    // Versión chica para el menú: visual mini + título + tags, sin tagline.
+    return (
+      <a href={p.link} target="_blank" rel="noopener noreferrer" className="block rounded-xl overflow-hidden" style={{ background: c.cardGrad, border: '1px solid ' + c.line }}>
+        <div className="px-2 pt-2">
+          <Visual kind={p.visual} dark={dark} compact tiny />
+        </div>
+        <div className="px-2.5 pb-2 pt-1.5">
+          <div className="flex items-center justify-between">
+            <div className="font-bold truncate" style={{ fontFamily: "'Archivo'", color: c.text, fontSize: '12.5px' }}>{p.name}</div>
+            <span className="text-[11px]" style={{ color: c.muted }}>↗</span>
+          </div>
+          <div className="flex flex-wrap gap-1 mt-1">
+            {p.tags.slice(0, 3).map((tg) => (
+              <span key={tg} className="text-[8px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full" style={{ color: c.muted, border: '1px solid ' + c.line }}>{tg}</span>
+            ))}
+          </div>
+        </div>
+      </a>
+    )
+  }
   return (
     <a
       href={p.link}
@@ -96,8 +117,8 @@ function ProjectCard({ p, compact }: { p: Project; compact: boolean }) {
   )
 }
 
-function Visual({ kind, dark, compact }: { kind: Project['visual']; dark: boolean; compact: boolean }) {
-  const h = compact ? 58 : 70
+function Visual({ kind, dark, compact, tiny }: { kind: Project['visual']; dark: boolean; compact: boolean; tiny?: boolean }) {
+  const h = tiny ? 38 : compact ? 58 : 70
   const box: React.CSSProperties = {
     height: h,
     borderRadius: 10,

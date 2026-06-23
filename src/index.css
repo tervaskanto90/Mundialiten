@@ -141,8 +141,8 @@ body {
 .bracket {
   display: flex;
   align-items: stretch;
-  min-height: 780px;
-  --bl: var(--mdl-line); /* color de las líneas conectoras */
+  min-height: 820px;
+  --bl: var(--mdl-faint); /* color de las líneas conectoras (visible) */
 }
 .bracket-round {
   display: flex;
@@ -186,7 +186,8 @@ body {
 .bracket-match > * {
   width: 100%;
 }
-/* Stub horizontal de salida (hacia la ronda de la derecha) */
+/* Stub horizontal de salida (desde el centro del partido hacia la ronda de la
+   derecha; llega justo al borde entre rondas). */
 .bracket-round:not(:last-child) .bracket-match::after {
   content: '';
   position: absolute;
@@ -196,7 +197,8 @@ body {
   height: 2px;
   background: var(--bl);
 }
-/* Codo de entrada que une el par de la ronda anterior */
+/* Codo de entrada en ángulo recto que une el par de la ronda anterior: vertical
+   (borde izquierdo) + dos brazos horizontales que apuntan al partido. */
 .bracket-round:not(:first-child) .bracket-match::before {
   content: '';
   position: absolute;
@@ -206,8 +208,7 @@ body {
   width: 1.25rem;
   border: 2px solid var(--bl);
   border-right: 0;
-  border-top-left-radius: 8px;
-  border-bottom-left-radius: 8px;
+  border-radius: 0;
 }
 
 .auth-input {

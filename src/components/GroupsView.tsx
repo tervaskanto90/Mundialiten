@@ -10,7 +10,7 @@ interface Props {
 }
 
 export function GroupsView({ ctx }: Props) {
-  const { standings, bestThirds, eliminated } = ctx.resolution
+  const { standings, bestThirds, eliminated, qualified } = ctx.resolution
   const qualifiedThirds = new Set((bestThirds ?? []).slice(0, 8))
   const { t } = useT()
   const { c } = useTheme()
@@ -18,10 +18,14 @@ export function GroupsView({ ctx }: Props) {
   return (
     <div>
       <div className="flex flex-wrap gap-3 text-[11px] mb-3" style={{ color: c.muted }}>
-        <Legend color={ACCENT.green} label={t('Clasifican directo (1° y 2°)', 'Qualify directly (1st & 2nd)')} />
-        <Legend color={ACCENT.gold} label={t('Mejor 3° clasificado', 'Best 3rd place')} />
         <span className="flex items-center gap-1.5">
-          <span style={{ textDecoration: 'line-through', color: c.faint }}>ABC</span>
+          <span style={{ color: ACCENT.green, fontWeight: 800 }}>ABC</span>
+          {t('Clasificado', 'Qualified')}
+        </span>
+        <Legend color={ACCENT.green} label={t('Zona directa (1° y 2°)', 'Direct zone (1st & 2nd)')} />
+        <Legend color={ACCENT.gold} label={t('Mejor 3°', 'Best 3rd')} />
+        <span className="flex items-center gap-1.5">
+          <span style={{ textDecoration: 'line-through', color: ACCENT.red, fontWeight: 800 }}>ABC</span>
           {t('Eliminado', 'Eliminated')}
         </span>
       </div>
@@ -34,6 +38,7 @@ export function GroupsView({ ctx }: Props) {
             qualifiedThirds={qualifiedThirds}
             thirdsKnown={bestThirds != null}
             eliminated={eliminated}
+            qualified={qualified}
             t={t}
           />
         ))}
@@ -57,6 +62,7 @@ function GroupTable({
   qualifiedThirds,
   thirdsKnown,
   eliminated,
+  qualified,
   t,
 }: {
   group: string
@@ -64,6 +70,7 @@ function GroupTable({
   qualifiedThirds: Set<string>
   thirdsKnown: boolean
   eliminated: Set<string>
+  qualified: Set<string>
   t: (es: string, en: string) => string
 }) {
   const { c, dark } = useTheme()
@@ -91,6 +98,8 @@ function GroupTable({
             const isThird = i === 2
             const thirdQual = isThird && qualifiedThirds.has(r.teamId)
             const elim = eliminated.has(r.teamId)
+            const qual = qualified.has(r.teamId)
+            const nameColor = qual ? ACCENT.green : elim ? ACCENT.red : c.text
             const barColor = direct
               ? ACCENT.green
               : thirdQual
@@ -113,7 +122,7 @@ function GroupTable({
                     <span style={{ filter: elim ? 'grayscale(1)' : 'none', opacity: elim ? 0.5 : 1 }}>{team?.flag}</span>
                     <span
                       className="truncate"
-                      style={{ color: elim ? c.faint : c.text, textDecoration: elim ? 'line-through' : 'none', fontWeight: 700 }}
+                      style={{ color: nameColor, textDecoration: elim ? 'line-through' : 'none', fontWeight: qual || elim ? 800 : 700 }}
                     >
                       {team ? teamDisplayName(team) : r.teamId}
                     </span>

@@ -186,6 +186,57 @@ export function eliminatedFromTop3(
   return out
 }
 
+/**
+ * Equipos que YA aseguraron entrar al top 2 del grupo (clasificación directa) —
+ * SÓLIDO (nunca marca de más, simétrico a `eliminatedFromTop3`). Un equipo está
+ * asegurado si a lo sumo 1 rival PUEDE terminar por encima suyo en el peor caso
+ * (el equipo pierde todo lo que le queda y los rivales ganan todo).
+ */
+export function securedTop2(
+  group: string,
+  results: Record<number, MatchResult>,
+): Set<string> {
+  const teamIds = teamsOfGroup(group).map((t) => t.id)
+  const pts: Record<string, number> = {}
+  const played: Record<string, number> = {}
+  const beat: Record<string, Set<string>> = {}
+  for (const id of teamIds) {
+    pts[id] = 0
+    played[id] = 0
+    beat[id] = new Set()
+  }
+  for (const m of GROUP_MATCHES) {
+    if (m.group !== group) continue
+    const res = results[m.id]
+    if (!res?.played) continue
+    played[m.home]++
+    played[m.away]++
+    if (res.homeScore > res.awayScore) {
+      pts[m.home] += 3
+      beat[m.home].add(m.away)
+    } else if (res.homeScore < res.awayScore) {
+      pts[m.away] += 3
+      beat[m.away].add(m.home)
+    } else {
+      pts[m.home] += 1
+      pts[m.away] += 1
+    }
+  }
+  const out = new Set<string>()
+  for (const t of teamIds) {
+    const minT = pts[t] // peor caso: pierde todo lo que le queda
+    let couldBeAbove = 0
+    for (const x of teamIds) {
+      if (x === t) continue
+      const maxX = pts[x] + 3 * (3 - played[x]) // gana todo lo que le queda
+      if (maxX > minT) couldBeAbove++
+      else if (maxX === minT && !beat[t].has(x)) couldBeAbove++ // empate no resuelto a favor de t
+    }
+    if (couldBeAbove <= 1) out.add(t)
+  }
+  return out
+}
+
 /** Tabla de un grupo, ordenada. */
 export function computeGroupStanding(
   group: string,
