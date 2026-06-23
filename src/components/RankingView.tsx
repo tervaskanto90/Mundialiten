@@ -207,12 +207,16 @@ export function RankingView() {
                       {r.display_name}
                       {mine && <span className="text-[10px] ml-1" style={{ color: ACCENT.blue }}>{t('(vos)', '(you)')}</span>}
                     </div>
-                    {lastMatchId != null && (
-                      <div className="mt-0.5 flex items-center gap-1.5">
-                        <DeltaBadge delta={deltas.get(r.user_id) ?? 0} />
-                        <span className="text-[10px]" style={{ color: c.faint }}>{Number(r.accuracy).toFixed(0)}% {t('efectiv.', 'acc.')}</span>
-                      </div>
-                    )}
+                    <div className="mt-0.5 flex items-center gap-2 flex-wrap">
+                      {lastMatchId != null && <DeltaBadge delta={deltas.get(r.user_id) ?? 0} />}
+                      <span className="text-[10px] font-semibold tabular-nums" style={{ color: ACCENT.green }} title={t('Marcadores exactos (1er desempate)', 'Exact scores (1st tie-breaker)')}>
+                        🎯 {Number(r.exact_count ?? 0)} {t('exactos', 'exact')}
+                      </span>
+                      <span className="text-[10px] font-semibold tabular-nums" style={{ color: ACCENT.blue }} title={t('Resultados acertados — ganó/empató/perdió (2º desempate)', 'Correct results — win/draw/loss (2nd tie-breaker)')}>
+                        ✅ {Number(r.result_count ?? 0)} {t('result.', 'results')}
+                      </span>
+                      <span className="text-[10px]" style={{ color: c.faint }}>{Number(r.accuracy).toFixed(0)}% {t('efectiv.', 'acc.')}</span>
+                    </div>
                   </div>
                   <div className="text-right shrink-0">
                     <div className="font-bold tabular-nums leading-none" style={{ fontFamily: "'Archivo'", fontSize: 20, color: c.text }}>
