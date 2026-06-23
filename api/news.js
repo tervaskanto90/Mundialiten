@@ -242,26 +242,33 @@ function dedupeMerge(lists) {
   return [...byKey.values()]
 }
 
-// Ordena por fecha (más nuevas primero) y limita la cantidad por fuente para que
-// no sea todo del mismo medio. Si faltan, completa sin el tope.
+// Arma la lista final priorizando notas CON imagen (así las tarjetas tienen
+// foto), ordenadas por fecha y con tope por fuente para no repetir el mismo
+// medio. Si faltan, completa con más imágenes y, recién al final, sin imagen.
 function diversify(items, total = 12, perSource = 2) {
-  const sorted = [...items].sort((a, b) => (b.ts || 0) - (a.ts || 0))
-  const count = {}
+  const byTs = (a, b) => (b.ts || 0) - (a.ts || 0)
+  const withImg = items.filter((i) => i.image).sort(byTs)
+  const noImg = items.filter((i) => !i.image).sort(byTs)
   const out = []
-  for (const it of sorted) {
+  const seen = new Set()
+  const count = {}
+  const push = (it) => {
+    if (seen.has(it) || out.length >= total) return
+    seen.add(it)
+    out.push(it)
+  }
+  // 1) con imagen, máx `perSource` por medio.
+  for (const it of withImg) {
+    if (out.length >= total) break
     const s = (it.source || '?').toLowerCase()
     if ((count[s] || 0) >= perSource) continue
     count[s] = (count[s] || 0) + 1
-    out.push(it)
-    if (out.length >= total) break
+    push(it)
   }
-  if (out.length < total) {
-    for (const it of sorted) {
-      if (out.indexOf(it) !== -1) continue
-      out.push(it)
-      if (out.length >= total) break
-    }
-  }
+  // 2) si faltan, más con imagen (sin tope).
+  for (const it of withImg) push(it)
+  // 3) último recurso: sin imagen.
+  for (const it of noImg) push(it)
   return out
 }
 
