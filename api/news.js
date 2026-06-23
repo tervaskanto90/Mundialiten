@@ -165,14 +165,16 @@ async function enrichImages(items, deadline, max = 12) {
 // directo (URL de imagen real de la nota). Si no, caemos al RSS de Google News.
 async function fetchGnews(lang) {
   const key = process.env.GNEWS_API_KEY
+  // Sin `country`: trae fuentes de todo el mundo hispano (Marca, AS, ESPN, Olé,
+  // etc.), no sólo medios argentinos → más diversidad con imagen.
   const conf =
     lang === 'en'
-      ? { lang: 'en', country: 'us', q: '"World Cup 2026" OR "FIFA World Cup 2026"' }
-      : { lang: 'es', country: 'ar', q: '"Mundial 2026" OR "Copa del Mundo 2026"' }
+      ? { lang: 'en', q: '"World Cup 2026" OR "FIFA World Cup 2026"' }
+      : { lang: 'es', q: '"Mundial 2026" OR "Copa del Mundo 2026"' }
   const from = new Date(Date.now() - 48 * 3600 * 1000).toISOString()
   const url =
     `https://gnews.io/api/v4/search?q=${encodeURIComponent(conf.q)}` +
-    `&lang=${conf.lang}&country=${conf.country}&max=10&from=${encodeURIComponent(from)}` +
+    `&lang=${conf.lang}&max=10&from=${encodeURIComponent(from)}` +
     `&sortby=publishedAt&apikey=${encodeURIComponent(key)}`
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS)
@@ -245,30 +247,36 @@ function dedupeMerge(lists) {
 // Arma la lista final priorizando notas CON imagen (así las tarjetas tienen
 // foto), ordenadas por fecha y con tope por fuente para no repetir el mismo
 // medio. Si faltan, completa con más imágenes y, recién al final, sin imagen.
-function diversify(items, total = 12, perSource = 2) {
+function diversify(items, total = 12) {
   const byTs = (a, b) => (b.ts || 0) - (a.ts || 0)
   const withImg = items.filter((i) => i.image).sort(byTs)
   const noImg = items.filter((i) => !i.image).sort(byTs)
   const out = []
   const seen = new Set()
   const count = {}
-  const push = (it) => {
-    if (seen.has(it) || out.length >= total) return
-    seen.add(it)
-    out.push(it)
+  // Llena respetando un tope por fuente; el tope arranca en 1 (máxima
+  // diversidad) y sólo sube si no se llega al total.
+  const fill = (list, cap) => {
+    for (const it of list) {
+      if (out.length >= total) break
+      if (seen.has(it)) continue
+      const s = (it.source || '?').toLowerCase()
+      if ((count[s] || 0) >= cap) continue
+      count[s] = (count[s] || 0) + 1
+      seen.add(it)
+      out.push(it)
+    }
   }
-  // 1) con imagen, máx `perSource` por medio.
-  for (const it of withImg) {
+  // Primero con imagen, repartiendo: 1 por medio, después 2, 3… y al final sin tope.
+  for (const cap of [1, 2, 3, 99]) {
     if (out.length >= total) break
-    const s = (it.source || '?').toLowerCase()
-    if ((count[s] || 0) >= perSource) continue
-    count[s] = (count[s] || 0) + 1
-    push(it)
+    fill(withImg, cap)
   }
-  // 2) si faltan, más con imagen (sin tope).
-  for (const it of withImg) push(it)
-  // 3) último recurso: sin imagen.
-  for (const it of noImg) push(it)
+  // Si todavía faltan, completa con notas sin imagen.
+  for (const cap of [2, 99]) {
+    if (out.length >= total) break
+    fill(noImg, cap)
+  }
   return out
 }
 
@@ -286,7 +294,7 @@ export default async function handler(req, res) {
     // Completamos imágenes faltantes (items del RSS) con la og:image del artículo.
     merged.sort((a, b) => (b.ts || 0) - (a.ts || 0))
     await enrichImages(merged, Date.now() + 6000, 14)
-    const items = diversify(merged, 12, 2)
+    const items = diversify(merged, 12)
     // Cache corto en el edge para mantener la frescura (el front además refresca).
     res.setHeader('Cache-Control', 's-maxage=180, stale-while-revalidate=900')
     res.status(200).json({ items, generatedAt: new Date().toISOString(), lang })
