@@ -91,14 +91,22 @@ export function RankingView() {
     [rows],
   )
 
-  // Aplanado: cada usuario una fila full-width; los empatados comparten el mismo puesto.
-  const rowList = useMemo(
-    () =>
-      tieGroups(rows ?? [], (r) => Number(r.points)).flatMap((g) =>
-        g.members.map((r) => ({ r, rank: g.rank })),
-      ),
-    [rows],
-  )
+  // Orden del ranking (también lo hace el servidor, pero lo reforzamos en el
+  // cliente para que el desempate valga aun con datos viejos):
+  //   1º más PUNTOS · 2º más marcadores EXACTOS · 3º más RESULTADOS acertados.
+  // Sólo comparten puesto quienes empatan en los tres.
+  const rowList = useMemo(() => {
+    const sorted = [...(rows ?? [])].sort(
+      (a, b) =>
+        Number(b.points) - Number(a.points) ||
+        Number(b.exact_count ?? 0) - Number(a.exact_count ?? 0) ||
+        Number(b.result_count ?? 0) - Number(a.result_count ?? 0),
+    )
+    return tieGroups(
+      sorted,
+      (r) => `${Number(r.points)}|${Number(r.exact_count ?? 0)}|${Number(r.result_count ?? 0)}`,
+    ).flatMap((g) => g.members.map((r) => ({ r, rank: g.rank })))
+  }, [rows])
 
   const load = () => {
     setError('')
@@ -164,6 +172,14 @@ export function RankingView() {
         </ul>
         <p style={{ color: c.muted }}>
           {t('Los puntos valen más a medida que avanza el torneo (exacto / resultado): Grupos 3/1 · 16avos 4/2 · 8vos 5/2 · 4tos 6/3 · Semis 8/4 · Final y 3º 10/5.', 'Points are worth more as the tournament advances (exact / result): Groups 3/1 · R32 4/2 · R16 5/2 · QF 6/3 · SF 8/4 · Final & 3rd 10/5.')}
+        </p>
+        <p className="font-semibold pt-1" style={{ color: c.text }}>⚖️ {t('Desempate', 'Tie-breaker')}</p>
+        <p style={{ color: c.muted }}>
+          {t('Si dos personas tienen los mismos puntos, queda más arriba quien tenga ', 'If two people have the same points, the one ranked higher is whoever has ')}
+          <strong style={{ color: ACCENT.green }}>{t('más marcadores exactos', 'more exact scores')}</strong>
+          {t('. Si siguen iguales, quien tenga ', '. If still tied, whoever has ')}
+          <strong style={{ color: ACCENT.blue }}>{t('más resultados acertados', 'more correct results')}</strong>
+          {t(' (ganó/empató/perdió). Si todo coincide, comparten el mismo puesto.', ' (win/draw/loss). If everything matches, they share the same position.')}
         </p>
       </div>
 

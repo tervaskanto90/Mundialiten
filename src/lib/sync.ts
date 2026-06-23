@@ -111,5 +111,14 @@ async function pushScore(userId: string, displayName: string): Promise<void> {
   // fase). Guardamos también el % y el desglose por factores como info.
   const score = computeRankingScore(pred?.results ?? {}, real?.results ?? {})
   const report = computeAccuracy(pred?.results ?? {}, real?.results ?? {})
-  await upsertScore(userId, displayName, Number(score.pct.toFixed(2)), score.points, report.factors)
+  // Desempates: marcadores exactos y resultados acertados (exactos + tendencia).
+  await upsertScore(
+    userId,
+    displayName,
+    Number(score.pct.toFixed(2)),
+    score.points,
+    report.factors,
+    score.exact,
+    score.exact + score.tendency,
+  )
 }

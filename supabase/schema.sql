@@ -32,6 +32,10 @@ create table if not exists public.scores (
   last_pred_home int,
   last_pred_away int,
   last_points numeric not null default 0,
+  -- Desempate a igualdad de puntos: 1º más marcadores EXACTOS, 2º más
+  -- resultados acertados (ganó/empató/perdió, incluye los exactos).
+  exact_count int not null default 0,
+  result_count int not null default 0,
   updated_at timestamptz not null default now()
 );
 -- Si ya tenías la tabla creada, corré además (idempotente):
@@ -41,6 +45,8 @@ alter table public.scores add column if not exists last_pred_home int;
 alter table public.scores add column if not exists last_pred_away int;
 alter table public.scores add column if not exists last_points numeric not null default 0;
 alter table public.scores add column if not exists avatar_url text; -- foto de perfil (data URL)
+alter table public.scores add column if not exists exact_count int not null default 0;
+alter table public.scores add column if not exists result_count int not null default 0;
 alter table public.scores enable row level security;
 create policy "scores_select_all" on public.scores
   for select to authenticated using (true);
@@ -156,7 +162,13 @@ as $$
     from realm r join predm p on p.mid = r.mid
   ),
   agg as (
-    select user_id, sum(award) as points, sum(exact_pts) as maxp
+    select user_id,
+           sum(award) as points,
+           sum(exact_pts) as maxp,
+           -- exacto: el premio es el de "exacto" (siempre > tendencia en su fase).
+           sum(case when award = exact_pts then 1 else 0 end) as exact_count,
+           -- resultado acertado (incluye exactos): cualquier premio > 0.
+           sum(case when award > 0 then 1 else 0 end) as result_count
     from calc group by user_id
   ),
   -- Último partido jugado, por HORA DE INICIO. Los nº de partido NO están en
@@ -194,6 +206,8 @@ as $$
   set points = coalesce(a.points, 0),
       accuracy = case when coalesce(a.maxp, 0) > 0
                       then round(coalesce(a.points, 0)::numeric / a.maxp * 100, 2) else 0 end,
+      exact_count = coalesce(a.exact_count, 0),
+      result_count = coalesce(a.result_count, 0),
       last_match_id = (select mid from lastm),
       last_pred_home = lp.ph,
       last_pred_away = lp.pa,

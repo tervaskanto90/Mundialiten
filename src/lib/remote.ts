@@ -10,6 +10,10 @@ export interface RankingRow {
   display_name: string
   accuracy: number // % de acierto (dato secundario)
   points: number // puntos acumulados (ordena el ranking)
+  // Desempate cuando hay igualdad de puntos: 1º más marcadores EXACTOS,
+  // 2º más resultados acertados (ganó/empató/perdió, incluye los exactos).
+  exact_count?: number
+  result_count?: number
   // Snapshot del último partido jugado (lo completa el recálculo en el servidor):
   last_match_id?: number | null // nº del último partido sincronizado
   last_pred_home?: number | null // marcador que predijo (local), o null si no predijo
@@ -120,16 +124,26 @@ export async function upsertScore(
   accuracy: number,
   points: number,
   factors: AccuracyFactor[],
+  exactCount: number,
+  resultCount: number,
 ): Promise<void> {
   if (!supabase) return
-  const { error } = await supabase.from('scores').upsert({
+  const base = {
     user_id: userId,
     display_name: displayName,
     accuracy,
     points,
     factors,
     updated_at: new Date().toISOString(),
-  })
+  }
+  // Intentamos guardar también los desempates; si la migración que agrega esas
+  // columnas todavía no se corrió, reintentamos sin ellas para no romper el sync.
+  let { error } = await supabase
+    .from('scores')
+    .upsert({ ...base, exact_count: exactCount, result_count: resultCount })
+  if (error && /exact_count|result_count|column/i.test(error.message)) {
+    ;({ error } = await supabase.from('scores').upsert(base))
+  }
   if (error) throw error
 }
 
@@ -155,6 +169,15 @@ export async function fetchPastPredictions(): Promise<PastPred[]> {
 
 export async function fetchRanking(): Promise<RankingRow[]> {
   if (!supabase) return []
+  // 0) con desempate: a igualdad de PUNTOS, ordena por más EXACTOS y luego por
+  //    más RESULTADOS acertados. Requiere las columnas exact_count/result_count.
+  const withTiebreak = await supabase
+    .from('scores')
+    .select('user_id, display_name, accuracy, points, exact_count, result_count, last_match_id, last_pred_home, last_pred_away, last_points, avatar_url')
+    .order('points', { ascending: false })
+    .order('exact_count', { ascending: false })
+    .order('result_count', { ascending: false })
+  if (!withTiebreak.error) return (withTiebreak.data as RankingRow[]) ?? []
   // 1) con avatar + snapshot del último partido.
   const withAvatar = await supabase
     .from('scores')
