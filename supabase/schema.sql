@@ -226,3 +226,35 @@ create trigger recompute_on_real_change
 
 -- Recálculo inmediato (arregla los puntajes ya guardados):
 --   select public.recompute_all_scores();
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- PREDICCIONES PASADAS DE TODOS (para "Estadísticas")
+-- Devuelve, por cada partido YA JUGADO, lo que predijo cada usuario. Sólo
+-- partidos jugados: NO expone predicciones pendientes / en juego (no se puede
+-- copiar a nadie). security definer: saltea la RLS privada de `predictions`,
+-- pero el filtro por partido jugado garantiza que sólo se ven cosas del pasado.
+-- ─────────────────────────────────────────────────────────────────────────────
+create or replace function public.past_predictions()
+returns table(match_id int, user_id uuid, display_name text, avatar_url text, home int, away int)
+language sql
+security definer
+set search_path = public
+as $$
+  with played as (
+    select (e.key)::int as mid
+    from public.real_results rr, lateral jsonb_each(rr.results) e
+    where rr.id = 1 and e.key ~ '^[0-9]+$' and (e.value->>'played') = 'true'
+  )
+  select (pe.key)::int as match_id,
+         p.user_id,
+         coalesce(s.display_name, 'Jugador') as display_name,
+         s.avatar_url,
+         (pe.value->>'homeScore')::int as home,
+         (pe.value->>'awayScore')::int as away
+  from public.predictions p
+  cross join lateral jsonb_each(p.results) pe
+  join played pl on pl.mid = (pe.key)::int
+  left join public.scores s on s.user_id = p.user_id
+  where pe.key ~ '^[0-9]+$' and (pe.value->>'played') = 'true';
+$$;
+grant execute on function public.past_predictions() to authenticated;

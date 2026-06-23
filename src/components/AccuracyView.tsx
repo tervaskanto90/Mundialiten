@@ -14,6 +14,7 @@ import { formatDateShort, sideLabelFor } from '../utils/labels'
 import type { Scenario } from '../types'
 import { CompetitionStats } from './CompetitionStats'
 import { UserComparison } from './UserComparison'
+import { PastPredictions } from './PastPredictions'
 import { useT } from '../i18n'
 import { useTheme, ACCENT } from '../theme'
 
@@ -65,6 +66,7 @@ export function AccuracyView() {
           ))}
       </div>
       <UserComparison />
+      <PastPredictions />
       <CompetitionStats realResults={real.results} realRes={realRes} />
     </div>
   )

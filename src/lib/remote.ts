@@ -133,6 +133,26 @@ export async function upsertScore(
   if (error) throw error
 }
 
+// Predicciones de TODOS los usuarios para partidos YA JUGADOS (las pendientes /
+// en juego no se exponen). Lo resuelve una función RPC con security definer.
+export interface PastPred {
+  match_id: number
+  user_id: string
+  display_name: string
+  avatar_url?: string | null
+  home: number
+  away: number
+}
+export async function fetchPastPredictions(): Promise<PastPred[]> {
+  if (!supabase) return []
+  const { data, error } = await supabase.rpc('past_predictions')
+  if (error) {
+    console.warn('[past_predictions]', error.message)
+    return []
+  }
+  return (data as PastPred[]) ?? []
+}
+
 export async function fetchRanking(): Promise<RankingRow[]> {
   if (!supabase) return []
   // 1) con avatar + snapshot del último partido.
