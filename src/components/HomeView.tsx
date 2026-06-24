@@ -63,19 +63,19 @@ export function HomeView({
     )
       .sort((a, b) => Date.parse(a.kickoff) - Date.parse(b.kickoff))
       .map((m) => m.id)
-    return { ids: [...liveIds, ...upcoming].slice(0, 3), liveSet }
+    return [...liveIds, ...upcoming].slice(0, 3)
   }, [realResults, now])
 
   return (
     <div>
       <NewsStrip />
       <div className="grid gap-4 lg:grid-cols-2 mt-4">
-        <Panel title={t('📊 Pronóstico de las casas', '📊 Bookmaker odds')} subtitle={t('En juego y próximos', 'Live and upcoming')}>
-          <OddsList ctx={ctx} ids={dashIds.ids} liveSet={dashIds.liveSet} odds={odds} onEditMatch={onEditMatch} />
+        <Panel title={t('📊 Pronóstico de las casas', '📊 Bookmaker odds')} subtitle={t('Próximos partidos', 'Upcoming matches')}>
+          <OddsList ctx={ctx} ids={dashIds} odds={odds} onEditMatch={onEditMatch} />
         </Panel>
 
         <Panel title={t('🔮 Tu predicción', '🔮 Your prediction')} subtitle={t('Mismos partidos', 'Same matches')} action={{ label: t('Ir a tu predicción →', 'Go to your prediction →'), onClick: goToPrediction }}>
-          <PredictionList ctx={ctx} ids={dashIds.ids} liveSet={dashIds.liveSet} odds={odds} onEditMatch={onEditMatch} />
+          <PredictionList ctx={ctx} ids={dashIds} odds={odds} onEditMatch={onEditMatch} />
         </Panel>
 
         <Panel title={t('🏆 Ranking', '🏆 Ranking')} subtitle={t('Tu zona', 'Your zone')} action={{ label: t('Ver completo →', 'View full →'), onClick: () => onJump('ranking') }}>
@@ -132,7 +132,7 @@ function TeamsLabel({ ctx, id }: { ctx: ActiveContext; id: number }) {
   )
 }
 
-function OddsList({ ctx, ids, liveSet, odds, onEditMatch }: { ctx: ActiveContext; ids: number[]; liveSet: Set<number>; odds: OddsState; onEditMatch: (id: number) => void }) {
+function OddsList({ ctx, ids, odds, onEditMatch }: { ctx: ActiveContext; ids: number[]; odds: OddsState; onEditMatch: (id: number) => void }) {
   const { t } = useT()
   const { c, dark } = useTheme()
   if (ids.length === 0) return <Empty>{t('No hay partidos próximos.', 'No upcoming matches.')}</Empty>
@@ -146,7 +146,6 @@ function OddsList({ ctx, ids, liveSet, odds, onEditMatch }: { ctx: ActiveContext
           <button key={id} onClick={() => onEditMatch(id)} className="w-full text-left flex flex-col justify-center border-b last:border-b-0" style={{ height: ROW_H, borderColor: c.line }}>
             <div className="flex items-center justify-between text-xs mb-1">
               <span className="truncate flex items-center gap-1">
-                {liveSet.has(id) && <span style={{ color: ACCENT.red }}>●</span>}
                 <TeamsLabel ctx={ctx} id={id} />
               </span>
               <span className="text-[10px] shrink-0 ml-2" style={{ color: c.faint }}>{o ? o.bookmaker : t('sin cuota', 'no odds')}</span>
@@ -176,7 +175,7 @@ function OddsList({ ctx, ids, liveSet, odds, onEditMatch }: { ctx: ActiveContext
   )
 }
 
-function PredictionList({ ctx, ids, liveSet, odds, onEditMatch }: { ctx: ActiveContext; ids: number[]; liveSet: Set<number>; odds: OddsState; onEditMatch: (id: number) => void }) {
+function PredictionList({ ctx, ids, odds, onEditMatch }: { ctx: ActiveContext; ids: number[]; odds: OddsState; onEditMatch: (id: number) => void }) {
   const { t } = useT()
   const { c } = useTheme()
   const scenarios = useStore((s) => s.scenarios)
@@ -206,7 +205,6 @@ function PredictionList({ ctx, ids, liveSet, odds, onEditMatch }: { ctx: ActiveC
         return (
           <button key={id} onClick={() => onEditMatch(id)} className="w-full text-left flex items-center gap-2 border-b last:border-b-0 text-xs" style={{ height: ROW_H, borderColor: c.line }}>
             <span className="flex items-center gap-1 flex-1 min-w-0">
-              {liveSet.has(id) && <span style={{ color: ACCENT.red }}>●</span>}
               <TeamsLabel ctx={ctx} id={id} />
             </span>
             {chip && (
