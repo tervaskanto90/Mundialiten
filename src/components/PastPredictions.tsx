@@ -6,6 +6,7 @@ import { resolve } from '../engine/resolve'
 import { MATCH_BY_ID } from '../data/schedule'
 import { sideLabelFor } from '../utils/labels'
 import { Avatar } from './Avatar'
+import { Dropdown } from './Dropdown'
 import { useT } from '../i18n'
 import { useTheme, ACCENT } from '../theme'
 
@@ -58,26 +59,30 @@ export function PastPredictions() {
       return order[a.k] - order[b.k] || a.display_name.localeCompare(b.display_name)
     })
 
-  const selStyle: React.CSSProperties = {
-    fontSize: '12px', fontWeight: 700, fontFamily: "'Archivo'", cursor: 'pointer',
-    padding: '7px 12px', borderRadius: '10px', color: c.text,
-    background: dark ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.04)', border: '1px solid ' + c.line,
-  }
-
   return (
     <div className="mt-5">
       <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
         <div className="text-[11px] uppercase tracking-wide font-bold" style={{ color: c.muted }}>🗂️ {t('Qué puso cada uno', 'Everyone’s past picks')}</div>
-        <select value={current} onChange={(e) => setSel(Number(e.target.value))} style={selStyle}>
-          {matchIds.map((id) => {
+        <Dropdown
+          value={current}
+          onChange={(v) => setSel(Number(v))}
+          ariaLabel={t('Elegir partido', 'Choose match')}
+          options={matchIds.map((id) => {
             const mm = MATCH_BY_ID[id]
             const h = sideLabelFor(id, mm.home, 'home', realRes)
             const a = sideLabelFor(id, mm.away, 'away', realRes)
             const r = realResults[id]!
             const d = new Date(mm.kickoff).toLocaleDateString(lang === 'en' ? 'en-GB' : 'es-AR', { day: '2-digit', month: 'short' })
-            return <option key={id} value={id}>{`${h.flag} ${h.short} ${r.homeScore}-${r.awayScore} ${a.short} ${a.flag} · ${d}`}</option>
+            return {
+              value: id,
+              label: (
+                <span>
+                  {h.flag} {h.short} <span className="tabular-nums">{r.homeScore}-{r.awayScore}</span> {a.short} {a.flag} <span style={{ color: c.muted }}>· {d}</span>
+                </span>
+              ),
+            }
           })}
-        </select>
+        />
       </div>
 
       <div className="rounded-2xl p-3" style={{ background: c.cardGrad, border: '1px solid ' + c.line, boxShadow: c.shadow }}>
