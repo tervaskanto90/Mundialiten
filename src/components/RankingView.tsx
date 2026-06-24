@@ -9,6 +9,7 @@ import { STAGE_POINTS } from '../engine/accuracy'
 import { TEAM_BY_ID } from '../data/teams'
 import { rankDeltas, tieGroups } from '../lib/rankDelta'
 import { Avatar } from './Avatar'
+import { useIsDesktop } from '../hooks/useIsDesktop'
 import { useTheme, ACCENT } from '../theme'
 
 const MEDALS = ['🥇', '🥈', '🥉']
@@ -83,6 +84,7 @@ export function RankingView() {
   const { enabled, user } = useAuth()
   const { t } = useT()
   const { c, dark } = useTheme()
+  const isDesktop = useIsDesktop()
   const [rows, setRows] = useState<RankingRow[] | null>(null)
   const [past, setPast] = useState<PastPred[] | null>(null)
   const [error, setError] = useState('')
@@ -226,61 +228,82 @@ export function RankingView() {
         <div className="space-y-2">
           {rowList.map(({ r, rank }) => {
             const mine = r.user_id === user.id
+            const nameBox = (
+              <div className="font-semibold truncate" style={{ color: c.text, fontFamily: "'Archivo'" }}>
+                {r.display_name}
+                {mine && <span className="text-[10px] ml-1" style={{ color: ACCENT.blue }}>{t('(vos)', '(you)')}</span>}
+              </div>
+            )
+            const badges = (
+              <>
+                {targetIds.length > 0 && <DeltaBadge delta={deltas.get(r.user_id) ?? 0} />}
+                <span className="text-[10px] font-semibold tabular-nums" style={{ color: ACCENT.green }} title={t('Marcadores exactos (1er desempate)', 'Exact scores (1st tie-breaker)')}>
+                  🎯 {Number(r.exact_count ?? 0)} {t('exactos', 'exact')}
+                </span>
+                <span className="text-[10px] font-semibold tabular-nums" style={{ color: ACCENT.blue }} title={t('Resultados acertados — ganó/empató/perdió (2º desempate)', 'Correct results — win/draw/loss (2nd tie-breaker)')}>
+                  ✅ {Number(r.result_count ?? 0)} {t('result.', 'results')}
+                </span>
+                <span className="text-[10px]" style={{ color: c.faint }}>{Number(r.accuracy).toFixed(0)}% {t('efectiv.', 'acc.')}</span>
+              </>
+            )
+            const pointsBox = (
+              <div className="text-right shrink-0">
+                <div className="font-bold tabular-nums leading-none" style={{ fontFamily: "'Archivo'", fontSize: 20, color: c.text }}>
+                  {Math.round(Number(r.points))}
+                  <span className="text-[10px] ml-0.5 font-semibold" style={{ color: c.muted }}>{t('pts', 'pts')}</span>
+                </div>
+              </div>
+            )
+            const predPills =
+              targetIds.length > 0
+                ? targetIds.map((mid) => {
+                    const rr = realResults[mid]
+                    if (!rr?.played) return null
+                    const tm = realRes.matches[mid]
+                    const hf = TEAM_BY_ID[tm?.home ?? '']?.flag ?? '🏳️'
+                    const af = TEAM_BY_ID[tm?.away ?? '']?.flag ?? '🏳️'
+                    const p = predByKey.get(`${r.user_id}|${mid}`)
+                    return p ? (
+                      <PredScore key={mid} compact={isDesktop} ph={p.home} pa={p.away} rh={rr.homeScore} ra={rr.awayScore} homeFlag={hf} awayFlag={af} points={marcadorPoints(mid, p.home, p.away, rr.homeScore, rr.awayScore)} />
+                    ) : (
+                      <span key={mid} className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs shrink-0" style={{ color: c.faint, border: '1px solid ' + c.line }} title={t('Sin predicción', 'No prediction')}>
+                        {hf}<span style={{ opacity: 0.6 }}>–</span>{af}
+                      </span>
+                    )
+                  })
+                : null
             return (
               <div
                 key={r.user_id}
                 className="rounded-2xl px-3 py-2.5"
                 style={mine ? { border: '1px solid ' + ACCENT.blue, background: dark ? 'rgba(47,109,240,.16)' : 'rgba(47,109,240,.09)' } : { border: '1px solid ' + c.line, background: c.cardGrad, boxShadow: c.shadow }}
               >
-                <div className="flex items-center gap-2.5">
-                  <RankBadge rank={rank} />
-                  <Avatar src={r.avatar_url} name={r.display_name} size={36} />
-                  <div className="flex-1 min-w-0">
-                    <div className="font-semibold truncate" style={{ color: c.text, fontFamily: "'Archivo'" }}>
-                      {r.display_name}
-                      {mine && <span className="text-[10px] ml-1" style={{ color: ACCENT.blue }}>{t('(vos)', '(you)')}</span>}
+                {isDesktop ? (
+                  // DESKTOP: una sola línea — predicciones al lado del puntaje.
+                  <div className="flex items-center gap-2.5">
+                    <RankBadge rank={rank} />
+                    <Avatar src={r.avatar_url} name={r.display_name} size={36} />
+                    <div className="flex-1 min-w-0">
+                      {nameBox}
+                      <div className="mt-0.5 flex items-center gap-2 flex-wrap">{badges}</div>
                     </div>
-                    <div className="mt-0.5 flex items-center gap-2 flex-wrap">
-                      {targetIds.length > 0 && <DeltaBadge delta={deltas.get(r.user_id) ?? 0} />}
-                      <span className="text-[10px] font-semibold tabular-nums" style={{ color: ACCENT.green }} title={t('Marcadores exactos (1er desempate)', 'Exact scores (1st tie-breaker)')}>
-                        🎯 {Number(r.exact_count ?? 0)} {t('exactos', 'exact')}
-                      </span>
-                      <span className="text-[10px] font-semibold tabular-nums" style={{ color: ACCENT.blue }} title={t('Resultados acertados — ganó/empató/perdió (2º desempate)', 'Correct results — win/draw/loss (2nd tie-breaker)')}>
-                        ✅ {Number(r.result_count ?? 0)} {t('result.', 'results')}
-                      </span>
-                      <span className="text-[10px]" style={{ color: c.faint }}>{Number(r.accuracy).toFixed(0)}% {t('efectiv.', 'acc.')}</span>
-                    </div>
+                    {predPills && <div className="flex items-center gap-1.5 shrink-0">{predPills}</div>}
+                    {pointsBox}
                   </div>
-
-                  {/* Predicción de cada jugador para los 1-2 partidos, al lado del
-                      puntaje (sin repetir el resultado, que ya está arriba). */}
-                  {targetIds.length > 0 && (
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      {targetIds.map((mid) => {
-                        const rr = realResults[mid]
-                        if (!rr?.played) return null
-                        const tm = realRes.matches[mid]
-                        const hf = TEAM_BY_ID[tm?.home ?? '']?.flag ?? '🏳️'
-                        const af = TEAM_BY_ID[tm?.away ?? '']?.flag ?? '🏳️'
-                        const p = predByKey.get(`${r.user_id}|${mid}`)
-                        return p ? (
-                          <PredScore key={mid} compact ph={p.home} pa={p.away} rh={rr.homeScore} ra={rr.awayScore} homeFlag={hf} awayFlag={af} points={marcadorPoints(mid, p.home, p.away, rr.homeScore, rr.awayScore)} />
-                        ) : (
-                          <span key={mid} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs shrink-0" style={{ color: c.faint, border: '1px solid ' + c.line }} title={t('Sin predicción', 'No prediction')}>
-                            {hf}<span style={{ opacity: 0.6 }}>–</span>{af}
-                          </span>
-                        )
-                      })}
+                ) : (
+                  // MOBILE: nombre + puntaje arriba; debajo, badges y predicciones
+                  // en sus propias filas (legible, no apretado).
+                  <>
+                    <div className="flex items-center gap-2.5">
+                      <RankBadge rank={rank} />
+                      <Avatar src={r.avatar_url} name={r.display_name} size={36} />
+                      <div className="flex-1 min-w-0">{nameBox}</div>
+                      {pointsBox}
                     </div>
-                  )}
-
-                  <div className="text-right shrink-0">
-                    <div className="font-bold tabular-nums leading-none" style={{ fontFamily: "'Archivo'", fontSize: 20, color: c.text }}>
-                      {Math.round(Number(r.points))}
-                      <span className="text-[10px] ml-0.5 font-semibold" style={{ color: c.muted }}>{t('pts', 'pts')}</span>
-                    </div>
-                  </div>
-                </div>
+                    <div className="mt-1.5 flex items-center gap-x-3 gap-y-1 flex-wrap">{badges}</div>
+                    {predPills && <div className="mt-2 flex items-center gap-2 flex-wrap">{predPills}</div>}
+                  </>
+                )}
               </div>
             )
           })}

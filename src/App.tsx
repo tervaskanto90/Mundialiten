@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { ScenarioToggle } from './components/ScenarioToggle'
-import { LiveBanner } from './components/LiveBanner'
 import { AccountModal } from './components/AccountModal'
 import { ProjectsShowcase } from './components/ProjectsShowcase'
 import { FixtureView } from './components/FixtureView'
@@ -12,7 +11,6 @@ import { HomeView } from './components/HomeView'
 import { HeaderScore } from './components/HeaderScore'
 import { Avatar } from './components/Avatar'
 import { useActiveContext, useLiveSyncPolling } from './hooks'
-import { useStore, getScenario, REAL_SCENARIO_ID } from './store/useStore'
 import { useAuth } from './auth'
 import { useSupabaseSync } from './lib/sync'
 import { useT, type Lang } from './i18n'
@@ -63,8 +61,6 @@ export default function App() {
   const { c, dark, toggle } = useTheme()
   const isDesktop = useIsDesktop()
   const [branding] = useBranding()
-  const realScenario = useStore((s) => getScenario(s.scenarios, REAL_SCENARIO_ID))
-  const realResults = realScenario?.results ?? {}
   useLiveSyncPolling()
   useSupabaseSync()
 
@@ -373,7 +369,7 @@ export default function App() {
           </header>
         ) : (
           // MOBILE: encabezado fijo MÍNIMO — sólo hamburguesa + logo + MUNDIALITEN.
-          // Debajo, el/los partidos en vivo. Todo lo demás vive en el menú.
+          // Todo lo demás vive en el menú. El "en vivo" no se repite acá.
           <header style={mobileHeaderStyle}>
             <div style={{ display: 'flex', alignItems: 'center', gap: px(11) }}>
               {hamburgerBtn}
@@ -387,7 +383,6 @@ export default function App() {
                 </div>
               </div>
             </div>
-            <LiveBanner realResults={realResults} embedded />
           </header>
         )}
 
