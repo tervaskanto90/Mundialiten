@@ -24,6 +24,27 @@ export function MatchRow({ matchId, ctx, onEdit, showVenue = true, showDate = fa
   const rm = ctx.resolution.matches[matchId]
   // En vivo según los resultados REALES (vale en cualquier pestaña).
   const live = isMatchLive(ctx.real.results, matchId)
+
+  // Verde/rojo SOLO cuando está garantizado DE VERDAD (según los resultados
+  // reales), por fase:
+  //  - Grupos: verde si ya aseguró top-2 o mejor-3°; rojo si ya no puede entrar.
+  //  - Eliminatorias: verde si GANÓ ese partido (pasa); rojo si lo PERDIÓ (afuera).
+  // Las etapas/partidos sin definir quedan neutros (ni verde ni rojo).
+  const realRes = ctx.realResolution
+  const statusFor = (short?: string): { qualified: boolean; eliminated: boolean } => {
+    if (!short) return { qualified: false, eliminated: false }
+    if (match.stage === 'group') {
+      return { qualified: realRes.qualified.has(short), eliminated: realRes.eliminated.has(short) }
+    }
+    const realM = realRes.matches[matchId]
+    if (realM?.decided) {
+      if (realM.winner === short) return { qualified: true, eliminated: false }
+      if (realM.loser === short) return { qualified: false, eliminated: true }
+    }
+    return { qualified: false, eliminated: false }
+  }
+  const homeStatus = statusFor(home.short)
+  const awayStatus = statusFor(away.short)
   // En una predicción, marcamos los partidos que todavía no se pueden predecir.
   const lockedForPrediction = ctx.scenario.type === 'prediction' && !canPredict(match)
 
@@ -61,8 +82,8 @@ export function MatchRow({ matchId, ctx, onEdit, showVenue = true, showDate = fa
             flag={home.flag}
             name={home.name}
             winner={!!played && rm?.winner === home.short}
-            eliminated={!!home.short && ctx.resolution.eliminated.has(home.short)}
-            qualified={!!home.short && ctx.resolution.qualified.has(home.short)}
+            eliminated={homeStatus.eliminated}
+            qualified={homeStatus.qualified}
             c={c}
           />
           <Score played={!!played} h={res?.homeScore} a={res?.awayScore} hp={res?.homePens} ap={res?.awayPens} live={live} c={c} />
@@ -70,8 +91,8 @@ export function MatchRow({ matchId, ctx, onEdit, showVenue = true, showDate = fa
             flag={away.flag}
             name={away.name}
             winner={!!played && rm?.winner === away.short}
-            eliminated={!!away.short && ctx.resolution.eliminated.has(away.short)}
-            qualified={!!away.short && ctx.resolution.qualified.has(away.short)}
+            eliminated={awayStatus.eliminated}
+            qualified={awayStatus.qualified}
             right
             c={c}
           />

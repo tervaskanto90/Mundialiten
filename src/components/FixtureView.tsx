@@ -47,9 +47,11 @@ export function FixtureView({ ctx, onEdit }: { ctx: ActiveContext; onEdit: (id: 
           </button>
         ))}
       </div>
-      {sub === 'calendario' && <CalendarView ctx={ctx} onEdit={onEdit} />}
-      {sub === 'grupos' && <GroupsView ctx={ctx} />}
-      {sub === 'llaves' && <BracketView ctx={ctx} onEdit={onEdit} />}
+      <div key={sub} style={{ animation: 'mdlUp .22s ease both' }}>
+        {sub === 'calendario' && <CalendarView ctx={ctx} onEdit={onEdit} />}
+        {sub === 'grupos' && <GroupsView ctx={ctx} />}
+        {sub === 'llaves' && <BracketView ctx={ctx} onEdit={onEdit} />}
+      </div>
     </div>
   )
 }

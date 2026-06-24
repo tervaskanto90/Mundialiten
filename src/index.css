@@ -53,6 +53,41 @@ body {
   color: var(--mdl-text);
 }
 
+/* ── Interacciones globales: todo responde rápido y fluido ──
+   Cualquier elemento "tocable" (botones, links, selects, checkboxes, labels,
+   resúmenes) tiene una transición corta para color/fondo/borde/sombra/escala,
+   y un micro "press" al apretar. Las reglas con transición propia (inline o
+   utilitarias) la pisan sin problema. */
+button,
+a,
+select,
+summary,
+label,
+[role='button'],
+input[type='checkbox'] {
+  transition: background-color 0.16s ease, border-color 0.16s ease, color 0.16s ease,
+    box-shadow 0.18s ease, transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.16s ease,
+    filter 0.16s ease;
+}
+button:active:not(:disabled),
+a:active,
+[role='button']:active,
+summary:active {
+  transform: scale(0.965);
+}
+
+/* Respeta a quien pide menos movimiento. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* ── Animaciones del diseño (mdl*) ── */
 @keyframes mdlLivePulse {
   0%, 100% { opacity: 1; transform: scale(1); }
@@ -160,7 +195,11 @@ body {
   display: flex;
   flex-direction: column;
   flex: 0 0 13.5rem;
-  padding: 0 1.25rem;
+  /* --bp = mitad del espacio entre columnas: los conectores miden exactamente
+     ese ancho, así la barra vertical cae justo a mitad de camino (alineada en
+     desktop Y mobile, sin importar el padding). */
+  --bp: 1.25rem;
+  padding: 0 var(--bp);
 }
 @media (max-width: 640px) {
   .bracket {
@@ -168,7 +207,7 @@ body {
   }
   .bracket-round {
     flex-basis: 11rem;
-    padding: 0 0.85rem;
+    --bp: 0.85rem;
   }
 }
 .bracket-round-title {
@@ -206,7 +245,7 @@ body {
   content: '';
   position: absolute;
   left: 100%;
-  width: 1.25rem;
+  width: var(--bp);
   height: 50%;
   border-right: 2px solid var(--bl);
 }
@@ -224,7 +263,7 @@ body {
   position: absolute;
   right: 100%;
   top: 50%;
-  width: 1.25rem;
+  width: var(--bp);
   height: 2px;
   background: var(--bl);
 }
