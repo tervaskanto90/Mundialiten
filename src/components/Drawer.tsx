@@ -1,0 +1,122 @@
+import { type ReactNode, useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
+import { useTheme } from '../theme'
+
+const EXIT_MS = 220
+
+/** Panel lateral (menú hamburguesa). Entra desde la izquierda y sale con
+ *  animación. `footer` queda fijo abajo de todo (lo usamos para el live). */
+export function Drawer({
+  open,
+  onClose,
+  title,
+  children,
+  footer,
+}: {
+  open: boolean
+  onClose: () => void
+  title?: string
+  children: ReactNode
+  footer?: ReactNode
+}) {
+  const { c, dark } = useTheme()
+  // `render` mantiene el panel montado durante la animación de salida. La
+  // animación la maneja el efecto al ver cambiar `open` (también cuando lo
+  // cierran desde afuera, p.ej. al tocar una sección del menú).
+  const [render, setRender] = useState(open)
+  const [closing, setClosing] = useState(false)
+
+  useEffect(() => {
+    if (open) {
+      setRender(true)
+      setClosing(false)
+      return
+    }
+    if (!render) return
+    setClosing(true)
+    const id = window.setTimeout(() => {
+      setRender(false)
+      setClosing(false)
+    }, EXIT_MS)
+    return () => window.clearTimeout(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
+
+  useEffect(() => {
+    if (!render) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    // Bloqueamos el scroll del fondo mientras el menú está abierto: en Chrome
+    // mobile, dejarlo libre hacía que el scroll del menú "saltara" al body.
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.body.style.overflow = prevOverflow
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [render])
+
+  if (!render) return null
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-50"
+      style={{
+        height: '100dvh',
+        background: 'rgba(16,12,6,.55)',
+        animation: `${closing ? 'mdlFadeOut' : 'mdlFadeIn'} ${EXIT_MS}ms ease both`,
+      }}
+      onClick={onClose}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          height: '100dvh',
+          width: '85%',
+          maxWidth: 320,
+          background: dark ? 'linear-gradient(160deg,#241B0E,#191309)' : 'linear-gradient(160deg,#FFFDF6,#F6EEDA)',
+          borderRight: '1px solid ' + c.line,
+          boxShadow: '0 0 60px -8px rgba(0,0,0,.6)',
+          display: 'flex',
+          flexDirection: 'column',
+          animation: closing
+            ? `mdlDrawerOut ${EXIT_MS}ms ease both`
+            : 'mdlDrawerIn .26s cubic-bezier(.4,1.15,.5,1) both',
+          overflow: 'hidden',
+        }}
+      >
+        <div style={{ height: 4, flex: 'none', background: 'linear-gradient(90deg,#2F6DF0,#7B3FF2,#EC1C7D,#FF7A1A,#FFC21A,#1FA85C)' }} />
+        <div className="flex items-center justify-between px-4 py-3" style={{ flex: 'none', borderBottom: '1px solid ' + c.line }}>
+          <span className="font-bold" style={{ fontFamily: "'Archivo'", color: c.text }}>
+            {title}
+          </span>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-lg flex items-center justify-center"
+            style={{ color: c.muted, border: '1px solid ' + c.line, background: dark ? 'rgba(0,0,0,.3)' : 'rgba(0,0,0,.04)' }}
+          >
+            ✕
+          </button>
+        </div>
+        <div
+          className="px-4 py-4"
+          style={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}
+        >
+          {children}
+        </div>
+        {footer && (
+          <div className="px-4 py-3" style={{ flex: 'none', borderTop: '1px solid ' + c.line }}>
+            {footer}
+          </div>
+        )}
+      </div>
+    </div>,
+    document.body,
+  )
+}

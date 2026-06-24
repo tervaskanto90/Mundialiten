@@ -32,6 +32,10 @@ create table if not exists public.scores (
   last_pred_home int,
   last_pred_away int,
   last_points numeric not null default 0,
+  -- Desempate a igualdad de puntos: 1º más marcadores EXACTOS, 2º más
+  -- resultados acertados (ganó/empató/perdió, incluye los exactos).
+  exact_count int not null default 0,
+  result_count int not null default 0,
   updated_at timestamptz not null default now()
 );
 -- Si ya tenías la tabla creada, corré además (idempotente):
@@ -40,6 +44,9 @@ alter table public.scores add column if not exists last_match_id int;
 alter table public.scores add column if not exists last_pred_home int;
 alter table public.scores add column if not exists last_pred_away int;
 alter table public.scores add column if not exists last_points numeric not null default 0;
+alter table public.scores add column if not exists avatar_url text; -- foto de perfil (data URL)
+alter table public.scores add column if not exists exact_count int not null default 0;
+alter table public.scores add column if not exists result_count int not null default 0;
 alter table public.scores enable row level security;
 create policy "scores_select_all" on public.scores
   for select to authenticated using (true);
@@ -61,6 +68,35 @@ create policy "real_insert_auth" on public.real_results
   for insert to authenticated with check (true);
 create policy "real_update_auth" on public.real_results
   for update to authenticated using (true);
+
+-- Imagen compartida del encabezado: una sola fila (id = 1) con la imagen para
+-- modo claro y la de modo oscuro (guardadas como data URL en texto). La VEN
+-- todos (incluso sin login), pero sólo el admin (por su email en el JWT) puede
+-- crearla o cambiarla.
+create table if not exists public.branding (
+  id int primary key default 1 check (id = 1),
+  light_url text,
+  dark_url text,
+  img_scale numeric not null default 1, -- escala de toda la barra de arriba
+  updated_at timestamptz not null default now()
+);
+-- Si ya tenías la tabla creada, agrega la columna (idempotente):
+alter table public.branding add column if not exists img_scale numeric not null default 1;
+alter table public.branding enable row level security;
+-- Lectura para cualquiera: la imagen la ve todo el mundo.
+drop policy if exists "branding_select_all" on public.branding;
+create policy "branding_select_all" on public.branding
+  for select using (true);
+-- Escritura SÓLO para el admin, identificado por su email en el JWT.
+drop policy if exists "branding_insert_admin" on public.branding;
+create policy "branding_insert_admin" on public.branding
+  for insert to authenticated
+  with check ((auth.jwt() ->> 'email') = 'boggianooctavio@gmail.com');
+drop policy if exists "branding_update_admin" on public.branding;
+create policy "branding_update_admin" on public.branding
+  for update to authenticated
+  using ((auth.jwt() ->> 'email') = 'boggianooctavio@gmail.com')
+  with check ((auth.jwt() ->> 'email') = 'boggianooctavio@gmail.com');
 
 -- Recordatorios por mail ya enviados (para no repetir). La usa SÓLO el cron con
 -- la service role key (que saltea RLS), así que no hace falta ninguna policy:
@@ -109,9 +145,13 @@ as $$
     where e.key ~ '^[0-9]+$' and (e.value->>'played') = 'true'
   ),
   calc as (
-    select p.user_id,
+    select p.user_id, r.mid as mid,
       (case when r.mid<=72 then 3 when r.mid<=88 then 4 when r.mid<=96 then 5
             when r.mid<=100 then 6 when r.mid<=102 then 8 else 10 end) as exact_pts,
+      -- Bonus "quién pasa" (eliminatorias): 16avos/8vos 2 · 4tos 3 · semis 4 ·
+      -- 3º/final 5. 0 en fase de grupos.
+      (case when r.mid<=72 then 0 when r.mid<=88 then 2 when r.mid<=96 then 2
+            when r.mid<=100 then 3 when r.mid<=102 then 4 else 5 end) as adv_pts,
       case
         when (p.pv->>'homeScore') = (r.rv->>'homeScore')
          and (p.pv->>'awayScore') = (r.rv->>'awayScore')
@@ -122,11 +162,40 @@ as $$
           then (case when r.mid<=72 then 1 when r.mid<=88 then 2 when r.mid<=96 then 2
                      when r.mid<=100 then 3 when r.mid<=102 then 4 else 5 end)
         else 0
-      end as award
+      end as award,
+      -- Premio "quién pasa": acertar el LADO que avanza (por marcador o, si hay
+      -- empate, por penales). Sólo donde adv_pts > 0 (eliminatorias).
+      case
+        when (case when r.mid<=72 then 0 when r.mid<=88 then 2 when r.mid<=96 then 2
+                   when r.mid<=100 then 3 when r.mid<=102 then 4 else 5 end) = 0 then 0
+        when (
+          case when (p.pv->>'homeScore')::int > (p.pv->>'awayScore')::int then 'h'
+               when (p.pv->>'awayScore')::int > (p.pv->>'homeScore')::int then 'a'
+               when coalesce((p.pv->>'homePens')::int,0) > coalesce((p.pv->>'awayPens')::int,0) then 'h'
+               when coalesce((p.pv->>'awayPens')::int,0) > coalesce((p.pv->>'homePens')::int,0) then 'a'
+               else 'p' end
+        ) = (
+          case when (r.rv->>'homeScore')::int > (r.rv->>'awayScore')::int then 'h'
+               when (r.rv->>'awayScore')::int > (r.rv->>'homeScore')::int then 'a'
+               when coalesce((r.rv->>'homePens')::int,0) > coalesce((r.rv->>'awayPens')::int,0) then 'h'
+               when coalesce((r.rv->>'awayPens')::int,0) > coalesce((r.rv->>'homePens')::int,0) then 'a'
+               else 'r' end
+        )
+          then (case when r.mid<=72 then 0 when r.mid<=88 then 2 when r.mid<=96 then 2
+                     when r.mid<=100 then 3 when r.mid<=102 then 4 else 5 end)
+        else 0
+      end as adv_award
     from realm r join predm p on p.mid = r.mid
   ),
   agg as (
-    select user_id, sum(award) as points, sum(exact_pts) as maxp
+    select user_id,
+           -- puntos = marcador + bonus "quién pasa"
+           sum(award + adv_award) as points,
+           sum(exact_pts + adv_pts) as maxp,
+           -- exacto: el premio de marcador es el de "exacto" (siempre > tendencia).
+           sum(case when award = exact_pts then 1 else 0 end) as exact_count,
+           -- resultado acertado (incluye exactos): cualquier premio de marcador > 0.
+           sum(case when award > 0 then 1 else 0 end) as result_count
     from calc group by user_id
   ),
   -- Último partido jugado, por HORA DE INICIO. Los nº de partido NO están en
@@ -155,7 +224,7 @@ as $$
     select p.user_id,
            (p.pv->>'homeScore')::int as ph,
            (p.pv->>'awayScore')::int as pa,
-           coalesce(c.award, 0) as lpts
+           coalesce(c.award, 0) + coalesce(c.adv_award, 0) as lpts
     from predm p
     join lastm l on p.mid = l.mid
     left join calc c on c.user_id = p.user_id and c.mid = l.mid
@@ -164,6 +233,8 @@ as $$
   set points = coalesce(a.points, 0),
       accuracy = case when coalesce(a.maxp, 0) > 0
                       then round(coalesce(a.points, 0)::numeric / a.maxp * 100, 2) else 0 end,
+      exact_count = coalesce(a.exact_count, 0),
+      result_count = coalesce(a.result_count, 0),
       last_match_id = (select mid from lastm),
       last_pred_home = lp.ph,
       last_pred_away = lp.pa,
@@ -196,3 +267,35 @@ create trigger recompute_on_real_change
 
 -- Recálculo inmediato (arregla los puntajes ya guardados):
 --   select public.recompute_all_scores();
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- PREDICCIONES PASADAS DE TODOS (para "Estadísticas")
+-- Devuelve, por cada partido YA JUGADO, lo que predijo cada usuario. Sólo
+-- partidos jugados: NO expone predicciones pendientes / en juego (no se puede
+-- copiar a nadie). security definer: saltea la RLS privada de `predictions`,
+-- pero el filtro por partido jugado garantiza que sólo se ven cosas del pasado.
+-- ─────────────────────────────────────────────────────────────────────────────
+create or replace function public.past_predictions()
+returns table(match_id int, user_id uuid, display_name text, avatar_url text, home int, away int)
+language sql
+security definer
+set search_path = public
+as $$
+  with played as (
+    select (e.key)::int as mid
+    from public.real_results rr, lateral jsonb_each(rr.results) e
+    where rr.id = 1 and e.key ~ '^[0-9]+$' and (e.value->>'played') = 'true'
+  )
+  select (pe.key)::int as match_id,
+         p.user_id,
+         coalesce(s.display_name, 'Jugador') as display_name,
+         s.avatar_url,
+         (pe.value->>'homeScore')::int as home,
+         (pe.value->>'awayScore')::int as away
+  from public.predictions p
+  cross join lateral jsonb_each(p.results) pe
+  join played pl on pl.mid = (pe.key)::int
+  left join public.scores s on s.user_id = p.user_id
+  where pe.key ~ '^[0-9]+$' and (pe.value->>'played') = 'true';
+$$;
+grant execute on function public.past_predictions() to authenticated;

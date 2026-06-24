@@ -28,18 +28,21 @@ export function rankDeltas(rows: RankDeltaRow[]): Map<string, number> {
 }
 
 /**
- * Agrupa filas (YA ordenadas por puntos desc) por PUESTO: las que comparten
- * puntos quedan en el mismo grupo. `rank` = posición del primero del grupo
- * (1, 2, 2, 4… competición estándar).
+ * Agrupa filas (YA ordenadas por el mismo criterio del ranking) por PUESTO: las
+ * que comparten la MISMA clave quedan en el mismo grupo. `rank` = posición del
+ * primero del grupo (1, 2, 2, 4… competición estándar).
+ *
+ * La clave puede ser compuesta (string): dos usuarios comparten puesto sólo si
+ * empatan en TODOS los criterios de desempate (puntos → exactos → resultados).
  */
-export function tieGroups<T>(rows: T[], points: (r: T) => number): { rank: number; members: T[] }[] {
+export function tieGroups<T>(rows: T[], key: (r: T) => number | string): { rank: number; members: T[] }[] {
   const out: { rank: number; members: T[] }[] = []
   let i = 0
   while (i < rows.length) {
-    const pts = points(rows[i])
+    const k = key(rows[i])
     const rank = i + 1
     const members: T[] = []
-    while (i < rows.length && points(rows[i]) === pts) {
+    while (i < rows.length && key(rows[i]) === k) {
       members.push(rows[i])
       i++
     }

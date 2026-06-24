@@ -6,6 +6,7 @@ import {
   allGroupsComplete,
   groupComplete,
   eliminatedFromTop3,
+  securedTop2,
   sortStanding,
   type StandingRow,
 } from './standings'
@@ -28,6 +29,8 @@ export interface Resolution {
   matches: Record<number, ResolvedMatch>
   /** Equipos eliminados (no pueden clasificar a la fase final). */
   eliminated: Set<string>
+  /** Equipos que YA aseguraron clasificación (top 2 directo + mejores 3os confirmados). */
+  qualified: Set<string>
 }
 
 /**
@@ -215,5 +218,8 @@ export function resolve(
   }
 
   const eliminated = computeEliminated(standings, results, bestThirds)
-  return { standings, bestThirds, slots, matches, eliminated }
+  const qualified = new Set<string>()
+  for (const g of GROUPS) for (const id of securedTop2(g, results)) qualified.add(id)
+  for (const id of (bestThirds ?? []).slice(0, 8)) qualified.add(id) // mejores 3os ya confirmados
+  return { standings, bestThirds, slots, matches, eliminated, qualified }
 }

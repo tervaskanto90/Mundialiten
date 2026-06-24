@@ -1,8 +1,11 @@
+import { useRef } from 'react'
 import { MATCHES, MATCH_BY_ID, STAGE_I18N } from '../data/schedule'
 import type { StageId } from '../types'
 import { sideLabel, sideLabelFor } from '../utils/labels'
 import type { ActiveContext } from '../hooks'
 import { useT } from '../i18n'
+import { useTheme, ACCENT } from '../theme'
+import { useIsDesktop } from '../hooks/useIsDesktop'
 
 interface Props {
   ctx: ActiveContext
@@ -60,39 +63,123 @@ const STAGE_ORDERED: Record<string, number[]> = {
 
 export function BracketView({ ctx, onEdit }: Props) {
   const { t } = useT()
+  const { c, dark } = useTheme()
+  const isDesktop = useIsDesktop()
+  // Scroll horizontal de la llave sin tener que bajar hasta la barra del fondo:
+  // se arrastra con el mouse (grab) y/o con los botones ◀ ▶ de arriba.
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const drag = useRef({ down: false, moved: false, x: 0, left: 0 })
+  const justDragged = useRef(false)
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    const el = scrollRef.current
+    if (!el || e.button !== 0 || e.pointerType !== 'mouse') return // touch usa scroll nativo
+    drag.current = { down: true, moved: false, x: e.clientX, left: el.scrollLeft }
+  }
+  const onPointerMove = (e: React.PointerEvent) => {
+    const el = scrollRef.current
+    const d = drag.current
+    if (!el || !d.down) return
+    const dx = e.clientX - d.x
+    if (!d.moved && Math.abs(dx) < 6) return
+    if (!d.moved) {
+      d.moved = true
+      el.style.cursor = 'grabbing'
+      el.setPointerCapture?.(e.pointerId)
+    }
+    el.scrollLeft = d.left - dx
+  }
+  const onPointerUp = () => {
+    const el = scrollRef.current
+    if (el && drag.current.moved) {
+      justDragged.current = true
+      el.style.cursor = 'grab'
+      setTimeout(() => (justDragged.current = false), 60)
+    }
+    drag.current.down = false
+    drag.current.moved = false
+  }
+  // Tras arrastrar, anula el click que abriría el editor de ese partido.
+  const onClickCapture = (e: React.MouseEvent) => {
+    if (justDragged.current) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+  }
+  const nudge = (dir: 1 | -1) => {
+    const el = scrollRef.current
+    if (el) el.scrollBy({ left: dir * Math.max(280, el.clientWidth * 0.7), behavior: 'smooth' })
+  }
+
   const finalMatch = ctx.resolution.matches[104]
   // El campeón es el GANADOR de la final (no el local).
   const champLabel = finalMatch?.winner ? sideLabel(finalMatch.winner, finalMatch.winner) : null
   const thirdMatch = MATCHES.find((m) => m.stage === 'third')
+  const championed = champLabel?.resolved
 
   return (
     <div>
       <div
-        className={`mb-4 text-center rounded-xl py-3 border ${
-          champLabel?.resolved
-            ? 'bg-gradient-to-r from-amber-500/25 to-amber-600/20 border-amber-500/40'
-            : 'bg-slate-800/40 border-white/5'
-        }`}
+        className="mb-4 text-center rounded-2xl py-4"
+        style={{
+          background: championed
+            ? dark
+              ? 'linear-gradient(160deg, rgba(255,194,26,.18), rgba(25,19,9,.92))'
+              : 'linear-gradient(160deg,#FFF1C6,#FFFDF6)'
+            : c.cardGrad,
+          border: '1.5px solid ' + (championed ? 'rgba(255,194,26,.55)' : c.line),
+          boxShadow: championed ? '0 14px 34px -16px rgba(255,194,26,.6)' : c.shadow,
+          animation: championed ? 'mdlPop .5s cubic-bezier(.34,1.56,.64,1) both' : 'none',
+        }}
       >
-        <div className="text-xs text-amber-300/80 tracking-wide">🏆 {t('CAMPEÓN', 'CHAMPION')}</div>
-        <div className="text-xl font-bold flex items-center justify-center gap-2 mt-0.5">
-          {champLabel?.resolved ? (
+        <div style={{ fontSize: '10px', fontWeight: 800, letterSpacing: '1px', color: dark ? '#FFCF45' : '#B07D08' }}>
+          🏆 {t('TU CAMPEÓN', 'YOUR CHAMPION')}
+        </div>
+        <div className="flex items-center justify-center gap-2 mt-1" style={{ fontFamily: "'Archivo'", fontWeight: 900, fontSize: '20px', color: c.text }}>
+          {championed ? (
             <>
-              <span>{champLabel.flag}</span> {champLabel.name}
+              <span style={{ fontSize: '26px' }}>{champLabel!.flag}</span> {champLabel!.name}
             </>
           ) : (
-            <span className="text-slate-500 text-base font-medium">{t('Por definir', 'To be decided')}</span>
+            <span style={{ color: c.faint, fontSize: '15px', fontWeight: 600 }}>{t('Por definir', 'To be decided')}</span>
           )}
         </div>
       </div>
 
-      <p className="text-[11px] text-slate-500 mb-2">
+      <p className="text-[11px] mb-2" style={{ color: c.faint }}>
         {t(
           'Las posiciones se actualizan en vivo con la tabla: el 1° y 2° actual de cada grupo aparecen (provisorios) apenas juegan. Al cerrar la fase de grupos, las predicciones arman la fase final con los equipos que realmente clasificaron.',
           'Positions update live with the standings: the current 1st and 2nd of each group appear (provisional) as soon as they play. When the group stage ends, predictions build the knockouts with the teams that actually qualified.',
         )}
       </p>
-      <div className="overflow-x-auto pb-2">
+      {isDesktop && (
+        <div className="flex items-center justify-end gap-1.5 mb-1.5">
+          <span className="text-[11px] mr-1" style={{ color: c.faint }}>
+            {t('Arrastrá o usá', 'Drag or use')}
+          </span>
+          {([-1, 1] as const).map((dir) => (
+            <button
+              key={dir}
+              onClick={() => nudge(dir)}
+              title={dir < 0 ? t('Ronda anterior', 'Previous round') : t('Ronda siguiente', 'Next round')}
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-xs"
+              style={{ border: '1px solid ' + c.line, background: c.cardGrad, color: c.text }}
+            >
+              {dir < 0 ? '◀' : '▶'}
+            </button>
+          ))}
+        </div>
+      )}
+      <div
+        ref={scrollRef}
+        className="overflow-x-auto pb-2"
+        style={{ cursor: isDesktop ? 'grab' : undefined, touchAction: 'pan-x pan-y' }}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerLeave={onPointerUp}
+        onClickCapture={onClickCapture}
+      >
         <div className="bracket min-w-max">
           {ROUNDS.map((stage) => {
             const matches = STAGE_ORDERED[stage].map((id) => MATCH_BY_ID[id])
@@ -114,7 +201,7 @@ export function BracketView({ ctx, onEdit }: Props) {
 
       {thirdMatch && (
         <div className="mt-5 max-w-xs">
-          <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5">
+          <div className="text-[11px] font-semibold uppercase tracking-wide mb-1.5" style={{ color: c.muted }}>
             🥉 {t('Tercer puesto', 'Third place')}
           </div>
           <BracketCard matchId={thirdMatch.id} ctx={ctx} onEdit={onEdit} />
@@ -135,6 +222,7 @@ function BracketCard({
   onEdit: (matchId: number) => void
   highlight?: boolean
 }) {
+  const { c } = useTheme()
   const match = MATCHES.find((m) => m.id === matchId)!
   const res = ctx.results[matchId]
   const rm = ctx.resolution.matches[matchId]
@@ -145,23 +233,28 @@ function BracketCard({
   return (
     <button
       onClick={() => onEdit(matchId)}
-      className={`w-full text-left rounded-lg border overflow-hidden transition hover:border-pitch-500/60 ${
-        highlight ? 'border-amber-500/40 bg-amber-500/5' : 'border-white/10 bg-slate-800/70'
-      }`}
+      className="w-full text-left rounded-xl overflow-hidden transition"
+      style={{
+        background: c.cardGrad,
+        border: '1px solid ' + (highlight ? 'rgba(255,194,26,.5)' : c.line),
+        boxShadow: c.shadow,
+      }}
     >
-      <div className="px-2 pt-1 text-[9px] text-slate-500">P{match.id}</div>
+      <div className="px-2 pt-1 text-[9px]" style={{ color: c.faint }}>P{match.id}</div>
       <BracketSide
         label={home}
         score={played ? res!.homeScore : undefined}
         pens={res?.homePens}
-        winner={played && rm?.winner === home.short}
+        winner={!!played && rm?.winner === home.short}
+        loser={!!played && !!rm?.winner && home.resolved && rm.winner !== home.short}
       />
-      <div className="border-t border-white/5" />
+      <div style={{ borderTop: '1px solid ' + c.line }} />
       <BracketSide
         label={away}
         score={played ? res!.awayScore : undefined}
         pens={res?.awayPens}
-        winner={played && rm?.winner === away.short}
+        winner={!!played && rm?.winner === away.short}
+        loser={!!played && !!rm?.winner && away.resolved && rm.winner !== away.short}
       />
     </button>
   )
@@ -171,29 +264,34 @@ function BracketSide({
   label,
   score,
   winner,
+  loser,
   pens,
 }: {
   label: { flag: string; name: string; resolved: boolean }
   score?: number
   winner?: boolean
+  loser?: boolean
   pens?: number
 }) {
+  const { c } = useTheme()
+  const nameColor = winner ? ACCENT.green : loser ? ACCENT.red : label.resolved ? c.muted : c.faint
   return (
     <div
-      className={`flex items-center gap-1.5 px-2 py-1 ${
-        winner ? 'bg-pitch-500/15' : ''
-      }`}
+      className="flex items-center gap-1.5 px-2 py-1"
+      style={{ background: winner ? 'linear-gradient(90deg, rgba(31,168,92,.18), transparent)' : 'transparent' }}
     >
-      <span className="shrink-0 text-sm">{label.flag}</span>
+      <span className="shrink-0 text-sm" style={{ filter: loser ? 'grayscale(1)' : 'none', opacity: loser ? 0.6 : 1 }}>{label.flag}</span>
       <span
-        className={`text-xs truncate flex-1 ${
-          winner ? 'font-bold text-white' : label.resolved ? 'text-slate-200' : 'text-slate-500'
-        }`}
+        className="text-xs truncate flex-1"
+        style={{ color: nameColor, fontWeight: winner || loser ? 800 : 600, textDecoration: loser ? 'line-through' : 'none' }}
       >
         {label.name}
       </span>
-      {pens != null && <span className="text-[9px] text-slate-500">({pens})</span>}
-      <span className={`text-xs tabular-nums w-4 text-right ${winner ? 'font-bold' : 'text-slate-400'}`}>
+      {pens != null && <span className="text-[9px]" style={{ color: c.faint }}>({pens})</span>}
+      <span
+        className="text-xs tabular-nums w-4 text-right"
+        style={{ color: winner ? ACCENT.green : c.muted, fontFamily: "'Archivo'", fontWeight: winner ? 800 : 600 }}
+      >
         {score ?? ''}
       </span>
     </div>

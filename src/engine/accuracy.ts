@@ -24,14 +24,35 @@ function sign(a: number, b: number): number {
 
 // Puntos por partido para el ranking, escalonados por fase: valen más a medida
 // que avanza el torneo, así la fase final mantiene el ranking abierto.
-export const STAGE_POINTS: Record<StageId, { exact: number; tendency: number }> = {
-  group: { exact: 3, tendency: 1 },
-  r32: { exact: 4, tendency: 2 },
-  r16: { exact: 5, tendency: 2 },
-  qf: { exact: 6, tendency: 3 },
-  sf: { exact: 8, tendency: 4 },
-  third: { exact: 10, tendency: 5 },
-  final: { exact: 10, tendency: 5 },
+//  - exact:    marcador exacto (después del alargue).
+//  - tendency: acertar el signo (gana/empata/pierde).
+//  - advance:  bonus de eliminatoria por acertar QUIÉN PASA de fase (o quién gana
+//    en la final / 3er puesto). Se SUMA al marcador. 0 en fase de grupos.
+export const STAGE_POINTS: Record<StageId, { exact: number; tendency: number; advance: number }> = {
+  group: { exact: 3, tendency: 1, advance: 0 },
+  r32: { exact: 4, tendency: 2, advance: 2 },
+  r16: { exact: 5, tendency: 2, advance: 2 },
+  qf: { exact: 6, tendency: 3, advance: 3 },
+  sf: { exact: 8, tendency: 4, advance: 4 },
+  third: { exact: 10, tendency: 5, advance: 5 },
+  final: { exact: 10, tendency: 5, advance: 5 },
+}
+
+/** Lado que avanza de un partido: por marcador y, si está empatado, por penales.
+ *  Devuelve null si está empatado sin definición (no se puede saber quién pasa). */
+export function advancingSide(r: {
+  homeScore: number
+  awayScore: number
+  homePens?: number | null
+  awayPens?: number | null
+}): 'home' | 'away' | null {
+  if (r.homeScore > r.awayScore) return 'home'
+  if (r.awayScore > r.homeScore) return 'away'
+  const hp = r.homePens ?? 0
+  const ap = r.awayPens ?? 0
+  if (hp > ap) return 'home'
+  if (ap > hp) return 'away'
+  return null
 }
 
 export interface RankingScore {
@@ -40,15 +61,17 @@ export interface RankingScore {
   pct: number
   exact: number // marcadores exactos acertados
   tendency: number // sólo el resultado acertado
+  advance: number // "quién pasa" acertados (eliminatorias)
   played: number // partidos reales jugados considerados
 }
 
 /**
- * Puntaje del ranking: SÓLO cuenta los resultados de los partidos.
- *  - marcador exacto  → EXACT_POINTS
- *  - acertar sólo quién ganó/empató (sin el marcador) → TENDENCY_POINTS
- *  - errar → 0
- * El % es sobre el máximo posible de los partidos ya jugados.
+ * Puntaje del ranking: cuenta el MARCADOR y, en eliminatorias, QUIÉN PASA.
+ *  - marcador exacto  → puntos de "exacto"
+ *  - acertar sólo el signo (gana/empata/pierde) → puntos de "resultado"
+ *  - errar el marcador → 0
+ *  - + (sólo eliminatorias) acertar qué equipo avanza → bonus "advance" (se SUMA)
+ * El % es sobre el máximo posible (exacto + advance) de los partidos ya jugados.
  */
 export function computeRankingScore(
   predResults: Record<number, MatchResult>,
@@ -58,6 +81,7 @@ export function computeRankingScore(
   let max = 0
   let exact = 0
   let tendency = 0
+  let advance = 0
   let played = 0
   for (const m of MATCHES) {
     const real = realResults[m.id]
@@ -68,7 +92,7 @@ export function computeRankingScore(
     if (!pred?.played) continue
     const pts = STAGE_POINTS[m.stage]
     played++
-    max += pts.exact
+    max += pts.exact + pts.advance
     if (pred.homeScore === real.homeScore && pred.awayScore === real.awayScore) {
       points += pts.exact
       exact++
@@ -76,9 +100,18 @@ export function computeRankingScore(
       points += pts.tendency
       tendency++
     }
+    // "Quién pasa" (eliminatorias): se suma aparte del marcador.
+    if (pts.advance > 0) {
+      const rs = advancingSide(real)
+      const ps = advancingSide(pred)
+      if (rs && ps && rs === ps) {
+        points += pts.advance
+        advance++
+      }
+    }
   }
   const pct = max > 0 ? (points / max) * 100 : 0
-  return { points, max, pct, exact, tendency, played }
+  return { points, max, pct, exact, tendency, advance, played }
 }
 
 // Conjunto "equipo:jugador" de eventos de un tipo en un resultado.
@@ -226,4 +259,115 @@ export function computeAccuracy(
     withData.length > 0 ? withData.reduce((s, f) => s + f.pct, 0) / withData.length : 0
 
   return { factors, overall, playedSample }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ESTADÍSTICAS ÚTILES DE UNA PREDICCIÓN (para la pestaña Precisión)
+// Derivadas SOLO de lo que la app verifica de verdad (marcador de cada partido),
+// así no quedan métricas en "sin datos".
+// ─────────────────────────────────────────────────────────────────────────────
+export type HitKind = 'exact' | 'result' | 'miss'
+
+export interface StageBreakdown {
+  stage: StageId
+  points: number
+  max: number
+  played: number
+  exact: number
+}
+
+export interface HitEntry {
+  matchId: number
+  ph: number // predicción local
+  pa: number // predicción visitante
+  rh: number // real local
+  ra: number // real visitante
+  points: number // puntos que sumó ese partido
+}
+
+export interface PredStats {
+  byStage: StageBreakdown[]
+  // Forma reciente: últimos partidos jugados que predijiste, del más nuevo al
+  // más viejo, con qué tan bien le pegaste.
+  form: { matchId: number; kind: HitKind }[]
+  // Listado completo por categoría (desglose de la pestaña Precisión).
+  lists: { exact: HitEntry[]; result: HitEntry[]; miss: HitEntry[] }
+  exact: number
+  result: number
+  miss: number
+  advance: number // "quién pasa" acertados (eliminatorias)
+}
+
+export function classifyHit(
+  pred: MatchResult | undefined,
+  real: MatchResult | undefined,
+): HitKind | null {
+  if (!real?.played || !pred?.played) return null
+  if (pred.homeScore === real.homeScore && pred.awayScore === real.awayScore) return 'exact'
+  if (sign(pred.homeScore, pred.awayScore) === sign(real.homeScore, real.awayScore)) return 'result'
+  return 'miss'
+}
+
+export function computePredStats(
+  predResults: Record<number, MatchResult>,
+  realResults: Record<number, MatchResult>,
+  formLimit = 14,
+): PredStats {
+  const stageMap = new Map<StageId, StageBreakdown>()
+  const timeline: { matchId: number; kind: HitKind; ts: number }[] = []
+  const lists: PredStats['lists'] = { exact: [], result: [], miss: [] }
+  let exact = 0
+  let result = 0
+  let miss = 0
+  let advance = 0
+
+  for (const m of MATCHES) {
+    const pred = predResults[m.id]
+    const real = realResults[m.id]
+    const kind = classifyHit(pred, real)
+    if (!kind) continue
+    const pts = STAGE_POINTS[m.stage]
+    let row = stageMap.get(m.stage)
+    if (!row) {
+      row = { stage: m.stage, points: 0, max: 0, played: 0, exact: 0 }
+      stageMap.set(m.stage, row)
+    }
+    row.played++
+    row.max += pts.exact + pts.advance
+    // Bonus "quién pasa" (eliminatorias), se suma al marcador.
+    let adv = 0
+    if (pts.advance > 0) {
+      const ps = advancingSide(pred!)
+      const rs = advancingSide(real!)
+      if (ps && rs && ps === rs) {
+        adv = pts.advance
+        advance++
+      }
+    }
+    const base = kind === 'exact' ? pts.exact : kind === 'result' ? pts.tendency : 0
+    const gained = base + adv
+    const entry = { matchId: m.id, ph: pred!.homeScore, pa: pred!.awayScore, rh: real!.homeScore, ra: real!.awayScore, points: gained }
+    row.points += gained
+    if (kind === 'exact') {
+      row.exact++
+      exact++
+      lists.exact.push(entry)
+    } else if (kind === 'result') {
+      result++
+      lists.result.push(entry)
+    } else {
+      miss++
+      lists.miss.push(entry)
+    }
+    timeline.push({ matchId: m.id, kind, ts: Date.parse(m.kickoff) })
+  }
+
+  const order: StageId[] = ['group', 'r32', 'r16', 'qf', 'sf', 'third', 'final']
+  const byStage = order.filter((s) => stageMap.has(s)).map((s) => stageMap.get(s)!)
+  const form = timeline
+    .sort((a, b) => b.ts - a.ts)
+    .slice(0, formLimit)
+    .map(({ matchId, kind }) => ({ matchId, kind }))
+
+  return { byStage, form, lists, exact, result, miss, advance }
 }

@@ -43,9 +43,17 @@ export default async function handler(req, res) {
 
   const competition = String(req.query.competition || 'WC').replace(/[^A-Za-z0-9]/g, '')
   const season = String(req.query.season || '').replace(/[^0-9]/g, '')
+  // resource: 'matches' (default) | 'scorers' (goleadores + asistencias)
+  const resource = String(req.query.resource || 'matches') === 'scorers' ? 'scorers' : 'matches'
 
-  let url = `https://api.football-data.org/v4/competitions/${competition}/matches`
-  if (season) url += `?season=${season}`
+  let url = `https://api.football-data.org/v4/competitions/${competition}/${resource}`
+  const qs = []
+  if (season) qs.push(`season=${season}`)
+  if (resource === 'scorers') qs.push('limit=20')
+  if (qs.length) url += `?${qs.join('&')}`
+
+  // Cache más largo para goleadores (cambian poco y comen cuota).
+  const cache = resource === 'scorers' ? 's-maxage=300, stale-while-revalidate=900' : 's-maxage=30, stale-while-revalidate=60'
 
   let lastErr
   for (let attempt = 0; attempt <= RETRIES; attempt++) {
@@ -53,8 +61,7 @@ export default async function handler(req, res) {
     try {
       const r = await fetchOnce(url, token)
       const text = await r.text()
-      // Cache breve para no quemar la cuota (10 pedidos/min en el plan free).
-      res.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate=60')
+      res.setHeader('Cache-Control', cache)
       res.setHeader('Content-Type', 'application/json')
       res.status(r.status).send(text)
       return

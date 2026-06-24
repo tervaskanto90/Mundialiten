@@ -5,14 +5,22 @@ import { Modal } from './Modal'
 import { formatDateShort } from '../utils/labels'
 import { useAuth } from '../auth'
 import { useT } from '../i18n'
+import { useTheme, ACCENT } from '../theme'
+import { useIsDesktop } from '../hooks/useIsDesktop'
 
-const TYPE_BADGE: Record<ScenarioType, { es: string; en: string }> = {
-  real: { es: 'EN VIVO', en: 'LIVE' },
-  prediction: { es: 'PREDICCIÓN', en: 'PREDICTION' },
-  whatif: { es: 'WHAT-IF', en: 'WHAT-IF' },
+const TYPE_ICON: Record<ScenarioType, string> = { real: '🔴', prediction: '🔮', whatif: '🧪' }
+const TYPE_ACCENT: Record<ScenarioType, string> = {
+  real: ACCENT.red,
+  prediction: ACCENT.purple,
+  whatif: ACCENT.green,
+}
+const TYPE_NOTE: Record<ScenarioType, { es: string; en: string; icon: string }> = {
+  real: { icon: '🔴', es: 'Marcadores reales en tiempo real desde las sedes.', en: 'Real scores live from the venues.' },
+  prediction: { icon: '🔮', es: 'Estás viendo TUS predicciones cargadas para cada partido.', en: 'You are viewing YOUR predictions for each match.' },
+  whatif: { icon: '🧪', es: 'Sandbox: cambiá resultados y mirá cómo se mueve el ranking.', en: 'Sandbox: change results and watch the ranking move.' },
 }
 
-export function TabBar() {
+export function TabBar({ onSelect }: { onSelect?: () => void } = {}) {
   const scenarios = useStore((s) => s.scenarios)
   const activeId = useStore((s) => s.activeId)
   const setActive = useStore((s) => s.setActive)
@@ -21,11 +29,11 @@ export function TabBar() {
   const renameScenario = useStore((s) => s.renameScenario)
   const { enabled, user } = useAuth()
   const { t } = useT()
+  const { c, dark } = useTheme()
+  const isDesktop = useIsDesktop()
   const loggedIn = enabled && !!user
 
-  // Nombre visible: el escenario real se traduce; el resto usa su nombre propio.
-  const tabName = (sc: Scenario) =>
-    sc.type === 'real' ? t('Resultados reales', 'Real results') : sc.name
+  const tabName = (sc: Scenario) => (sc.type === 'real' ? t('Resultados', 'Results') : sc.name)
 
   const [dialog, setDialog] = useState<null | { mode: 'new'; type: ScenarioType } | { mode: 'edit'; id: string }>(null)
   const [name, setName] = useState('')
@@ -36,7 +44,6 @@ export function TabBar() {
     setDate(new Date().toISOString().slice(0, 10))
     setDialog({ mode: 'new', type })
   }
-
   const openEdit = (id: string) => {
     const sc = scenarios.find((s) => s.id === id)
     if (!sc) return
@@ -44,7 +51,6 @@ export function TabBar() {
     setDate(sc.predictionDate ?? new Date().toISOString().slice(0, 10))
     setDialog({ mode: 'edit', id })
   }
-
   const confirmDialog = () => {
     if (!dialog) return
     if (dialog.mode === 'new') {
@@ -62,43 +68,66 @@ export function TabBar() {
         ? scenarios.find((s) => s.id === dialog.id)?.type
         : undefined
 
+  const activeScenario = scenarios.find((s) => s.id === activeId) ?? scenarios[0]
+  const note = TYPE_NOTE[activeScenario?.type ?? 'real']
+
+  const rowStyle: React.CSSProperties = isDesktop
+    ? { display: 'flex', flexDirection: 'column', gap: '7px' }
+    : { display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '1px' }
+
+  const tabStyle = (active: boolean, type: ScenarioType): React.CSSProperties => {
+    const accent = TYPE_ACCENT[type]
+    return {
+      flex: 'none',
+      display: 'flex',
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: isDesktop ? 'flex-start' : 'center',
+      gap: isDesktop ? '9px' : '6px',
+      fontFamily: "'Noto Sans'",
+      fontSize: isDesktop ? '12.5px' : '12px',
+      fontWeight: 800,
+      cursor: 'pointer',
+      whiteSpace: 'nowrap',
+      padding: isDesktop ? '11px 14px' : '7px 12px',
+      borderRadius: isDesktop ? '14px' : '99px',
+      transition: 'all .2s ease',
+      color: active ? '#fff' : c.muted,
+      background: active ? accent : dark ? 'rgba(255,255,255,.04)' : 'rgba(0,0,0,.035)',
+      border: '1px solid ' + (active ? accent : c.line),
+      boxShadow: active && isDesktop ? '0 8px 20px -10px ' + accent : 'none',
+      transform: active && isDesktop ? 'translateY(-1px)' : 'none',
+    }
+  }
+
   return (
-    <div className="max-w-5xl mx-auto px-2 sm:px-4 pb-2">
-      <div className="flex items-center gap-2 overflow-x-auto pb-1">
+    <div>
+      <div style={rowStyle} className="mdl-noscroll">
         {scenarios.map((sc) => {
           const active = sc.id === activeId
           return (
             <div
               key={sc.id}
-              className={`group flex items-center gap-2 shrink-0 rounded-xl border px-3 py-1.5 cursor-pointer transition ${
-                active ? 'border-transparent text-white' : 'border-white/10 text-slate-300 hover:bg-white/5'
-              }`}
-              style={active ? { background: sc.color } : undefined}
-              onClick={() => setActive(sc.id)}
+              style={tabStyle(active, sc.type)}
+              onClick={() => {
+                setActive(sc.id)
+                onSelect?.()
+              }}
             >
-              <div className="leading-tight">
-                <div className="text-sm font-medium whitespace-nowrap flex items-center gap-1">
-                  {sc.type === 'real' && '🔴'}
-                  {sc.type === 'prediction' && '🔮'}
-                  {sc.type === 'whatif' && '🧪'}
-                  {tabName(sc)}
-                </div>
-                <div className={`text-[10px] ${active ? 'text-white/80' : 'text-slate-500'}`}>
-                  {t(TYPE_BADGE[sc.type].es, TYPE_BADGE[sc.type].en)}
-                  {sc.type === 'prediction' && sc.predictionDate
-                    ? ` · ${formatDateShort(sc.predictionDate)}`
-                    : ''}
-                </div>
-              </div>
+              <span style={{ fontSize: '11px' }}>{TYPE_ICON[sc.type]}</span>
+              <span style={{ flex: isDesktop ? 1 : undefined, textAlign: 'left' }}>{tabName(sc)}</span>
+              {sc.type === 'prediction' && sc.predictionDate && isDesktop && (
+                <span style={{ fontSize: '9px', opacity: 0.7 }}>{formatDateShort(sc.predictionDate)}</span>
+              )}
               {sc.type !== 'real' && (
-                <div className="flex items-center gap-1">
+                <span style={{ display: 'inline-flex', gap: '4px' }}>
                   <button
                     title={t('Renombrar', 'Rename')}
                     onClick={(e) => {
                       e.stopPropagation()
                       openEdit(sc.id)
                     }}
-                    className={`text-xs ${active ? 'text-white/80 hover:text-white' : 'text-slate-500 hover:text-slate-200'}`}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', fontSize: '11px', opacity: 0.85 }}
                   >
                     ✎
                   </button>
@@ -109,32 +138,43 @@ export function TabBar() {
                         e.stopPropagation()
                         if (confirm(t(`¿Eliminar "${sc.name}"?`, `Delete "${sc.name}"?`))) removeScenario(sc.id)
                       }}
-                      className={`text-xs ${active ? 'text-white/80 hover:text-white' : 'text-slate-500 hover:text-rose-400'}`}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', fontSize: '11px', opacity: 0.85 }}
                     >
                       ✕
                     </button>
                   )}
-                </div>
+                </span>
               )}
             </div>
           )
         })}
 
         {!loggedIn && (
-          <button
-            onClick={() => openNew('prediction')}
-            className="shrink-0 rounded-xl border border-dashed border-white/20 px-3 py-1.5 text-sm text-slate-300 hover:bg-white/5 whitespace-nowrap"
-          >
+          <button onClick={() => openNew('prediction')} style={tabStyle(false, 'prediction')}>
             🔮 + {t('Predicción', 'Prediction')}
           </button>
         )}
-        <button
-          onClick={() => openNew('whatif')}
-          className="shrink-0 rounded-xl border border-dashed border-white/20 px-3 py-1.5 text-sm text-slate-300 hover:bg-white/5 whitespace-nowrap"
-        >
+        <button onClick={() => openNew('whatif')} style={tabStyle(false, 'whatif')}>
           🧪 + What-if
         </button>
       </div>
+
+      {isDesktop && (
+        <div
+          style={{
+            marginTop: '10px',
+            fontSize: '11.5px',
+            color: c.muted,
+            fontWeight: 600,
+            padding: '0 3px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+          }}
+        >
+          <span style={{ fontSize: '11px' }}>{note.icon}</span> {t(note.es, note.en)}
+        </div>
+      )}
 
       {dialog && (
         <Modal
@@ -142,15 +182,13 @@ export function TabBar() {
           onClose={() => setDialog(null)}
           footer={
             <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setDialog(null)}
-                className="px-3 py-2 rounded-lg text-sm text-slate-300 hover:bg-white/5"
-              >
+              <button onClick={() => setDialog(null)} className="px-3 py-2 rounded-lg text-sm" style={{ color: c.muted }}>
                 {t('Cancelar', 'Cancel')}
               </button>
               <button
                 onClick={confirmDialog}
-                className="px-4 py-2 rounded-lg text-sm font-medium bg-pitch-500 hover:bg-pitch-600 text-white"
+                className="px-4 py-2 rounded-lg text-sm font-bold text-white"
+                style={{ background: ACCENT.blue }}
               >
                 {t('Guardar', 'Save')}
               </button>
@@ -158,7 +196,7 @@ export function TabBar() {
           }
         >
           <div className="space-y-4">
-            <p className="text-sm text-slate-400">
+            <p className="text-sm" style={{ color: c.muted }}>
               {dialogType === 'prediction'
                 ? t(
                     'Una predicción es independiente: cargás vos todos los resultados que pronosticás y después se compara con la realidad.',
@@ -170,23 +208,17 @@ export function TabBar() {
                   )}
             </p>
             <label className="block">
-              <span className="text-xs text-slate-400">{t('Nombre', 'Name')}</span>
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                autoFocus
-                className="mt-1 w-full bg-slate-800 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:border-pitch-500"
-              />
+              <span className="text-xs" style={{ color: c.muted }}>
+                {t('Nombre', 'Name')}
+              </span>
+              <input value={name} onChange={(e) => setName(e.target.value)} autoFocus className="auth-input mt-1" />
             </label>
             {dialogType === 'prediction' && (
               <label className="block">
-                <span className="text-xs text-slate-400">{t('Fecha de la predicción', 'Prediction date')}</span>
-                <input
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  className="mt-1 w-full bg-slate-800 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:border-pitch-500"
-                />
+                <span className="text-xs" style={{ color: c.muted }}>
+                  {t('Fecha de la predicción', 'Prediction date')}
+                </span>
+                <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="auth-input mt-1" />
               </label>
             )}
           </div>

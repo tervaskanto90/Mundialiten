@@ -14,6 +14,9 @@ export interface ActiveContext {
   real: Scenario
   results: Record<number, MatchResult>
   resolution: Resolution
+  /** Resolución del REAL (clasificados/eliminados/ganadores garantizados de
+   *  verdad). Sirve para pintar verde/rojo SOLO cuando está asegurado en serio. */
+  realResolution: Resolution
 }
 
 /** Escenario activo + sus resultados efectivos + resolución (tablas/llaves). */
@@ -40,7 +43,7 @@ export function useActiveContext(): ActiveContext {
   }, [scenario.type, real.results, realResolution])
 
   const resolution = useMemo(() => resolve(results, opts), [results, opts])
-  return { scenario, real, results, resolution }
+  return { scenario, real, results, resolution, realResolution }
 }
 
 /**

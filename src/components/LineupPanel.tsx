@@ -4,6 +4,7 @@ import type { EventType, Player } from '../types'
 import type { SideLabel } from '../utils/labels'
 import { ContextMenu, type MenuItem } from './ContextMenu'
 import { useT } from '../i18n'
+import { useTheme, ACCENT } from '../theme'
 
 interface Props {
   homeId?: string
@@ -40,6 +41,7 @@ const LONG_PRESS_MS = 450
 export function LineupPanel({ homeId, awayId, home, away, readOnly, onAction }: Props) {
   const [menu, setMenu] = useState<MenuState | null>(null)
   const { t } = useT()
+  const { c } = useTheme()
   const homeRoster = getRoster(homeId)
   const awayRoster = getRoster(awayId)
 
@@ -103,9 +105,9 @@ export function LineupPanel({ homeId, awayId, home, away, readOnly, onAction }: 
 
   return (
     <div>
-      <h4 className="text-sm font-semibold mb-1">{t('Formaciones', 'Line-ups')}</h4>
+      <h4 className="text-sm font-semibold mb-1" style={{ color: c.text }}>{t('Formaciones', 'Line-ups')}</h4>
       {!readOnly && (
-        <p className="text-[11px] text-slate-500 mb-2">
+        <p className="text-[11px] mb-2" style={{ color: c.muted }}>
           {t(
             'Tocá un jugador = gol. Mantené apretado (o clic derecho en la compu) = gol de penal, gol en contra, amarilla o roja.',
             'Tap a player = goal. Long-press (or right-click on desktop) = penalty goal, own goal, yellow or red card.',
@@ -142,14 +144,15 @@ function TeamColumn({
   bind: PlayerBinder
 }) {
   const { t } = useT()
+  const { c } = useTheme()
   return (
     <div className="min-w-0">
       <div className="flex items-center gap-1.5 mb-1.5">
         <span>{label.flag}</span>
-        <span className="text-xs font-medium truncate">{label.name}</span>
+        <span className="text-xs font-medium truncate" style={{ color: c.text }}>{label.name}</span>
       </div>
       {!roster || !label.resolved ? (
-        <p className="text-[11px] text-slate-600 italic">{t('Equipo por definir', 'Team to be decided')}</p>
+        <p className="text-[11px] italic" style={{ color: c.faint }}>{t('Equipo por definir', 'Team to be decided')}</p>
       ) : (
         <div className="space-y-2">
           <PlayerList title={t('Titulares', 'Starters')} players={roster.starters} side={side} bind={bind} />
@@ -174,22 +177,26 @@ function PlayerList({
   dim?: boolean
 }) {
   const { t } = useT()
+  const { c } = useTheme()
   return (
     <div>
-      <div className="text-[10px] uppercase tracking-wide text-slate-500 mb-0.5">{title}</div>
+      <div className="text-[10px] uppercase tracking-wide mb-0.5" style={{ color: c.muted }}>{title}</div>
       <div className="space-y-0.5">
         {players.map((p) => (
           <button
             key={p.id}
             {...bind(side, p)}
             title={t('Tocá = gol · mantené apretado / clic derecho = más opciones', 'Tap = goal · long-press / right-click = more options')}
-            className={`w-full text-left flex items-center gap-1.5 px-1.5 py-1 rounded-md hover:bg-pitch-500/15 select-none ${
+            className={`w-full text-left flex items-center gap-1.5 px-1.5 py-1 rounded-md select-none ${
               dim ? 'opacity-70' : ''
             }`}
+            style={{ color: c.text }}
+            onMouseEnter={(ev) => (ev.currentTarget.style.background = ACCENT.blue + '26')}
+            onMouseLeave={(ev) => (ev.currentTarget.style.background = '')}
           >
-            <span className="text-[10px] text-slate-500 w-5 tabular-nums">{p.number}</span>
+            <span className="text-[10px] w-5 tabular-nums" style={{ color: c.muted }}>{p.number}</span>
             <span className="text-xs truncate">{p.name}</span>
-            <span className="text-[9px] text-slate-600 ml-auto">{p.position}</span>
+            <span className="text-[9px] ml-auto" style={{ color: c.faint }}>{p.position}</span>
           </button>
         ))}
       </div>
