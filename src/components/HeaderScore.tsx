@@ -21,8 +21,19 @@ export function HeaderScore({ ctx }: { ctx: ActiveContext }) {
   if (isLive) {
     ids = live.slice(0, 3)
   } else {
-    const played = MATCHES.filter((m) => real[m.id]?.played).sort((a, b) => Date.parse(b.kickoff) - Date.parse(a.kickoff))
-    ids = played.length ? [played[0].id] : []
+    // Último horario jugado: puede haber DOS partidos simultáneos (terminaron a
+    // la vez) — mostramos toda la tanda, no sólo uno.
+    const played = MATCHES.filter((m) => real[m.id]?.played)
+    if (played.length) {
+      const maxKo = Math.max(...played.map((m) => Date.parse(m.kickoff)))
+      ids = played
+        .filter((m) => Date.parse(m.kickoff) === maxKo)
+        .map((m) => m.id)
+        .sort((a, b) => a - b)
+        .slice(0, 3)
+    } else {
+      ids = []
+    }
   }
   if (ids.length === 0) return null
 
