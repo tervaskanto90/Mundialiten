@@ -69,6 +69,45 @@ export default function App() {
     link.href = icon
   }, [branding.dark, branding.light])
 
+  // Mobile: swipe hacia la derecha (en cualquier lado) abre el menú. Se ignora
+  // si el gesto arranca sobre algo scrolleable en horizontal que todavía puede
+  // ir hacia atrás (carruseles, llave), para no pisar ese scroll.
+  useEffect(() => {
+    if (isDesktop) return
+    let x0 = 0, y0 = 0, t0 = 0, startEl: EventTarget | null = null
+    const blocked = () => menuOpen || accountOpen || editingMatch != null
+    const canScrollLeft = (node: EventTarget | null): boolean => {
+      let el = node as HTMLElement | null
+      while (el && el !== document.body) {
+        const ox = getComputedStyle(el).overflowX
+        if ((ox === 'auto' || ox === 'scroll') && el.scrollWidth > el.clientWidth + 2 && el.scrollLeft > 1) return true
+        el = el.parentElement
+      }
+      return false
+    }
+    const onStart = (e: TouchEvent) => {
+      if (e.touches.length !== 1) return
+      const t = e.touches[0]
+      x0 = t.clientX; y0 = t.clientY; t0 = Date.now(); startEl = e.target
+    }
+    const onEnd = (e: TouchEvent) => {
+      const t = e.changedTouches[0]
+      if (!t || blocked()) return
+      const dx = t.clientX - x0
+      const dy = t.clientY - y0
+      const dt = Date.now() - t0
+      if (dx > 64 && dx > Math.abs(dy) * 1.7 && dt < 600 && !canScrollLeft(startEl)) {
+        setMenuOpen(true)
+      }
+    }
+    window.addEventListener('touchstart', onStart, { passive: true })
+    window.addEventListener('touchend', onEnd, { passive: true })
+    return () => {
+      window.removeEventListener('touchstart', onStart)
+      window.removeEventListener('touchend', onEnd)
+    }
+  }, [isDesktop, menuOpen, accountOpen, editingMatch])
+
   const name = (enabled && user && displayName) || 'Invitado'
 
   // Escala de la barra de arriba (la define el admin, la ven todos). Acota.

@@ -24,7 +24,7 @@ const PROJECTS: Project[] = [
     tagline: 'AI-powered vulnerability intelligence',
     desc: 'A platform that tracks, enriches and prioritizes CVEs with AI — turning raw vulnerability feeds into actionable intelligence for security teams.',
     tags: ['TypeScript', 'Next.js', 'AI', 'Security'],
-    link: SITE,
+    link: 'https://cve-intelligence.vercel.app/',
     visual: 'cve',
   },
   {
@@ -32,7 +32,7 @@ const PROJECTS: Project[] = [
     tagline: 'An AI co-author for fantasy fiction',
     desc: 'A writing studio where AI helps worldbuild, outline and draft fantasy stories — storytelling and LLMs working in the same document.',
     tags: ['TypeScript', 'Next.js', 'LLM', 'Creative AI'],
-    link: SITE,
+    link: 'https://fantasywriter.vercel.app/',
     visual: 'wave',
   },
   {
@@ -40,7 +40,7 @@ const PROJECTS: Project[] = [
     tagline: 'Your subscriptions, under control',
     desc: 'An app to track and manage your subscriptions — see exactly what you pay, spot what you no longer use, and nix it before the next renewal.',
     tags: ['TypeScript', 'Next.js', 'Productivity'],
-    link: SITE,
+    link: 'https://nixit.vercel.app/',
     visual: 'nix',
   },
 ]
