@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Modal } from './Modal'
 import { Avatar } from './Avatar'
 import { useAuth } from '../auth'
+import { supabase } from '../lib/supabase'
 import { saveAvatar } from '../lib/remote'
 import { fileToAvatarDataUrl } from '../utils/img'
 import { useT } from '../i18n'
@@ -10,9 +11,10 @@ import { useTheme, ACCENT } from '../theme'
 /** Panel de cuenta: foto de perfil, cambiar contraseña y cerrar sesión. Se abre
  *  desde el botón del usuario, arriba a la derecha. */
 export function AccountModal({ onClose }: { onClose: () => void }) {
-  const { user, enabled, displayName, avatarUrl, changePassword, updateAvatar, signOut } = useAuth()
+  const { user, enabled, isAdmin, displayName, avatarUrl, changePassword, updateAvatar, signOut } = useAuth()
   const { t } = useT()
   const { c } = useTheme()
+  const [announceBusy, setAnnounceBusy] = useState(false)
   const [pw, setPw] = useState('')
   const [pw2, setPw2] = useState('')
   const [busy, setBusy] = useState(false)
@@ -48,6 +50,42 @@ export function AccountModal({ onClose }: { onClose: () => void }) {
       /* noop */
     } finally {
       setAvatarBusy(false)
+    }
+  }
+
+  // Admin: dispara el mail de anuncio de nueva versión a todos (usa la sesión
+  // del admin como autorización; primero previsualiza y pide confirmación).
+  const sendAnnounce = async () => {
+    if (!supabase) return
+    setErr('')
+    setMsg('')
+    setAnnounceBusy(true)
+    try {
+      const { data } = await supabase.auth.getSession()
+      const token = data.session?.access_token
+      if (!token) throw new Error(t('Sesión no válida', 'Invalid session'))
+      const headers = { Authorization: `Bearer ${token}` }
+      const dry = await fetch('/api/announce?dryRun=1', { headers }).then((r) => r.json())
+      if (!dry?.ok) throw new Error(dry?.error || t('No se pudo previsualizar', 'Could not preview'))
+      const n = dry.seMandariaA ?? 0
+      if (n === 0) {
+        setMsg(t('No hay usuarios pendientes de avisar ✅', 'No users pending to notify ✅'))
+        return
+      }
+      const ok = window.confirm(
+        t(
+          `Se enviará el anuncio a ${n} usuario(s) (de ${dry.usuarios}, ${dry.yaAvisados} ya avisados). ¿Enviar ahora?`,
+          `The announcement will be sent to ${n} user(s) (of ${dry.usuarios}, ${dry.yaAvisados} already notified). Send now?`,
+        ),
+      )
+      if (!ok) return
+      const sent = await fetch('/api/announce', { headers }).then((r) => r.json())
+      if (!sent?.ok) throw new Error(sent?.error || t('No se pudo enviar', 'Could not send'))
+      setMsg(t(`Anuncio enviado: ${sent.enviados}/${sent.intentados} ✅`, `Announcement sent: ${sent.enviados}/${sent.intentados} ✅`))
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : t('No se pudo enviar el anuncio', 'Could not send the announcement'))
+    } finally {
+      setAnnounceBusy(false)
     }
   }
 
@@ -141,6 +179,23 @@ export function AccountModal({ onClose }: { onClose: () => void }) {
             >
               {t('Cerrar sesión', 'Sign out')}
             </button>
+
+            {isAdmin && (
+              <div className="pt-3 mt-1" style={{ borderTop: '1px solid ' + c.line }}>
+                <div className="text-xs font-semibold pb-2" style={{ color: c.text }}>🛠️ {t('Admin', 'Admin')}</div>
+                <button
+                  onClick={sendAnnounce}
+                  disabled={announceBusy}
+                  className="w-full py-2.5 rounded-lg text-sm font-bold disabled:opacity-50"
+                  style={{ background: ACCENT.gold, color: '#1c160c' }}
+                >
+                  {announceBusy ? '…' : t('📣 Enviar anuncio de nueva versión', '📣 Send new-version announcement')}
+                </button>
+                <p className="text-[10px] mt-1.5" style={{ color: c.muted }}>
+                  {t('Manda el mail a todos los usuarios (no duplica a quien ya recibió).', 'Emails all users (won’t duplicate to those already notified).')}
+                </p>
+              </div>
+            )}
           </>
         ) : (
           <p className="text-sm" style={{ color: c.muted }}>
