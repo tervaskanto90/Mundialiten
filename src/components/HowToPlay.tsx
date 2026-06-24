@@ -88,6 +88,47 @@ function PointsTable({ lang }: { lang: 'es' | 'en' }) {
   )
 }
 
+// Ejemplo trabajado de una eliminatoria, para dejar bien claro que el MARCADOR y
+// el bonus de QUIÉN PASA se cobran por SEPARADO (podés fallar uno y cobrar el otro).
+function KnockoutExample({ lang }: { lang: 'es' | 'en' }) {
+  const { c, dark } = useTheme()
+  const box: React.CSSProperties = {
+    background: dark ? 'rgba(31,168,92,.10)' : 'rgba(31,168,92,.08)',
+    border: '1px solid rgba(31,168,92,.32)',
+    borderRadius: 12,
+  }
+  if (lang === 'en') {
+    return (
+      <div className="p-3 mt-2 text-xs space-y-2" style={box}>
+        <p className="font-bold" style={{ color: c.text }}>📐 Worked example (Quarter-final)</p>
+        <p>You predict <strong style={{ color: c.text }}>1-1 and that A goes through</strong> (you picked A to win on penalties). The match ends <strong style={{ color: c.text }}>A 2-1</strong>.</p>
+        <ul className="list-disc pl-4 space-y-1">
+          <li><strong style={{ color: c.text }}>Score:</strong> you predicted a draw but A won → it's neither exact nor the right result → <strong style={{ color: '#E5322B' }}>0 points</strong> from the score.</li>
+          <li><strong style={{ color: c.text }}>Who advances:</strong> you said A and A advanced → <strong style={{ color: '#1FA85C' }}>+3</strong>.</li>
+          <li><strong style={{ color: c.text }}>Total: 3 points</strong> (out of 9 possible in the QF: 6 for an exact score + 3 for the bonus).</li>
+        </ul>
+        <p>
+          The key: the <strong style={{ color: c.text }}>score</strong> and the <strong style={{ color: c.text }}>“who advances” bonus are counted separately</strong>. You can miss the score and still earn the bonus for calling who goes through — and the other way around (nail the score but pick the wrong penalty winner → you keep the score points but lose the +3).
+        </p>
+      </div>
+    )
+  }
+  return (
+    <div className="p-3 mt-2 text-xs space-y-2" style={box}>
+      <p className="font-bold" style={{ color: c.text }}>📐 Ejemplo detallado (Cuartos de final)</p>
+      <p>Predecís <strong style={{ color: c.text }}>1-1 y que pasa A</strong> (elegiste a A como ganador de los penales). El partido termina <strong style={{ color: c.text }}>A 2-1</strong>.</p>
+      <ul className="list-disc pl-4 space-y-1">
+        <li><strong style={{ color: c.text }}>Marcador:</strong> pronosticaste empate pero ganó A → no es exacto ni acertaste el resultado → <strong style={{ color: '#E5322B' }}>0 puntos</strong> de marcador.</li>
+        <li><strong style={{ color: c.text }}>Quién pasa:</strong> dijiste que avanzaba A y avanzó A → <strong style={{ color: '#1FA85C' }}>+3</strong>.</li>
+        <li><strong style={{ color: c.text }}>Total: 3 puntos</strong> (de 9 posibles en cuartos: 6 del marcador exacto + 3 del bonus).</li>
+      </ul>
+      <p>
+        La clave: el <strong style={{ color: c.text }}>marcador</strong> y el <strong style={{ color: c.text }}>bonus de “quién pasa” se cuentan por separado</strong>. Podés fallar el marcador y aun así cobrar el bonus por acertar quién avanza — y al revés (clavás el marcador pero elegís mal al ganador de los penales → te quedás con los puntos del marcador pero perdés el +3).
+      </p>
+    </div>
+  )
+}
+
 function GuideES() {
   return (
     <>
@@ -174,8 +215,13 @@ function GuideES() {
         <li><strong>16avos y 8vos:</strong> +2 · <strong>4tos:</strong> +3 · <strong>Semis:</strong> +4 · <strong>Final y 3°:</strong> +5.</li>
         <li>El marcador que cargás es el de <strong>después del alargue</strong>. Si predecís <strong>empate</strong>, elegís <strong>quién gana los penales</strong> — y ese es el equipo que pasa.</li>
         <li><strong>No se predice el marcador de la tanda</strong> de penales (es pura suerte): sólo quién avanza.</li>
-        <li>Ejemplo en 4tos: si el partido termina empatado y tu equipo gana los penales, cobrás el marcador (exacto o resultado) <strong>+3</strong> por acertar quién pasa.</li>
       </ul>
+      <p>
+        <strong>Importante:</strong> el <strong>marcador</strong> y el <strong>bonus de quién pasa</strong> son
+        <strong> dos cosas independientes</strong> y se suman por separado. Acertar quién avanza
+        <strong> no exige</strong> acertar el marcador.
+      </p>
+      <KnockoutExample lang="es" />
       <p>
         El <strong>ranking se ordena por los puntos acumulados</strong> durante todo el Mundial (no por
         porcentaje). Por eso conviene jugar todas las etapas que puedas: quien participa más, tiene más
@@ -288,8 +334,13 @@ function GuideEN() {
         <li><strong>R32 &amp; R16:</strong> +2 · <strong>QF:</strong> +3 · <strong>SF:</strong> +4 · <strong>Final &amp; 3rd:</strong> +5.</li>
         <li>The score you enter is the one <strong>after extra time</strong>. If you predict a <strong>draw</strong>, you pick <strong>who wins on penalties</strong> — that's the team that goes through.</li>
         <li>You <strong>don't predict the shoot-out score</strong> (it's pure luck): only who advances.</li>
-        <li>Example in the QF: if the match ends level and your team wins on penalties, you get the score (exact or result) <strong>+3</strong> for calling who advances.</li>
       </ul>
+      <p>
+        <strong>Important:</strong> the <strong>score</strong> and the <strong>who-advances bonus</strong> are
+        <strong> two independent things</strong> and add up separately. Calling who advances
+        <strong> does not require</strong> getting the score right.
+      </p>
+      <KnockoutExample lang="en" />
       <p>
         The <strong>ranking is ordered by total points accumulated</strong> over the whole World Cup
         (not by percentage). That's why it pays to play every stage you can: the more you take part, the
