@@ -9,16 +9,20 @@
 //   SUPABASE_URL (o VITE_SUPABASE_URL) · SUPABASE_SERVICE_ROLE_KEY
 //   BREVO_API_KEY · BREVO_SENDER_EMAIL · BREVO_SENDER_NAME (opc) · APP_URL · CRON_SECRET
 //
-// Cómo dispararlo (en el navegador):
-//   1) Prueba sin enviar:  https://TU-APP/api/announce?secret=TU_CRON_SECRET&dryRun=1
-//   2) Enviar de verdad:   https://TU-APP/api/announce?secret=TU_CRON_SECRET
+// Autorización (cualquiera de las dos):
+//   - El ADMIN logueado en la app (botón "Enviar anuncio" en Mi cuenta): manda su
+//     token de Supabase en el header Authorization; el endpoint valida que el mail
+//     sea el admin. NO hace falta exponer ningún secreto.
+//   - CRON_SECRET por header o ?secret= (uso programático).
 // Es idempotente: registra a quién ya le mandó (tabla reminders, bucket
 // 'announce', kind 'v2-2026'), así re-ejecutarlo NO duplica envíos.
+// dryRun=1 previsualiza sin enviar.
 import { createClient } from '@supabase/supabase-js'
 
 // Damos margen al loop de envíos (es idempotente: si corta, re-ejecutar sigue).
 export const config = { maxDuration: 60 }
 
+const ADMIN_EMAIL = 'boggianooctavio@gmail.com'
 const ANNOUNCE_BUCKET = 'announce'
 const ANNOUNCE_KIND = 'v2-2026'
 
@@ -51,20 +55,6 @@ function buildAnnounceEmail(name: string, appUrl: string): { subject: string; ht
 }
 
 export default async function handler(req: any, res: any) {
-  // Protección: este endpoint manda mails masivos, así que exige el secreto.
-  const secret = process.env.CRON_SECRET
-  if (!secret) {
-    res.status(500).json({ error: 'Falta CRON_SECRET en Vercel (protege el envío masivo).' })
-    return
-  }
-  const provided =
-    req.headers?.authorization === `Bearer ${secret}` || String(req.query?.secret || '') === secret
-  if (!provided) {
-    res.status(401).json({ error: 'No autorizado.' })
-    return
-  }
-  const dryRun = String(req.query?.dryRun || '') === '1'
-
   const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!url || !serviceKey) {
@@ -72,6 +62,27 @@ export default async function handler(req: any, res: any) {
     return
   }
   const supa = createClient(url, serviceKey, { auth: { persistSession: false } })
+
+  // Autorización: CRON_SECRET (header/query) O la sesión del ADMIN (token de
+  // Supabase del navegador → no se expone ningún secreto).
+  const secret = process.env.CRON_SECRET
+  const authHeader = String(req.headers?.authorization || '')
+  const bearer = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : ''
+  const queryKey = String(req.query?.secret || '')
+  let authorized = !!secret && (bearer === secret || queryKey === secret)
+  if (!authorized && bearer) {
+    try {
+      const { data } = await supa.auth.getUser(bearer)
+      if ((data?.user?.email || '').toLowerCase() === ADMIN_EMAIL) authorized = true
+    } catch {
+      /* token inválido → no autorizado */
+    }
+  }
+  if (!authorized) {
+    res.status(401).json({ error: 'No autorizado.' })
+    return
+  }
+  const dryRun = String(req.query?.dryRun || '') === '1'
 
   try {
     // Todos los usuarios (paginado) → id + email.
