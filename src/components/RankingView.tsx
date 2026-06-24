@@ -60,18 +60,21 @@ function DeltaBadge({ delta }: { delta: number }) {
   )
 }
 
-// Predicción del último partido, coloreada por acierto (exacto/resultado/error).
-function PredScore({ ph, pa, rh, ra, homeFlag, awayFlag, points }: { ph: number; pa: number; rh: number; ra: number; homeFlag: string; awayFlag: string; points: number }) {
+// Predicción de un partido, coloreada por acierto (exacto/resultado/error).
+function PredScore({ ph, pa, rh, ra, homeFlag, awayFlag, points, compact }: { ph: number; pa: number; rh: number; ra: number; homeFlag: string; awayFlag: string; points: number; compact?: boolean }) {
   const { c } = useTheme()
   const exact = ph === rh && pa === ra
   const result = Math.sign(ph - pa) === Math.sign(rh - ra)
   const col = exact ? ACCENT.green : result ? ACCENT.blue : '#9b8d6e'
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-sm font-bold shrink-0" style={{ background: col + '1A', border: '1px solid ' + col + '55', color: c.text }}>
+    <span
+      className={`inline-flex items-center rounded-full font-bold shrink-0 ${compact ? 'gap-1 px-2 py-0.5 text-xs' : 'gap-1.5 px-2.5 py-1 text-sm'}`}
+      style={{ background: col + '1A', border: '1px solid ' + col + '55', color: c.text }}
+    >
       <span>{homeFlag}</span>
       <span className="tabular-nums" style={{ color: col }}>{ph}-{pa}</span>
       <span>{awayFlag}</span>
-      {points > 0 && <span className="text-[10px]" style={{ color: col }}>+{points}</span>}
+      {points > 0 && <span className={compact ? 'text-[9px]' : 'text-[10px]'} style={{ color: col }}>+{points}</span>}
     </span>
   )
 }
@@ -248,6 +251,29 @@ export function RankingView() {
                       <span className="text-[10px]" style={{ color: c.faint }}>{Number(r.accuracy).toFixed(0)}% {t('efectiv.', 'acc.')}</span>
                     </div>
                   </div>
+
+                  {/* Predicción de cada jugador para los 1-2 partidos, al lado del
+                      puntaje (sin repetir el resultado, que ya está arriba). */}
+                  {targetIds.length > 0 && (
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {targetIds.map((mid) => {
+                        const rr = realResults[mid]
+                        if (!rr?.played) return null
+                        const tm = realRes.matches[mid]
+                        const hf = TEAM_BY_ID[tm?.home ?? '']?.flag ?? '🏳️'
+                        const af = TEAM_BY_ID[tm?.away ?? '']?.flag ?? '🏳️'
+                        const p = predByKey.get(`${r.user_id}|${mid}`)
+                        return p ? (
+                          <PredScore key={mid} compact ph={p.home} pa={p.away} rh={rr.homeScore} ra={rr.awayScore} homeFlag={hf} awayFlag={af} points={marcadorPoints(mid, p.home, p.away, rr.homeScore, rr.awayScore)} />
+                        ) : (
+                          <span key={mid} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs shrink-0" style={{ color: c.faint, border: '1px solid ' + c.line }} title={t('Sin predicción', 'No prediction')}>
+                            {hf}<span style={{ opacity: 0.6 }}>–</span>{af}
+                          </span>
+                        )
+                      })}
+                    </div>
+                  )}
+
                   <div className="text-right shrink-0">
                     <div className="font-bold tabular-nums leading-none" style={{ fontFamily: "'Archivo'", fontSize: 20, color: c.text }}>
                       {Math.round(Number(r.points))}
@@ -255,29 +281,6 @@ export function RankingView() {
                     </div>
                   </div>
                 </div>
-
-                {targetIds.length > 0 && (
-                  <div className="mt-2 space-y-1.5" style={{ paddingLeft: 40 }}>
-                    {targetIds.map((mid) => {
-                      const rr = realResults[mid]
-                      if (!rr?.played) return null
-                      const tm = realRes.matches[mid]
-                      const hf = TEAM_BY_ID[tm?.home ?? '']?.flag ?? '🏳️'
-                      const af = TEAM_BY_ID[tm?.away ?? '']?.flag ?? '🏳️'
-                      const p = predByKey.get(`${r.user_id}|${mid}`)
-                      return (
-                        <div key={mid} className="flex items-center justify-between gap-2">
-                          <span className="text-[10px] tabular-nums whitespace-nowrap" style={{ color: c.faint }}>{hf} {rr.homeScore}-{rr.awayScore} {af}</span>
-                          {p ? (
-                            <PredScore ph={p.home} pa={p.away} rh={rr.homeScore} ra={rr.awayScore} homeFlag={hf} awayFlag={af} points={marcadorPoints(mid, p.home, p.away, rr.homeScore, rr.awayScore)} />
-                          ) : (
-                            <span className="text-xs italic" style={{ color: c.faint }}>{t('Sin predicción', 'No prediction')}</span>
-                          )}
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
               </div>
             )
           })}

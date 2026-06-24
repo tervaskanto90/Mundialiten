@@ -12,7 +12,6 @@ import { HomeView } from './components/HomeView'
 import { HeaderScore } from './components/HeaderScore'
 import { Avatar } from './components/Avatar'
 import { useActiveContext, useLiveSyncPolling } from './hooks'
-import { liveMatchIds } from './utils/live'
 import { useStore, getScenario, REAL_SCENARIO_ID } from './store/useStore'
 import { useAuth } from './auth'
 import { useSupabaseSync } from './lib/sync'
@@ -66,7 +65,6 @@ export default function App() {
   const [branding] = useBranding()
   const realScenario = useStore((s) => getScenario(s.scenarios, REAL_SCENARIO_ID))
   const realResults = realScenario?.results ?? {}
-  const hasLive = liveMatchIds(realResults).length > 0
   useLiveSyncPolling()
   useSupabaseSync()
 
@@ -391,15 +389,6 @@ export default function App() {
             </div>
             <LiveBanner realResults={realResults} embedded />
           </header>
-        )}
-
-        {/* Partido(s) en vivo: en desktop, debajo del header (en mobile ya va
-            dentro del header). Único lugar — se quitó de las secciones para que
-            no se duplique. */}
-        {isDesktop && hasLive && (
-          <div style={{ flexShrink: 0, marginTop: '12px' }}>
-            <LiveBanner realResults={realResults} embedded />
-          </div>
         )}
 
         {/* BODY */}
