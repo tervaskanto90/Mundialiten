@@ -213,14 +213,14 @@ export function RankingView() {
           {t('Ojo: el marcador y el bonus de “quién pasa” se cuentan POR SEPARADO. Podés fallar el marcador y aun así llevarte el bonus por acertar quién avanza (y al revés).', 'Heads up: the score and the “who advances” bonus are counted SEPARATELY. You can miss the score and still take the bonus for calling who advances (and vice versa).')}
         </p>
         <div className="rounded-lg p-2.5 mt-1 space-y-1" style={{ background: dark ? 'rgba(31,168,92,.10)' : 'rgba(31,168,92,.08)', border: '1px solid rgba(31,168,92,.32)' }}>
-          <p className="font-semibold" style={{ color: c.text }}>📐 {t('Ejemplo (Cuartos)', 'Example (QF)')}</p>
+          <p className="font-semibold" style={{ color: c.text }}>📐 {t('Ejemplo en CUARTOS de final', 'Example in the QUARTER-finals')}</p>
           <p style={{ color: c.muted }}>
-            {t('Predecís 1-1 y que pasa A (ganador de penales). Sale A 2-1:', 'You predict 1-1 with A advancing (penalty winner). It ends A 2-1:')}
+            {t('Estás en cuartos de final. Predecís 1-1 y que pasa A (ganador de penales). Sale A 2-1:', 'You’re in a quarter-final. You predict 1-1 with A advancing (penalty winner). It ends A 2-1:')}
           </p>
           <ul className="list-disc pl-4 space-y-0.5" style={{ color: c.muted }}>
             <li>{t('Marcador: pronosticaste empate pero ganó A → ni exacto ni resultado → ', 'Score: you predicted a draw but A won → neither exact nor result → ')}<strong style={{ color: ACCENT.red }}>0</strong>.</li>
-            <li>{t('Quién pasa: dijiste A y pasó A → ', 'Who advances: you said A and A advanced → ')}<strong style={{ color: ACCENT.green }}>+3</strong>.</li>
-            <li><strong style={{ color: c.text }}>{t('Total: 3 puntos', 'Total: 3 points')}</strong> {t('(de 9 posibles: 6 exacto + 3 bonus).', '(out of 9 possible: 6 exact + 3 bonus).')}</li>
+            <li>{t('Quién pasa: dijiste A y pasó A → ', 'Who advances: you said A and A advanced → ')}<strong style={{ color: ACCENT.green }}>+3</strong> {t('(bonus de cuartos)', '(QF bonus)')}.</li>
+            <li><strong style={{ color: c.text }}>{t('Total: 3 puntos', 'Total: 3 points')}</strong> {t('(de 9 posibles en cuartos: 6 exacto + 3 bonus).', '(out of 9 possible in the QF: 6 exact + 3 bonus).')}</li>
           </ul>
         </div>
         <p className="font-semibold pt-1" style={{ color: c.text }}>⚖️ {t('Desempate', 'Tie-breaker')}</p>
