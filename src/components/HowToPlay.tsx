@@ -164,6 +164,18 @@ function GuideES() {
         mantiene emocionante:
       </p>
       <PointsTable lang="es" />
+
+      <H>🥅 Eliminatorias: quién pasa</H>
+      <p>
+        En el mata-mata, además del marcador, sumás un <strong>bonus por acertar qué equipo avanza</strong> de
+        fase (en la final y el 3er puesto, quién gana). Se <strong>suma</strong> al marcador:
+      </p>
+      <ul className="list-disc pl-5 space-y-1">
+        <li><strong>16avos y 8vos:</strong> +2 · <strong>4tos:</strong> +3 · <strong>Semis:</strong> +4 · <strong>Final y 3°:</strong> +5.</li>
+        <li>El marcador que cargás es el de <strong>después del alargue</strong>. Si predecís <strong>empate</strong>, elegís <strong>quién gana los penales</strong> — y ese es el equipo que pasa.</li>
+        <li><strong>No se predice el marcador de la tanda</strong> de penales (es pura suerte): sólo quién avanza.</li>
+        <li>Ejemplo en 4tos: si el partido termina empatado y tu equipo gana los penales, cobrás el marcador (exacto o resultado) <strong>+3</strong> por acertar quién pasa.</li>
+      </ul>
       <p>
         El <strong>ranking se ordena por los puntos acumulados</strong> durante todo el Mundial (no por
         porcentaje). Por eso conviene jugar todas las etapas que puedas: quien participa más, tiene más
@@ -266,6 +278,18 @@ function GuideEN() {
         Points are <strong>worth more as the tournament advances</strong>, so the finish stays exciting:
       </p>
       <PointsTable lang="en" />
+
+      <H>🥅 Knockouts: who advances</H>
+      <p>
+        In the knockouts, on top of the score you earn a <strong>bonus for calling which team advances</strong>
+        (in the final and third place, who wins). It's <strong>added</strong> to the score:
+      </p>
+      <ul className="list-disc pl-5 space-y-1">
+        <li><strong>R32 &amp; R16:</strong> +2 · <strong>QF:</strong> +3 · <strong>SF:</strong> +4 · <strong>Final &amp; 3rd:</strong> +5.</li>
+        <li>The score you enter is the one <strong>after extra time</strong>. If you predict a <strong>draw</strong>, you pick <strong>who wins on penalties</strong> — that's the team that goes through.</li>
+        <li>You <strong>don't predict the shoot-out score</strong> (it's pure luck): only who advances.</li>
+        <li>Example in the QF: if the match ends level and your team wins on penalties, you get the score (exact or result) <strong>+3</strong> for calling who advances.</li>
+      </ul>
       <p>
         The <strong>ranking is ordered by total points accumulated</strong> over the whole World Cup
         (not by percentage). That's why it pays to play every stage you can: the more you take part, the

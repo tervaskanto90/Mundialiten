@@ -121,7 +121,8 @@ const B: Record<number, MatchResult> = { 101: r(3, 0) }
 const sA = computeRankingScore(A, rk_real)
 const sB = computeRankingScore(B, rk_real)
 check('A (grupo exacto) = 3 pts', sA.points === 3, `got ${sA.points}`)
-check('B (semi exacto) = 8 pts', sB.points === 8, `got ${sB.points}`)
+// Semifinal exacta: 8 (exacto) + 4 (bonus "quién pasa", acierta al ganador que avanza) = 12.
+check('B (semi exacto + quién pasa) = 12 pts', sB.points === 12, `got ${sB.points}`)
 check('A tiene 100% (1/1 jugados predichos)', Math.round(sA.pct) === 100)
 check('B tiene 100% pct también', Math.round(sB.pct) === 100)
 check('Pero por PUNTOS B supera a A (semi vale más)', sB.points > sA.points)

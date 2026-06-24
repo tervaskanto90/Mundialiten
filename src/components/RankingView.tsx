@@ -170,6 +170,10 @@ export function RankingView() {
         <p style={{ color: c.muted }}>
           {t('Los puntos valen más a medida que avanza el torneo (exacto / resultado): Grupos 3/1 · 16avos 4/2 · 8vos 5/2 · 4tos 6/3 · Semis 8/4 · Final y 3º 10/5.', 'Points are worth more as the tournament advances (exact / result): Groups 3/1 · R32 4/2 · R16 5/2 · QF 6/3 · SF 8/4 · Final & 3rd 10/5.')}
         </p>
+        <p className="font-semibold pt-1" style={{ color: c.text }}>🥅 {t('Eliminatorias: quién pasa', 'Knockouts: who advances')}</p>
+        <p style={{ color: c.muted }}>
+          {t('En el mata-mata, además del marcador, sumás un bonus por acertar qué equipo avanza (en la final/3º, quién gana): 16avos/8vos +2 · 4tos +3 · Semis +4 · Final y 3º +5. Si predecís empate, elegí quién gana los penales (no se predice el marcador de la tanda).', 'In the knockouts, on top of the score you earn a bonus for calling which team advances (in the final/3rd, who wins): R32/R16 +2 · QF +3 · SF +4 · Final & 3rd +5. If you predict a draw, pick who wins on penalties (the shoot-out score isn’t predicted).')}
+        </p>
         <p className="font-semibold pt-1" style={{ color: c.text }}>⚖️ {t('Desempate', 'Tie-breaker')}</p>
         <p style={{ color: c.muted }}>
           {t('Si dos personas tienen los mismos puntos, queda más arriba quien tenga ', 'If two people have the same points, the one ranked higher is whoever has ')}

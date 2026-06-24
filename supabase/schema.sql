@@ -148,6 +148,10 @@ as $$
     select p.user_id, r.mid as mid,
       (case when r.mid<=72 then 3 when r.mid<=88 then 4 when r.mid<=96 then 5
             when r.mid<=100 then 6 when r.mid<=102 then 8 else 10 end) as exact_pts,
+      -- Bonus "quién pasa" (eliminatorias): 16avos/8vos 2 · 4tos 3 · semis 4 ·
+      -- 3º/final 5. 0 en fase de grupos.
+      (case when r.mid<=72 then 0 when r.mid<=88 then 2 when r.mid<=96 then 2
+            when r.mid<=100 then 3 when r.mid<=102 then 4 else 5 end) as adv_pts,
       case
         when (p.pv->>'homeScore') = (r.rv->>'homeScore')
          and (p.pv->>'awayScore') = (r.rv->>'awayScore')
@@ -158,16 +162,39 @@ as $$
           then (case when r.mid<=72 then 1 when r.mid<=88 then 2 when r.mid<=96 then 2
                      when r.mid<=100 then 3 when r.mid<=102 then 4 else 5 end)
         else 0
-      end as award
+      end as award,
+      -- Premio "quién pasa": acertar el LADO que avanza (por marcador o, si hay
+      -- empate, por penales). Sólo donde adv_pts > 0 (eliminatorias).
+      case
+        when (case when r.mid<=72 then 0 when r.mid<=88 then 2 when r.mid<=96 then 2
+                   when r.mid<=100 then 3 when r.mid<=102 then 4 else 5 end) = 0 then 0
+        when (
+          case when (p.pv->>'homeScore')::int > (p.pv->>'awayScore')::int then 'h'
+               when (p.pv->>'awayScore')::int > (p.pv->>'homeScore')::int then 'a'
+               when coalesce((p.pv->>'homePens')::int,0) > coalesce((p.pv->>'awayPens')::int,0) then 'h'
+               when coalesce((p.pv->>'awayPens')::int,0) > coalesce((p.pv->>'homePens')::int,0) then 'a'
+               else 'p' end
+        ) = (
+          case when (r.rv->>'homeScore')::int > (r.rv->>'awayScore')::int then 'h'
+               when (r.rv->>'awayScore')::int > (r.rv->>'homeScore')::int then 'a'
+               when coalesce((r.rv->>'homePens')::int,0) > coalesce((r.rv->>'awayPens')::int,0) then 'h'
+               when coalesce((r.rv->>'awayPens')::int,0) > coalesce((r.rv->>'homePens')::int,0) then 'a'
+               else 'r' end
+        )
+          then (case when r.mid<=72 then 0 when r.mid<=88 then 2 when r.mid<=96 then 2
+                     when r.mid<=100 then 3 when r.mid<=102 then 4 else 5 end)
+        else 0
+      end as adv_award
     from realm r join predm p on p.mid = r.mid
   ),
   agg as (
     select user_id,
-           sum(award) as points,
-           sum(exact_pts) as maxp,
-           -- exacto: el premio es el de "exacto" (siempre > tendencia en su fase).
+           -- puntos = marcador + bonus "quién pasa"
+           sum(award + adv_award) as points,
+           sum(exact_pts + adv_pts) as maxp,
+           -- exacto: el premio de marcador es el de "exacto" (siempre > tendencia).
            sum(case when award = exact_pts then 1 else 0 end) as exact_count,
-           -- resultado acertado (incluye exactos): cualquier premio > 0.
+           -- resultado acertado (incluye exactos): cualquier premio de marcador > 0.
            sum(case when award > 0 then 1 else 0 end) as result_count
     from calc group by user_id
   ),
@@ -197,7 +224,7 @@ as $$
     select p.user_id,
            (p.pv->>'homeScore')::int as ph,
            (p.pv->>'awayScore')::int as pa,
-           coalesce(c.award, 0) as lpts
+           coalesce(c.award, 0) + coalesce(c.adv_award, 0) as lpts
     from predm p
     join lastm l on p.mid = l.mid
     left join calc c on c.user_id = p.user_id and c.mid = l.mid

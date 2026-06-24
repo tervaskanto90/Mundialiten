@@ -133,25 +133,57 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
         </div>
       )}
 
-      {/* Penales en eliminatorias empatadas */}
-      {isKnockout && base.played && base.homeScore === base.awayScore && (
-        <div className="rounded-xl p-3 mb-4" style={{ background: c.surface, border: '1px solid ' + c.line }}>
-          <div className="text-xs mb-2" style={{ color: c.muted }}>{t('Definición por penales', 'Penalty shoot-out')}</div>
-          <div className="flex items-center justify-center gap-2">
+      {/* Empate en eliminatoria → quién pasa (penales). En las predicciones NO se
+          carga el marcador de la tanda (es azar): se elige quién avanza, y ese
+          acierto suma el bonus "quién pasa". En el real sí mostramos el tanteo. */}
+      {isKnockout && base.played && base.homeScore === base.awayScore && (() => {
+        const isFinalish = match.stage === 'final' || match.stage === 'third'
+        const hp = base.homePens ?? 0
+        const ap = base.awayPens ?? 0
+        const pick: 'home' | 'away' | null = hp > ap ? 'home' : ap > hp ? 'away' : null
+        const choose = (side: 'home' | 'away') =>
+          patch(side === 'home' ? { homePens: 1, awayPens: 0 } : { homePens: 0, awayPens: 1 })
+        return (
+          <div className="rounded-xl p-3 mb-4" style={{ background: c.surface, border: '1px solid ' + c.line }}>
+            <div className="text-xs mb-2 flex items-center gap-1.5" style={{ color: c.muted }}>
+              🥅 {isFinalish ? t('¿Quién gana por penales?', 'Who wins on penalties?') : t('¿Quién pasa por penales?', 'Who advances on penalties?')}
+            </div>
             {editingDisabled ? (
-              <span className="text-lg font-bold tabular-nums" style={{ color: c.text }}>
-                {base.homePens ?? 0} - {base.awayPens ?? 0}
-              </span>
+              <div className="text-center text-sm font-bold" style={{ color: c.text }}>
+                {pick === 'home' ? `${home.flag} ${home.name}` : pick === 'away' ? `${away.flag} ${away.name}` : t('—', '—')}
+                <span className="ml-2 text-[11px] font-normal" style={{ color: c.muted }}>({hp}-{ap} pen)</span>
+              </div>
             ) : (
-              <>
-                <Stepper value={base.homePens ?? 0} onChange={(v) => patch({ homePens: Math.max(0, v) })} small />
-                <span className="text-sm" style={{ color: c.muted }}>{t('penales', 'penalties')}</span>
-                <Stepper value={base.awayPens ?? 0} onChange={(v) => patch({ awayPens: Math.max(0, v) })} small />
-              </>
+              <div className="grid grid-cols-2 gap-2">
+                {(['home', 'away'] as const).map((side) => {
+                  const lbl = side === 'home' ? home : away
+                  const on = pick === side
+                  return (
+                    <button
+                      key={side}
+                      onClick={() => choose(side)}
+                      className="rounded-lg px-2 py-2 text-sm font-bold flex items-center justify-center gap-1.5"
+                      style={{
+                        border: '1px solid ' + (on ? ACCENT.green : c.line),
+                        background: on ? ACCENT.green + '22' : 'transparent',
+                        color: on ? ACCENT.green : c.text,
+                      }}
+                    >
+                      <span>{lbl.flag}</span>
+                      <span className="truncate">{lbl.name}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+            {!editingDisabled && !pick && (
+              <div className="text-[10px] mt-1.5 text-center" style={{ color: ACCENT.red }}>
+                {t('Elegí quién avanza para sumar el bonus.', 'Pick who advances to earn the bonus.')}
+              </div>
             )}
           </div>
-        </div>
-      )}
+        )
+      })()}
 
       {odds && <OddsBar odds={odds} homeFlag={home.flag} awayFlag={away.flag} />}
     </Modal>
