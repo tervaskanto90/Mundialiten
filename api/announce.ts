@@ -70,16 +70,23 @@ export default async function handler(req: any, res: any) {
   const bearer = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : ''
   const queryKey = String(req.query?.secret || '')
   let authorized = !!secret && (bearer === secret || queryKey === secret)
+  let seenEmail: string | null = null
+  let getUserErr: string | null = null
   if (!authorized && bearer) {
     try {
-      const { data } = await supa.auth.getUser(bearer)
-      if ((data?.user?.email || '').toLowerCase() === ADMIN_EMAIL) authorized = true
-    } catch {
-      /* token inválido → no autorizado */
+      const { data, error } = await supa.auth.getUser(bearer)
+      if (error) getUserErr = error.message
+      seenEmail = data?.user?.email ?? null
+      if ((seenEmail || '').toLowerCase() === ADMIN_EMAIL) authorized = true
+    } catch (e: any) {
+      getUserErr = String(e?.message || e)
     }
   }
   if (!authorized) {
-    res.status(401).json({ error: 'No autorizado.' })
+    res.status(401).json({
+      error: 'No autorizado.',
+      debug: { build: 'd2', hadBearer: !!bearer, tokenLen: bearer.length, secretSet: !!secret, seenEmail, getUserErr },
+    })
     return
   }
   const dryRun = String(req.query?.dryRun || '') === '1'

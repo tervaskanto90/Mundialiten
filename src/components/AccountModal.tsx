@@ -66,7 +66,10 @@ export function AccountModal({ onClose }: { onClose: () => void }) {
       if (!token) throw new Error(t('Sesión no válida', 'Invalid session'))
       const headers = { Authorization: `Bearer ${token}` }
       const dry = await fetch('/api/announce?dryRun=1', { headers }).then((r) => r.json())
-      if (!dry?.ok) throw new Error(dry?.error || t('No se pudo previsualizar', 'Could not preview'))
+      if (!dry?.ok) {
+        const dbg = dry?.debug ? ' · ' + JSON.stringify(dry.debug) : ''
+        throw new Error((dry?.error || t('No se pudo previsualizar', 'Could not preview')) + dbg)
+      }
       const n = dry.seMandariaA ?? 0
       if (n === 0) {
         setMsg(t('No hay usuarios pendientes de avisar ✅', 'No users pending to notify ✅'))
