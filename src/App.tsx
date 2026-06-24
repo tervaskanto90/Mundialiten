@@ -75,7 +75,6 @@ export default function App() {
   useEffect(() => {
     if (isDesktop) return
     let x0 = 0, y0 = 0, t0 = 0, startEl: EventTarget | null = null
-    const blocked = () => menuOpen || accountOpen || editingMatch != null
     const canScrollLeft = (node: EventTarget | null): boolean => {
       let el = node as HTMLElement | null
       while (el && el !== document.body) {
@@ -92,13 +91,19 @@ export default function App() {
     }
     const onEnd = (e: TouchEvent) => {
       const t = e.changedTouches[0]
-      if (!t || blocked()) return
+      if (!t) return
       const dx = t.clientX - x0
       const dy = t.clientY - y0
       const dt = Date.now() - t0
-      if (dx > 64 && dx > Math.abs(dy) * 1.7 && dt < 600 && !canScrollLeft(startEl)) {
-        setMenuOpen(true)
+      const horizontal = Math.abs(dx) > Math.abs(dy) * 1.7 && dt < 600
+      // Menú abierto: swipe a la IZQUIERDA lo cierra.
+      if (menuOpen) {
+        if (horizontal && dx < -64) setMenuOpen(false)
+        return
       }
+      if (accountOpen || editingMatch != null) return
+      // Menú cerrado: swipe a la DERECHA lo abre (salvo sobre un scroll horizontal).
+      if (horizontal && dx > 64 && !canScrollLeft(startEl)) setMenuOpen(true)
     }
     window.addEventListener('touchstart', onStart, { passive: true })
     window.addEventListener('touchend', onEnd, { passive: true })
