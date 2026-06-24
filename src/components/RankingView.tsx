@@ -1,15 +1,26 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useAuth } from '../auth'
-import { fetchRanking, type RankingRow } from '../lib/remote'
+import { fetchRanking, fetchPastPredictions, type RankingRow, type PastPred } from '../lib/remote'
 import { useT } from '../i18n'
 import { useStore, getScenario, REAL_SCENARIO_ID } from '../store/useStore'
 import { resolve } from '../engine/resolve'
+import { MATCH_BY_ID } from '../data/schedule'
+import { STAGE_POINTS } from '../engine/accuracy'
 import { TEAM_BY_ID } from '../data/teams'
 import { rankDeltas, tieGroups } from '../lib/rankDelta'
 import { Avatar } from './Avatar'
 import { useTheme, ACCENT } from '../theme'
 
 const MEDALS = ['🥇', '🥈', '🥉']
+
+// Puntos del marcador de un partido (sin el bonus de penales, que no se expone
+// en el historial): exacto o sólo resultado, escalonado por fase.
+function marcadorPoints(mid: number, ph: number, pa: number, rh: number, ra: number): number {
+  const pts = STAGE_POINTS[MATCH_BY_ID[mid].stage]
+  if (ph === rh && pa === ra) return pts.exact
+  if (Math.sign(ph - pa) === Math.sign(rh - ra)) return pts.tendency
+  return 0
+}
 
 function TeamMini({ id }: { id?: string }) {
   const team = id ? TEAM_BY_ID[id] : undefined
@@ -70,17 +81,31 @@ export function RankingView() {
   const { t } = useT()
   const { c, dark } = useTheme()
   const [rows, setRows] = useState<RankingRow[] | null>(null)
+  const [past, setPast] = useState<PastPred[] | null>(null)
   const [error, setError] = useState('')
 
   const real = useStore((s) => getScenario(s.scenarios, REAL_SCENARIO_ID))
   const realResults = real?.results ?? {}
   const realRes = useMemo(() => resolve(realResults), [realResults])
 
-  const lastMatchId = rows?.find((r) => r.last_match_id != null)?.last_match_id ?? null
-  const lastTeams = lastMatchId != null ? realRes.matches[lastMatchId] : undefined
-  const lastReal = lastMatchId != null ? realResults[lastMatchId] : undefined
-  const lastHomeFlag = TEAM_BY_ID[lastTeams?.home ?? '']?.flag ?? '🏳️'
-  const lastAwayFlag = TEAM_BY_ID[lastTeams?.away ?? '']?.flag ?? '🏳️'
+  // Partidos del último horario jugado: en la fase final de grupos (y en adelante)
+  // se juegan de a DOS a la vez, así que mostramos ambos (1 o 2).
+  const targetIds = useMemo(() => {
+    const playedIds = Object.keys(realResults)
+      .map(Number)
+      .filter((id) => MATCH_BY_ID[id] && realResults[id]?.played)
+    if (playedIds.length === 0) return [] as number[]
+    const ko = (id: number) => Date.parse(MATCH_BY_ID[id].kickoff)
+    const maxKo = Math.max(...playedIds.map(ko))
+    return playedIds.filter((id) => ko(id) === maxKo).sort((a, b) => a - b).slice(0, 2)
+  }, [realResults])
+
+  // Predicción de cada usuario para esos partidos (del historial público).
+  const predByKey = useMemo(() => {
+    const m = new Map<string, { home: number; away: number }>()
+    for (const p of past ?? []) m.set(`${p.user_id}|${p.match_id}`, { home: p.home, away: p.away })
+    return m
+  }, [past])
 
   const deltas = useMemo(
     () =>
@@ -112,6 +137,7 @@ export function RankingView() {
     fetchRanking()
       .then(setRows)
       .catch((e) => setError(e instanceof Error ? e.message : t('No se pudo cargar', 'Could not load')))
+    fetchPastPredictions().then(setPast).catch(() => setPast([]))
   }
 
   useEffect(() => {
@@ -144,15 +170,19 @@ export function RankingView() {
         <button onClick={load} className="text-xs px-2 py-1 rounded-lg" style={{ color: c.muted }}>↻ {t('Actualizar', 'Refresh')}</button>
       </div>
 
-      {lastMatchId != null && lastReal?.played && (
-        <div className="rounded-xl px-3 py-2 mb-3 text-sm flex items-center gap-2 flex-wrap" style={{ background: dark ? 'rgba(31,168,92,.14)' : 'rgba(31,168,92,.12)', border: '1px solid rgba(31,168,92,.35)', color: c.text }}>
-          <span className="font-semibold" style={{ color: ACCENT.green }}>🟢 {t('Último resultado:', 'Latest result:')}</span>
-          <span className="font-medium tabular-nums whitespace-nowrap">
-            <TeamMini id={lastTeams?.home} /> {lastReal.homeScore}-{lastReal.awayScore} <TeamMini id={lastTeams?.away} />
-            {lastReal.homePens != null && lastReal.awayPens != null && (
-              <span style={{ color: c.muted }}> ({lastReal.homePens}-{lastReal.awayPens} pen)</span>
-            )}
-          </span>
+      {targetIds.length > 0 && (
+        <div className="rounded-xl px-3 py-2 mb-3 text-sm flex items-center gap-x-3 gap-y-1 flex-wrap" style={{ background: dark ? 'rgba(31,168,92,.14)' : 'rgba(31,168,92,.12)', border: '1px solid rgba(31,168,92,.35)', color: c.text }}>
+          <span className="font-semibold" style={{ color: ACCENT.green }}>🟢 {targetIds.length > 1 ? t('Últimos resultados:', 'Latest results:') : t('Último resultado:', 'Latest result:')}</span>
+          {targetIds.map((mid) => {
+            const rr = realResults[mid]!
+            const tm = realRes.matches[mid]
+            return (
+              <span key={mid} className="font-medium tabular-nums whitespace-nowrap">
+                <TeamMini id={tm?.home} /> {rr.homeScore}-{rr.awayScore} <TeamMini id={tm?.away} />
+                {rr.homePens != null && rr.awayPens != null && <span style={{ color: c.muted }}> ({rr.homePens}-{rr.awayPens}p)</span>}
+              </span>
+            )
+          })}
         </div>
       )}
 
@@ -193,7 +223,6 @@ export function RankingView() {
         <div className="space-y-2">
           {rowList.map(({ r, rank }) => {
             const mine = r.user_id === user.id
-            const predicted = r.last_pred_home != null && r.last_pred_away != null
             return (
               <div
                 key={r.user_id}
@@ -209,7 +238,7 @@ export function RankingView() {
                       {mine && <span className="text-[10px] ml-1" style={{ color: ACCENT.blue }}>{t('(vos)', '(you)')}</span>}
                     </div>
                     <div className="mt-0.5 flex items-center gap-2 flex-wrap">
-                      {lastMatchId != null && <DeltaBadge delta={deltas.get(r.user_id) ?? 0} />}
+                      {targetIds.length > 0 && <DeltaBadge delta={deltas.get(r.user_id) ?? 0} />}
                       <span className="text-[10px] font-semibold tabular-nums" style={{ color: ACCENT.green }} title={t('Marcadores exactos (1er desempate)', 'Exact scores (1st tie-breaker)')}>
                         🎯 {Number(r.exact_count ?? 0)} {t('exactos', 'exact')}
                       </span>
@@ -227,14 +256,26 @@ export function RankingView() {
                   </div>
                 </div>
 
-                {lastMatchId != null && lastReal?.played && (
-                  <div className="mt-2 flex items-center justify-between gap-2" style={{ paddingLeft: 40 }}>
-                    <span className="text-[10px]" style={{ color: c.faint }}>{t('Su pronóstico del último', 'Last match pick')}</span>
-                    {predicted ? (
-                      <PredScore ph={r.last_pred_home!} pa={r.last_pred_away!} rh={lastReal.homeScore} ra={lastReal.awayScore} homeFlag={lastHomeFlag} awayFlag={lastAwayFlag} points={Number(r.last_points ?? 0)} />
-                    ) : (
-                      <span className="text-xs italic" style={{ color: c.faint }}>{t('Sin predicción', 'No prediction')}</span>
-                    )}
+                {targetIds.length > 0 && (
+                  <div className="mt-2 space-y-1.5" style={{ paddingLeft: 40 }}>
+                    {targetIds.map((mid) => {
+                      const rr = realResults[mid]
+                      if (!rr?.played) return null
+                      const tm = realRes.matches[mid]
+                      const hf = TEAM_BY_ID[tm?.home ?? '']?.flag ?? '🏳️'
+                      const af = TEAM_BY_ID[tm?.away ?? '']?.flag ?? '🏳️'
+                      const p = predByKey.get(`${r.user_id}|${mid}`)
+                      return (
+                        <div key={mid} className="flex items-center justify-between gap-2">
+                          <span className="text-[10px] tabular-nums whitespace-nowrap" style={{ color: c.faint }}>{hf} {rr.homeScore}-{rr.awayScore} {af}</span>
+                          {p ? (
+                            <PredScore ph={p.home} pa={p.away} rh={rr.homeScore} ra={rr.awayScore} homeFlag={hf} awayFlag={af} points={marcadorPoints(mid, p.home, p.away, rr.homeScore, rr.awayScore)} />
+                          ) : (
+                            <span className="text-xs italic" style={{ color: c.faint }}>{t('Sin predicción', 'No prediction')}</span>
+                          )}
+                        </div>
+                      )
+                    })}
                   </div>
                 )}
               </div>
