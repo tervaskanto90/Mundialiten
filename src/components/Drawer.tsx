@@ -1,9 +1,11 @@
-import { type ReactNode, useEffect } from 'react'
+import { type ReactNode, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useTheme } from '../theme'
 
-/** Panel lateral (menú hamburguesa). Entra desde la izquierda. `footer` queda
- *  fijo abajo de todo (lo usamos para el sincronizador en vivo). */
+const EXIT_MS = 220
+
+/** Panel lateral (menú hamburguesa). Entra desde la izquierda y sale con
+ *  animación. `footer` queda fijo abajo de todo (lo usamos para el live). */
 export function Drawer({
   open,
   onClose,
@@ -18,8 +20,30 @@ export function Drawer({
   footer?: ReactNode
 }) {
   const { c, dark } = useTheme()
+  // `render` mantiene el panel montado durante la animación de salida. La
+  // animación la maneja el efecto al ver cambiar `open` (también cuando lo
+  // cierran desde afuera, p.ej. al tocar una sección del menú).
+  const [render, setRender] = useState(open)
+  const [closing, setClosing] = useState(false)
+
   useEffect(() => {
-    if (!open) return
+    if (open) {
+      setRender(true)
+      setClosing(false)
+      return
+    }
+    if (!render) return
+    setClosing(true)
+    const id = window.setTimeout(() => {
+      setRender(false)
+      setClosing(false)
+    }, EXIT_MS)
+    return () => window.clearTimeout(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
+
+  useEffect(() => {
+    if (!render) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
     }
@@ -32,14 +56,19 @@ export function Drawer({
       window.removeEventListener('keydown', onKey)
       document.body.style.overflow = prevOverflow
     }
-  }, [open, onClose])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [render])
 
-  if (!open) return null
+  if (!render) return null
 
   return createPortal(
     <div
       className="fixed inset-0 z-50"
-      style={{ height: '100dvh', background: 'rgba(16,12,6,.55)' }}
+      style={{
+        height: '100dvh',
+        background: 'rgba(16,12,6,.55)',
+        animation: `${closing ? 'mdlFadeOut' : 'mdlFadeIn'} ${EXIT_MS}ms ease both`,
+      }}
       onClick={onClose}
     >
       <div
@@ -56,7 +85,9 @@ export function Drawer({
           boxShadow: '0 0 60px -8px rgba(0,0,0,.6)',
           display: 'flex',
           flexDirection: 'column',
-          animation: 'mdlDrawerIn .26s cubic-bezier(.4,1.15,.5,1) both',
+          animation: closing
+            ? `mdlDrawerOut ${EXIT_MS}ms ease both`
+            : 'mdlDrawerIn .26s cubic-bezier(.4,1.15,.5,1) both',
           overflow: 'hidden',
         }}
       >

@@ -9,8 +9,8 @@ import { useTheme } from '../theme'
 type Sub = 'calendario' | 'grupos' | 'llaves'
 
 const TABS: { id: Sub; es: string; en: string; icon: string }[] = [
-  { id: 'calendario', es: 'Calendario', en: 'Calendar', icon: '🗓️' },
-  { id: 'grupos', es: 'Grupos', en: 'Groups', icon: '🗂️' },
+  { id: 'calendario', es: 'Partidos', en: 'Matches', icon: '🗓️' },
+  { id: 'grupos', es: 'Tablas', en: 'Tables', icon: '📊' },
   { id: 'llaves', es: 'Llaves', en: 'Bracket', icon: '🗝️' },
 ]
 

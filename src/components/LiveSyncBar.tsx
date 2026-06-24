@@ -36,42 +36,43 @@ export function LiveSyncBar() {
   const [showConfig, setShowConfig] = useState(false)
 
   return (
-    <div className="rounded-xl px-3 py-2.5" style={{ background: c.cardGrad, border: '1px solid ' + c.line, boxShadow: c.shadow }}>
-      <div className="flex items-center gap-2 flex-wrap">
+    <div className="rounded-lg px-2.5 py-1.5" style={{ background: c.cardGrad, border: '1px solid ' + c.line }}>
+      <div className="flex items-center gap-1.5">
         <span
-          className="w-2.5 h-2.5 rounded-full"
+          className="w-2 h-2 rounded-full shrink-0"
           style={{ background: STATUS_COLOR[syncStatus], animation: syncStatus === 'syncing' ? 'mdlLivePulse 1.2s ease-in-out infinite' : 'none' }}
         />
-        <span className="text-sm font-medium" style={{ color: c.text }}>
-          🔴 {t('En vivo', 'Live')}
+        <span className="text-[11px] font-bold shrink-0" style={{ color: c.text }}>
+          {t('En vivo', 'Live')}
         </span>
-        <span className="text-xs" style={{ color: c.muted }}>
+        <span className="text-[10px] truncate" style={{ color: c.muted }}>
           {syncStatus === 'syncing'
             ? t('sincronizando…', 'syncing…')
-            : t(`actualizado ${relativeTime(lastSync, false)}`, `updated ${relativeTime(lastSync, true)}`)}
+            : t(relativeTime(lastSync, false), relativeTime(lastSync, true))}
         </span>
 
-        <label className="ml-auto flex items-center gap-1.5 text-xs cursor-pointer select-none" style={{ color: c.muted }}>
+        <label className="ml-auto flex items-center gap-1 text-[10px] cursor-pointer select-none shrink-0" style={{ color: c.muted }} title={t('Sincronizar cada 5 minutos', 'Sync every 5 minutes')}>
           <input
             type="checkbox"
             checked={liveEnabled}
             onChange={(e) => setLiveEnabled(e.target.checked)}
             style={{ accentColor: ACCENT.blue }}
           />
-          {t('Auto (cada 5 min)', 'Auto (every 5 min)')}
+          {t('Auto', 'Auto')}
         </label>
         <button
           onClick={() => runLiveSync()}
           disabled={syncStatus === 'syncing'}
-          className="text-xs font-medium px-3 py-1.5 rounded-lg disabled:opacity-50 text-white"
+          className="text-[11px] font-bold px-2 py-1 rounded-md disabled:opacity-50 text-white shrink-0"
           style={{ background: ACCENT.blue }}
+          title={t('Sincronizar ahora', 'Sync now')}
         >
-          ↻ {t('Sincronizar', 'Sync')}
+          ↻
         </button>
         <button
           onClick={() => setShowConfig((v) => !v)}
           title={t('Configurar proveedor', 'Configure provider')}
-          className="text-xs px-2 py-1.5 rounded-lg"
+          className="text-[11px] px-1.5 py-1 rounded-md shrink-0"
           style={{ color: c.muted, border: '1px solid ' + c.line }}
         >
           ⚙
@@ -79,7 +80,7 @@ export function LiveSyncBar() {
       </div>
 
       {syncMessage && (
-        <div className="text-[11px] mt-1.5" style={{ color: syncStatus === 'error' ? ACCENT.red : c.faint }}>
+        <div className="text-[10px] mt-1 truncate" style={{ color: syncStatus === 'error' ? ACCENT.red : c.faint }}>
           {syncMessage}
         </div>
       )}

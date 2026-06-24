@@ -95,6 +95,18 @@ body {
   from { transform: translateX(-100%); }
   to { transform: none; }
 }
+@keyframes mdlDrawerOut {
+  from { transform: none; }
+  to { transform: translateX(-100%); }
+}
+@keyframes mdlFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes mdlFadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
 /* Partido en vivo del header: resplandor rojo suave que late. */
 @keyframes mdlLiveCard {
   0%, 100% { box-shadow: 0 0 0 0 rgba(229, 50, 43, 0); }

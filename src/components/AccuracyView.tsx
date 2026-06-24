@@ -133,7 +133,7 @@ function StatsCard({
     { k: 'result', icon: '✅', label: t('Resultado', 'Result'), n: stats.result },
     { k: 'miss', icon: '❌', label: t('Errados', 'Missed'), n: stats.miss },
   ]
-  const list = tab === 'exact' ? stats.lists.exact : tab === 'result' ? stats.lists.result : tab === 'miss' ? stats.lists.miss : []
+  const listFor = (k: HitKind) => (k === 'exact' ? stats.lists.exact : k === 'result' ? stats.lists.result : stats.lists.miss)
 
   // Métricas avanzadas (de tu predicción vs los resultados reales).
   const streak = (() => { let n = 0; for (const f of stats.form) { if (f.kind === 'miss') break; n++ } return n })()
@@ -224,40 +224,41 @@ function StatsCard({
               </div>
             </div>
 
-            {/* Detalle por categoría (aparece al tocar) */}
-            <div className="flex gap-2 mt-3">
+            {/* Detalle por categoría: desplegables (uno por tipo) */}
+            <div className="text-[10px] uppercase tracking-wide mt-3 mb-1.5" style={{ color: c.muted }}>{t('Detalle de tus partidos', 'Your match detail')}</div>
+            <div className="space-y-1.5">
               {tabs.map((tb) => {
                 const on = tab === tb.k
+                const tbList = listFor(tb.k)
                 return (
-                  <button
-                    key={tb.k}
-                    onClick={() => setTab(on ? null : tb.k)}
-                    className="flex-1 rounded-xl px-2 py-2 text-center transition"
-                    style={{
-                      border: '1px solid ' + (on ? HIT_COLOR[tb.k] : c.line),
-                      background: on ? HIT_COLOR[tb.k] + '22' : dark ? 'rgba(0,0,0,.18)' : 'rgba(0,0,0,.025)',
-                    }}
-                  >
-                    <div className="text-base font-bold leading-none" style={{ fontFamily: "'Archivo'", color: HIT_COLOR[tb.k] }}>{tb.n}</div>
-                    <div className="text-[10px] mt-0.5" style={{ color: c.muted }}>{tb.icon} {tb.label}</div>
-                  </button>
+                  <div key={tb.k} className="rounded-xl overflow-hidden" style={{ border: '1px solid ' + (on ? HIT_COLOR[tb.k] : c.line) }}>
+                    <button
+                      onClick={() => setTab(on ? null : tb.k)}
+                      className="w-full flex items-center gap-2 px-3 py-2 transition"
+                      style={{ background: on ? HIT_COLOR[tb.k] + '1A' : dark ? 'rgba(0,0,0,.18)' : 'rgba(0,0,0,.025)' }}
+                    >
+                      <span className="text-sm">{tb.icon}</span>
+                      <span className="text-[12.5px] font-bold" style={{ fontFamily: "'Archivo'", color: c.text }}>{tb.label}</span>
+                      <span className="text-sm font-bold tabular-nums" style={{ color: HIT_COLOR[tb.k] }}>{tb.n}</span>
+                      <span className="ml-auto text-[11px]" style={{ color: c.muted, transform: on ? 'rotate(180deg)' : 'none', transition: 'transform .18s ease' }}>▾</span>
+                    </button>
+                    {on && (
+                      <div className="px-2 py-2" style={{ borderTop: '1px solid ' + c.line, background: dark ? 'rgba(0,0,0,.12)' : 'rgba(0,0,0,.015)' }}>
+                        {tbList.length === 0 ? (
+                          <div className="text-[11px] py-1.5 text-center" style={{ color: c.faint }}>{t('Sin partidos en esta categoría.', 'No matches in this category.')}</div>
+                        ) : (
+                          <div className="grid sm:grid-cols-2 gap-x-3 gap-y-1">
+                            {tbList.map((e) => (
+                              <HitRow key={e.matchId} e={e} realRes={realRes} color={HIT_COLOR[tb.k]} />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 )
               })}
             </div>
-
-            {tab && (
-              <div className="mt-2 rounded-xl p-2" style={{ background: dark ? 'rgba(0,0,0,.2)' : 'rgba(0,0,0,.025)', border: '1px solid ' + c.line }}>
-                {list.length === 0 ? (
-                  <div className="text-[11px] py-2 text-center" style={{ color: c.faint }}>{t('Sin partidos en esta categoría.', 'No matches in this category.')}</div>
-                ) : (
-                  <div className="grid sm:grid-cols-2 gap-x-3 gap-y-1">
-                    {list.map((e) => (
-                      <HitRow key={e.matchId} e={e} realRes={realRes} color={HIT_COLOR[tab]} />
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
           </>
         )}
       </div>

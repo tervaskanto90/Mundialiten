@@ -6,7 +6,6 @@ import { useStore, getScenario, REAL_SCENARIO_ID } from '../store/useStore'
 import { resolve } from '../engine/resolve'
 import { TEAM_BY_ID } from '../data/teams'
 import { rankDeltas, tieGroups } from '../lib/rankDelta'
-import { LiveBanner } from './LiveBanner'
 import { Avatar } from './Avatar'
 import { useTheme, ACCENT } from '../theme'
 
@@ -144,8 +143,6 @@ export function RankingView() {
         <h2 className="font-semibold" style={{ fontFamily: "'Archivo'", color: c.text }}>🏆 Ranking{rows && rows.length > 0 ? ` · ${rows.length}` : ''}</h2>
         <button onClick={load} className="text-xs px-2 py-1 rounded-lg" style={{ color: c.muted }}>↻ {t('Actualizar', 'Refresh')}</button>
       </div>
-
-      <LiveBanner realResults={realResults} />
 
       {lastMatchId != null && lastReal?.played && (
         <div className="rounded-xl px-3 py-2 mb-3 text-sm flex items-center gap-2 flex-wrap" style={{ background: dark ? 'rgba(31,168,92,.14)' : 'rgba(31,168,92,.12)', border: '1px solid rgba(31,168,92,.35)', color: c.text }}>

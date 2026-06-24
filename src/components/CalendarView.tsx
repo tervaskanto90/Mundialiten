@@ -3,7 +3,6 @@ import { MATCHES, STAGE_I18N } from '../data/schedule'
 import { GROUPS } from '../data/teams'
 import type { StageId } from '../types'
 import { MatchRow } from './MatchRow'
-import { LiveBanner } from './LiveBanner'
 import { formatDate, matchDateKey } from '../utils/labels'
 import type { ActiveContext } from '../hooks'
 import { useT } from '../i18n'
@@ -151,7 +150,6 @@ export function CalendarView({ ctx, onEdit }: Props) {
 
   return (
     <div>
-      {ctx.scenario.type === 'real' && <LiveBanner realResults={ctx.real.results} />}
       {ctx.scenario.type === 'prediction' && (
         <div
           className="rounded-xl px-3 py-2 mb-3 text-xs"
@@ -176,9 +174,12 @@ export function CalendarView({ ctx, onEdit }: Props) {
         </div>
       )}
 
-      {/* Filtros condensados en una sola fila: vista (Lista/Por grupos) +
-          desplegable de etapa + sólo pendientes. */}
-      <div className="flex items-center gap-2 mb-3 flex-wrap">
+      {/* Toolbar única: agrupa el modo de lista (Lista/Por grupos), el filtro de
+          etapa y el de pendientes en un solo bloque, para no desparramar botones. */}
+      <div
+        className="flex items-center gap-2 mb-3 flex-wrap rounded-2xl px-2 py-2"
+        style={{ background: dark ? 'rgba(255,255,255,.03)' : 'rgba(0,0,0,.025)', border: '1px solid ' + c.line }}
+      >
         <div
           className="inline-flex p-0.5 rounded-full"
           style={{ background: dark ? 'rgba(0,0,0,.28)' : 'rgba(0,0,0,.05)', border: '1px solid ' + c.line }}
@@ -203,7 +204,7 @@ export function CalendarView({ ctx, onEdit }: Props) {
 
         <button
           onClick={() => setOnlyPending((v) => !v)}
-          style={pill(onlyPending, ACCENT.gold)}
+          style={{ ...pill(onlyPending, ACCENT.gold), marginLeft: 'auto' }}
           title={t('Mostrar sólo partidos sin cargar', 'Show only matches not set yet')}
         >
           ⏳ {t('Pendientes', 'Pending')}

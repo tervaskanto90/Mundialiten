@@ -12,6 +12,7 @@ import { HomeView } from './components/HomeView'
 import { HeaderScore } from './components/HeaderScore'
 import { Avatar } from './components/Avatar'
 import { useActiveContext, useLiveSyncPolling } from './hooks'
+import { liveMatchIds } from './utils/live'
 import { useStore, getScenario, REAL_SCENARIO_ID } from './store/useStore'
 import { useAuth } from './auth'
 import { useSupabaseSync } from './lib/sync'
@@ -48,9 +49,10 @@ export default function App() {
   const { t, lang, setLang } = useT()
   const { c, dark, toggle } = useTheme()
   const isDesktop = useIsDesktop()
-  const [branding, setBranding] = useBranding()
+  const [branding] = useBranding()
   const realScenario = useStore((s) => getScenario(s.scenarios, REAL_SCENARIO_ID))
   const realResults = realScenario?.results ?? {}
+  const hasLive = liveMatchIds(realResults).length > 0
   useLiveSyncPolling()
   useSupabaseSync()
 
@@ -269,7 +271,7 @@ export default function App() {
         {isDesktop ? (
           <header style={headerStyle}>
             {hamburgerBtn}
-            <HeaderBrand branding={branding} onChange={setBranding} size={Math.round(52 * hs)} onClick={() => setView('home')} />
+            <HeaderBrand branding={branding} size={Math.round(52 * hs)} onClick={() => setView('home')} />
             <div style={{ minWidth: 0, cursor: 'pointer' }} onClick={() => setView('home')} title={t('Ir al inicio', 'Go home')}>
               <div style={{ fontFamily: "'Archivo'", fontWeight: 900, fontSize: px(18), lineHeight: 1, letterSpacing: '-.3px', color: c.text }}>
                 MUNDIALITEN
@@ -304,7 +306,7 @@ export default function App() {
           <header style={mobileHeaderStyle}>
             <div style={{ display: 'flex', alignItems: 'center', gap: px(11) }}>
               {hamburgerBtn}
-              <HeaderBrand branding={branding} onChange={setBranding} size={Math.round(46 * hs)} onClick={() => setView('home')} />
+              <HeaderBrand branding={branding} size={Math.round(46 * hs)} onClick={() => setView('home')} />
               <div style={{ flex: 1, minWidth: 0, cursor: 'pointer' }} onClick={() => setView('home')}>
                 <div style={{ fontFamily: "'Archivo'", fontWeight: 900, fontSize: px(18), lineHeight: 1, letterSpacing: '-.3px', color: c.text }}>
                   MUNDIALITEN
@@ -316,6 +318,15 @@ export default function App() {
             </div>
             <LiveBanner realResults={realResults} embedded />
           </header>
+        )}
+
+        {/* Partido(s) en vivo: en desktop, debajo del header (en mobile ya va
+            dentro del header). Único lugar — se quitó de las secciones para que
+            no se duplique. */}
+        {isDesktop && hasLive && (
+          <div style={{ flexShrink: 0, marginTop: '12px' }}>
+            <LiveBanner realResults={realResults} embedded />
+          </div>
         )}
 
         {/* BODY */}
@@ -362,8 +373,13 @@ export default function App() {
                     </div>
                     <span style={{ color: c.muted, fontSize: '16px', flex: 'none' }}>›</span>
                   </button>
-                  <div style={{ marginBottom: '18px' }}>
+                  {/* Cómo jugar + idioma + tema, todo en el mismo renglón. */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '18px' }}>
                     <HowToPlay />
+                    <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {langToggle}
+                      {themeBtn}
+                    </div>
                   </div>
                 </>
               )}
@@ -387,15 +403,7 @@ export default function App() {
               {!isDesktop && (
                 <>
                   <div style={drawerLabel}>{t('Vista', 'View')}</div>
-                  <div style={{ marginBottom: '18px' }}>
-                    <ScenarioToggle compact />
-                  </div>
-
-                  <div style={drawerLabel}>{t('Preferencias', 'Preferences')}</div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    {langToggle}
-                    {themeBtn}
-                  </div>
+                  <ScenarioToggle compact block />
                 </>
               )}
 
@@ -406,14 +414,8 @@ export default function App() {
           )
           const mainContent = (
             <main style={mainStyle} key={view}>
-              {view === 'fixture' && (
-                <div
-                  style={
-                    isDesktop
-                      ? { position: 'sticky', top: 0, zIndex: 20, background: c.canvas, paddingTop: '2px', paddingBottom: '12px', marginBottom: '6px' }
-                      : { marginBottom: '12px' }
-                  }
-                >
+              {view === 'fixture' && isDesktop && (
+                <div style={{ position: 'sticky', top: 0, zIndex: 20, background: c.canvas, paddingTop: '2px', paddingBottom: '12px', marginBottom: '6px' }}>
                   <ScenarioToggle />
                 </div>
               )}
