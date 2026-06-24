@@ -73,11 +73,20 @@ export default async function handler(req: any, res: any) {
   let seenEmail: string | null = null
   let getUserErr: string | null = null
   if (!authorized && bearer) {
+    // Validamos el token directamente contra GoTrue (/auth/v1/user). Más robusto
+    // que supa.auth.getUser(jwt), que en service-role busca una sesión local
+    // inexistente y tira "Auth session missing!".
     try {
-      const { data, error } = await supa.auth.getUser(bearer)
-      if (error) getUserErr = error.message
-      seenEmail = data?.user?.email ?? null
-      if ((seenEmail || '').toLowerCase() === ADMIN_EMAIL) authorized = true
+      const r = await fetch(`${url}/auth/v1/user`, {
+        headers: { apikey: serviceKey, Authorization: `Bearer ${bearer}` },
+      })
+      if (r.ok) {
+        const u: any = await r.json()
+        seenEmail = u?.email ?? null
+        if ((seenEmail || '').toLowerCase() === ADMIN_EMAIL) authorized = true
+      } else {
+        getUserErr = `${r.status} ${(await r.text()).slice(0, 120)}`
+      }
     } catch (e: any) {
       getUserErr = String(e?.message || e)
     }
