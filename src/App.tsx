@@ -19,6 +19,7 @@ import { useSupabaseSync } from './lib/sync'
 import { useT, type Lang } from './i18n'
 import { HowToPlay } from './components/HowToPlay'
 import { HeaderBrand } from './components/HeaderBrand'
+import { Tutorial } from './components/Tutorial'
 import { Drawer } from './components/Drawer'
 import { Band } from './components/Bands'
 import { useTheme } from './theme'
@@ -26,6 +27,18 @@ import { useIsDesktop } from './hooks/useIsDesktop'
 import { useBranding } from './lib/branding'
 
 type View = 'home' | 'fixture' | 'precision' | 'ranking'
+
+// Tutorial de bienvenida: sale SOLO la primera vez en esta versión. Subir el
+// número re-dispara el tour para todos (lo usamos al pasar a producción).
+const TUTORIAL_VERSION = 'v2-2026'
+const TUTORIAL_KEY = `mundi-tutorial-${TUTORIAL_VERSION}`
+const tutorialSeen = (): boolean => {
+  try {
+    return localStorage.getItem(TUTORIAL_KEY) === '1'
+  } catch {
+    return false
+  }
+}
 
 const NAV: { id: View; es: string; en: string; icon: string }[] = [
   { id: 'home', es: 'Inicio', en: 'Home', icon: '🏠' },
@@ -44,6 +57,7 @@ export default function App() {
   const [editingMatch, setEditingMatch] = useState<number | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [accountOpen, setAccountOpen] = useState(false)
+  const [tutorialOpen, setTutorialOpen] = useState(false)
   const ctx = useActiveContext()
   const { enabled, user, displayName, avatarUrl } = useAuth()
   const { t, lang, setLang } = useT()
@@ -112,6 +126,21 @@ export default function App() {
       window.removeEventListener('touchend', onEnd)
     }
   }, [isDesktop, menuOpen, accountOpen, editingMatch])
+
+  // Tutorial de bienvenida: SOLO la primera vez en esta versión, una vez que el
+  // usuario entró (o en modo local sin auth). Al cerrarlo/omitirlo se marca visto.
+  useEffect(() => {
+    if (tutorialSeen()) return
+    if ((enabled && user) || !enabled) setTutorialOpen(true)
+  }, [enabled, user])
+  const closeTutorial = () => {
+    try {
+      localStorage.setItem(TUTORIAL_KEY, '1')
+    } catch {
+      /* ignore */
+    }
+    setTutorialOpen(false)
+  }
 
   const name = (enabled && user && displayName) || 'Invitado'
 
@@ -444,6 +473,16 @@ export default function App() {
                 ))}
               </div>
 
+              <button
+                onClick={() => {
+                  setTutorialOpen(true)
+                  setMenuOpen(false)
+                }}
+                style={{ ...drawerNavBtn(false), marginBottom: '18px' }}
+              >
+                <span>🎓</span> {t('Ver el tutorial', 'View the tutorial')}
+              </button>
+
               {!isDesktop && (
                 <>
                   <div style={drawerLabel}>{t('Vista', 'View')}</div>
@@ -502,6 +541,8 @@ export default function App() {
       )}
 
       {accountOpen && <AccountModal onClose={() => setAccountOpen(false)} />}
+
+      {tutorialOpen && <Tutorial onClose={closeTutorial} />}
     </div>
   )
 }

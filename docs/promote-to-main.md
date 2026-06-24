@@ -68,6 +68,26 @@ create policy "branding_update_admin" on public.branding for update to authentic
 alter table public.scores add column if not exists avatar_url text;
 ```
 
+## Secuencia de migración acordada (el día del pase)
+Orden exacto pedido por el usuario. Cada paso, con mi confirmación en el momento:
+1. **OK del usuario** con todos los requisitos (decisiones 1–4 confirmadas).
+2. **Deslogueo masivo**: invalidar todas las sesiones para forzar re-login en la
+   versión nueva. En Supabase: `Authentication → Users` (cerrar sesiones) o, vía
+   service role, `auth.admin.signOut` por usuario / invalidar refresh tokens.
+   (Se puede hacer con un script puntual con `SUPABASE_SERVICE_ROLE_KEY`.)
+3. **Pase a main**: merge `staging → main` + `push` (deploy de producción).
+4. **Tutorial al primer login**: ya implementado. Sale SOLO la primera vez por
+   versión (flag `mundi-tutorial-<TUTORIAL_VERSION>` en localStorage). Si hiciera
+   falta re-disparar el tour para todos, subir `TUTORIAL_VERSION` en `App.tsx`.
+   5 pasos con las novedades + botón "Omitir"; reabrible desde el menú (🎓).
+5. **Mail a todos**: avisar que salió la nueva versión de Mundialiten. Envío con
+   la lista de `auth.users` (service role) vía el proveedor de mail (Resend/SMTP).
+   Marcado como acción del día del pase (no automatizado todavía).
+
+> Importante: la SQL de eliminatorias (`recompute_all_scores` con el bonus
+> "quién pasa") ya fue corrida en el proyecto Supabase actual. Si producción usa
+> un proyecto separado, hay que correrla también ahí (ver schema.sql).
+
 ## Rollback
 - Vercel → Instant Rollback al deploy anterior, o `git revert -m 1 <merge> && git push`.
 - Los datos (real_results, predictions, scores) no se tocan: el merge es solo código.
