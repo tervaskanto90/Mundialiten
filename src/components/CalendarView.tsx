@@ -3,6 +3,7 @@ import { MATCHES, STAGE_I18N } from '../data/schedule'
 import { GROUPS } from '../data/teams'
 import type { StageId } from '../types'
 import { MatchRow } from './MatchRow'
+import { Dropdown } from './Dropdown'
 import { formatDate, matchDateKey } from '../utils/labels'
 import type { ActiveContext } from '../hooks'
 import { useT } from '../i18n'
@@ -135,19 +136,6 @@ export function CalendarView({ ctx, onEdit }: Props) {
     background: active ? ACCENT.blue : 'transparent',
   })
 
-  // Desplegable de etapa (reemplaza la fila de 7 botones).
-  const selectStyle: React.CSSProperties = {
-    fontSize: '12px',
-    fontWeight: 700,
-    fontFamily: "'Archivo'",
-    cursor: 'pointer',
-    padding: '7px 12px',
-    borderRadius: '99px',
-    color: c.text,
-    background: dark ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.04)',
-    border: '1px solid ' + c.line,
-  }
-
   return (
     <div>
       {ctx.scenario.type === 'prediction' && (
@@ -193,13 +181,15 @@ export function CalendarView({ ctx, onEdit }: Props) {
         </div>
 
         {view === 'calendar' && (
-          <select value={filter} onChange={(e) => setFilter(e.target.value as Filter)} style={selectStyle}>
-            {FILTERS.map((f) => (
-              <option key={f.id} value={f.id}>
-                {(f.id === 'all' ? t('Etapa: todas', 'Stage: all') : lang === 'en' ? f.en : f.es)}
-              </option>
-            ))}
-          </select>
+          <Dropdown
+            value={filter}
+            onChange={(v) => setFilter(v as Filter)}
+            ariaLabel={t('Filtrar por etapa', 'Filter by stage')}
+            options={FILTERS.map((f) => ({
+              value: f.id,
+              label: f.id === 'all' ? t('Etapa: todas', 'Stage: all') : lang === 'en' ? f.en : f.es,
+            }))}
+          />
         )}
 
         <button
