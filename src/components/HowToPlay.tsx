@@ -101,10 +101,10 @@ function KnockoutExample({ lang }: { lang: 'es' | 'en' }) {
     return (
       <div className="p-3 mt-2 text-xs space-y-2" style={box}>
         <p className="font-bold" style={{ color: c.text }}>📐 Worked example (Quarter-final)</p>
-        <p>You predict <strong style={{ color: c.text }}>1-1 and that A goes through</strong> (you picked A to win on penalties). The match ends <strong style={{ color: c.text }}>A 2-1</strong>.</p>
+        <p><strong style={{ color: c.text }}>You're in a quarter-final (QF)</strong>. You predict <strong style={{ color: c.text }}>1-1 and that A goes through</strong> (you picked A to win on penalties). The match ends <strong style={{ color: c.text }}>A 2-1</strong>.</p>
         <ul className="list-disc pl-4 space-y-1">
           <li><strong style={{ color: c.text }}>Score:</strong> you predicted a draw but A won → it's neither exact nor the right result → <strong style={{ color: '#E5322B' }}>0 points</strong> from the score.</li>
-          <li><strong style={{ color: c.text }}>Who advances:</strong> you said A and A advanced → <strong style={{ color: '#1FA85C' }}>+3</strong>.</li>
+          <li><strong style={{ color: c.text }}>Who advances:</strong> you said A and A advanced → <strong style={{ color: '#1FA85C' }}>+3</strong> (the QF bonus).</li>
           <li><strong style={{ color: c.text }}>Total: 3 points</strong> (out of 9 possible in the QF: 6 for an exact score + 3 for the bonus).</li>
         </ul>
         <p>
@@ -116,10 +116,10 @@ function KnockoutExample({ lang }: { lang: 'es' | 'en' }) {
   return (
     <div className="p-3 mt-2 text-xs space-y-2" style={box}>
       <p className="font-bold" style={{ color: c.text }}>📐 Ejemplo detallado (Cuartos de final)</p>
-      <p>Predecís <strong style={{ color: c.text }}>1-1 y que pasa A</strong> (elegiste a A como ganador de los penales). El partido termina <strong style={{ color: c.text }}>A 2-1</strong>.</p>
+      <p><strong style={{ color: c.text }}>Estás en cuartos de final</strong> (4tos). Predecís <strong style={{ color: c.text }}>1-1 y que pasa A</strong> (elegiste a A como ganador de los penales). El partido termina <strong style={{ color: c.text }}>A 2-1</strong>.</p>
       <ul className="list-disc pl-4 space-y-1">
         <li><strong style={{ color: c.text }}>Marcador:</strong> pronosticaste empate pero ganó A → no es exacto ni acertaste el resultado → <strong style={{ color: '#E5322B' }}>0 puntos</strong> de marcador.</li>
-        <li><strong style={{ color: c.text }}>Quién pasa:</strong> dijiste que avanzaba A y avanzó A → <strong style={{ color: '#1FA85C' }}>+3</strong>.</li>
+        <li><strong style={{ color: c.text }}>Quién pasa:</strong> dijiste que avanzaba A y avanzó A → <strong style={{ color: '#1FA85C' }}>+3</strong> (el bonus de cuartos).</li>
         <li><strong style={{ color: c.text }}>Total: 3 puntos</strong> (de 9 posibles en cuartos: 6 del marcador exacto + 3 del bonus).</li>
       </ul>
       <p>
