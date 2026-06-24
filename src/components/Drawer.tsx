@@ -24,7 +24,14 @@ export function Drawer({
       if (e.key === 'Escape') onClose()
     }
     window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    // Bloqueamos el scroll del fondo mientras el menú está abierto: en Chrome
+    // mobile, dejarlo libre hacía que el scroll del menú "saltara" al body.
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.body.style.overflow = prevOverflow
+    }
   }, [open, onClose])
 
   if (!open) return null
@@ -32,7 +39,7 @@ export function Drawer({
   return createPortal(
     <div
       className="fixed inset-0 z-50"
-      style={{ background: 'rgba(16,12,6,.55)', backdropFilter: 'blur(3px)' }}
+      style={{ height: '100dvh', background: 'rgba(16,12,6,.55)' }}
       onClick={onClose}
     >
       <div
@@ -41,8 +48,8 @@ export function Drawer({
           position: 'absolute',
           top: 0,
           left: 0,
-          bottom: 0,
-          width: '83%',
+          height: '100dvh',
+          width: '85%',
           maxWidth: 320,
           background: dark ? 'linear-gradient(160deg,#241B0E,#191309)' : 'linear-gradient(160deg,#FFFDF6,#F6EEDA)',
           borderRight: '1px solid ' + c.line,
@@ -66,7 +73,12 @@ export function Drawer({
             ✕
           </button>
         </div>
-        <div className="px-4 py-4" style={{ flex: '1 1 auto', overflowY: 'auto' }}>{children}</div>
+        <div
+          className="px-4 py-4"
+          style={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}
+        >
+          {children}
+        </div>
         {footer && (
           <div className="px-4 py-3" style={{ flex: 'none', borderTop: '1px solid ' + c.line }}>
             {footer}

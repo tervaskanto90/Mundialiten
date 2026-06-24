@@ -45,9 +45,41 @@ const PROJECTS: Project[] = [
   },
 ]
 
-export function ProjectsShowcase({ compact = false, tiny = false }: { compact?: boolean; tiny?: boolean }) {
+// Color de acento por proyecto, para el puntito de la variante micro.
+const DOT: Record<Project['visual'], string> = { cve: '#16A8E0', wave: '#FF4DA6', nix: '#EC1C7D', pitch: '#1FA85C' }
+
+export function ProjectsShowcase({ compact = false, tiny = false, micro = false }: { compact?: boolean; tiny?: boolean; micro?: boolean }) {
   const { c } = useTheme()
   const { t } = useT()
+  // Variante MICRO: muy compacta para el menú hamburguesa. Sólo título + filas
+  // de una línea (sin los visuales grandes), separada por una línea divisoria.
+  if (micro) {
+    return (
+      <div>
+        <a href={SITE} target="_blank" rel="noopener noreferrer" className="block mb-2">
+          <div className="font-bold flex items-center gap-1.5" style={{ fontFamily: "'Archivo'", color: c.text, fontSize: '11.5px' }}>
+            🛠️ {t('Mirá otras cosas que construí', 'Other things I’ve built')} <span style={{ color: c.muted }}>↗</span>
+          </div>
+        </a>
+        <div className="flex flex-col gap-1">
+          {PROJECTS.map((p) => (
+            <a
+              key={p.name}
+              href={p.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 rounded-lg px-2 py-1.5"
+              style={{ background: c.cardGrad, border: '1px solid ' + c.line }}
+            >
+              <span style={{ width: 7, height: 7, borderRadius: '50%', flex: 'none', background: DOT[p.visual] }} />
+              <span className="flex-1 truncate font-bold" style={{ fontFamily: "'Archivo'", color: c.text, fontSize: '11.5px' }}>{p.name}</span>
+              <span className="text-[10px]" style={{ color: c.muted }}>↗</span>
+            </a>
+          ))}
+        </div>
+      </div>
+    )
+  }
   return (
     <div>
       <a href={SITE} target="_blank" rel="noopener noreferrer" className="block mb-2.5">

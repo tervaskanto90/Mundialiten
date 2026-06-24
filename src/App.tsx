@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { ScenarioToggle } from './components/ScenarioToggle'
+import { LiveBanner } from './components/LiveBanner'
 import { AccountModal } from './components/AccountModal'
 import { ProjectsShowcase } from './components/ProjectsShowcase'
 import { FixtureView } from './components/FixtureView'
@@ -11,6 +12,7 @@ import { HomeView } from './components/HomeView'
 import { HeaderScore } from './components/HeaderScore'
 import { Avatar } from './components/Avatar'
 import { useActiveContext, useLiveSyncPolling } from './hooks'
+import { useStore, getScenario, REAL_SCENARIO_ID } from './store/useStore'
 import { useAuth } from './auth'
 import { useSupabaseSync } from './lib/sync'
 import { useT, type Lang } from './i18n'
@@ -36,19 +38,19 @@ const LANGS: { id: Lang; flag: string }[] = [
   { id: 'en', flag: '🇬🇧' },
 ]
 
-const SCN_ICON: Record<string, string> = { real: '🔴', prediction: '🔮', whatif: '🧪' }
-
 export default function App() {
   const [view, setView] = useState<View>('home')
   const [editingMatch, setEditingMatch] = useState<number | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [accountOpen, setAccountOpen] = useState(false)
   const ctx = useActiveContext()
-  const { enabled, user, displayName, avatarUrl, signOut } = useAuth()
+  const { enabled, user, displayName, avatarUrl } = useAuth()
   const { t, lang, setLang } = useT()
   const { c, dark, toggle } = useTheme()
   const isDesktop = useIsDesktop()
   const [branding, setBranding] = useBranding()
+  const realScenario = useStore((s) => getScenario(s.scenarios, REAL_SCENARIO_ID))
+  const realResults = realScenario?.results ?? {}
   useLiveSyncPolling()
   useSupabaseSync()
 
@@ -66,7 +68,6 @@ export default function App() {
   }, [branding.dark, branding.light])
 
   const name = (enabled && user && displayName) || 'Invitado'
-  const initial = name.slice(0, 1).toUpperCase()
 
   // Escala de la barra de arriba (la define el admin, la ven todos). Acota.
   const hs = Math.min(1.6, Math.max(1, branding.scale || 1))
@@ -112,20 +113,22 @@ export default function App() {
   const mainStyle: React.CSSProperties = isDesktop
     ? { flex: '1 1 0', minWidth: 0, marginTop: '16px', overflowY: 'auto', paddingRight: '8px', paddingBottom: '32px', animation: 'mdlUp .34s ease both' }
     : { flex: 'none', minWidth: 0, marginTop: '12px', animation: 'mdlUp .34s ease both' }
-  // En mobile, barra superior fija (sticky) MÍNIMA: hamburguesa + sección actual
-  // + escenario. Todo lo demás (escenarios y secciones) vive en el drawer.
-  const mobileBarStyle: React.CSSProperties = {
+  // En mobile, encabezado fijo (sticky) MÍNIMO: hamburguesa + logo + MUNDIALITEN,
+  // y debajo el/los partidos en vivo. Todo lo demás (cuenta, escenario, idioma,
+  // tema, cómo jugar) vive en el menú hamburguesa.
+  const mobileHeaderStyle: React.CSSProperties = {
     position: 'sticky',
     top: 0,
     zIndex: 30,
+    flexShrink: 0,
     display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
+    flexDirection: 'column',
+    alignItems: 'stretch',
+    gap: '9px',
     background: c.canvas,
-    marginTop: '12px',
     marginLeft: '-14px',
     marginRight: '-14px',
-    padding: '9px 14px',
+    padding: '11px 14px',
     borderBottom: '1px solid ' + c.line,
     boxShadow: dark ? '0 7px 16px -10px rgba(0,0,0,.85)' : '0 7px 16px -12px rgba(120,90,30,.5)',
   }
@@ -296,9 +299,12 @@ export default function App() {
             </div>
           </header>
         ) : (
-          <>
-            <header style={headerStyle}>
-              <HeaderBrand branding={branding} onChange={setBranding} size={Math.round(58 * hs)} onClick={() => setView('home')} />
+          // MOBILE: encabezado fijo MÍNIMO — sólo hamburguesa + logo + MUNDIALITEN.
+          // Debajo, el/los partidos en vivo. Todo lo demás vive en el menú.
+          <header style={mobileHeaderStyle}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: px(11) }}>
+              {hamburgerBtn}
+              <HeaderBrand branding={branding} onChange={setBranding} size={Math.round(46 * hs)} onClick={() => setView('home')} />
               <div style={{ flex: 1, minWidth: 0, cursor: 'pointer' }} onClick={() => setView('home')}>
                 <div style={{ fontFamily: "'Archivo'", fontWeight: 900, fontSize: px(18), lineHeight: 1, letterSpacing: '-.3px', color: c.text }}>
                   MUNDIALITEN
@@ -307,51 +313,9 @@ export default function App() {
                   {t('Mundial 2026', 'World Cup 2026')} · 🇺🇸 🇨🇦 🇲🇽
                 </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: px(7), flex: 'none' }}>
-                {langToggle}
-                {themeBtn}
-              </div>
-            </header>
-            {/* USER CARD (mobile) */}
-            <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginTop: '12px', padding: '0 2px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '9px', minWidth: 0 }}>
-                <div
-                  style={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '10px',
-                    flex: 'none',
-                    background: 'linear-gradient(135deg,#FF7A1A,#EC1C7D)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '15px',
-                    fontFamily: "'Archivo'",
-                    fontWeight: 900,
-                    color: '#fff',
-                  }}
-                >
-                  {initial}
-                </div>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: '13px', fontWeight: 800, color: c.text, lineHeight: 1 }}>{name}</div>
-                  {enabled && user ? (
-                    <button
-                      onClick={() => signOut()}
-                      style={{ fontSize: '10.5px', color: c.muted, fontWeight: 700, marginTop: '2px', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
-                    >
-                      {t('Salir', 'Sign out')}
-                    </button>
-                  ) : (
-                    <div style={{ fontSize: '10.5px', color: c.muted, fontWeight: 700, marginTop: '2px' }}>
-                      {t('Modo local', 'Local mode')}
-                    </div>
-                  )}
-                </div>
-              </div>
-              <HowToPlay />
             </div>
-          </>
+            <LiveBanner realResults={realResults} embedded />
+          </header>
         )}
 
         {/* BODY */}
@@ -366,6 +330,44 @@ export default function App() {
           }
           const drawer = (
             <Drawer open={menuOpen} onClose={() => setMenuOpen(false)} title={t('Menú', 'Menu')} footer={<LiveSyncBar />}>
+              {/* En mobile, el menú concentra TODO lo que sacamos del encabezado:
+                  cuenta, cómo jugar, escenario, idioma y tema. */}
+              {!isDesktop && (
+                <>
+                  <button
+                    onClick={() => {
+                      setAccountOpen(true)
+                      setMenuOpen(false)
+                    }}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      textAlign: 'left',
+                      padding: '10px 12px',
+                      borderRadius: '12px',
+                      cursor: 'pointer',
+                      background: dark ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.035)',
+                      border: '1px solid ' + c.line,
+                      marginBottom: '10px',
+                    }}
+                  >
+                    <Avatar src={avatarUrl} name={name} size={38} radius={11} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: '13.5px', fontWeight: 800, color: c.text, lineHeight: 1.1, fontFamily: "'Archivo'" }}>{name}</div>
+                      <div style={{ fontSize: '10.5px', color: c.muted, fontWeight: 700, marginTop: '2px' }}>
+                        {enabled && user ? t('Mi cuenta', 'My account') : t('Modo local', 'Local mode')}
+                      </div>
+                    </div>
+                    <span style={{ color: c.muted, fontSize: '16px', flex: 'none' }}>›</span>
+                  </button>
+                  <div style={{ marginBottom: '18px' }}>
+                    <HowToPlay />
+                  </div>
+                </>
+              )}
+
               <div style={drawerLabel}>{t('Sección', 'Section')}</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '18px' }}>
                 {NAV.map((n) => (
@@ -381,8 +383,24 @@ export default function App() {
                   </button>
                 ))}
               </div>
-              <div style={{ marginTop: 30, paddingTop: 18, borderTop: '1px solid ' + c.line }}>
-                <ProjectsShowcase tiny />
+
+              {!isDesktop && (
+                <>
+                  <div style={drawerLabel}>{t('Vista', 'View')}</div>
+                  <div style={{ marginBottom: '18px' }}>
+                    <ScenarioToggle compact />
+                  </div>
+
+                  <div style={drawerLabel}>{t('Preferencias', 'Preferences')}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {langToggle}
+                    {themeBtn}
+                  </div>
+                </>
+              )}
+
+              <div style={{ marginTop: isDesktop ? 30 : 22, paddingTop: isDesktop ? 18 : 16, borderTop: '1px solid ' + c.line }}>
+                {isDesktop ? <ProjectsShowcase tiny /> : <ProjectsShowcase micro />}
               </div>
             </Drawer>
           )
@@ -421,42 +439,9 @@ export default function App() {
               </>
             )
           }
-          // ── MOBILE ──
-          const curNav = NAV.find((n) => n.id === view)
-          const curLabel = curNav ? (lang === 'en' ? curNav.en : curNav.es) : ''
-          const scnType = ctx.scenario.type
-          const scnName = scnType === 'real' ? t('Resultados', 'Results') : ctx.scenario.name
+          // ── MOBILE ── (el encabezado sticky de arriba ya tiene la hamburguesa)
           return (
             <>
-              <div style={mobileBarStyle}>
-                {hamburgerBtn}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontFamily: "'Archivo'", fontWeight: 800, fontSize: '16px', color: c.text, lineHeight: 1, letterSpacing: '-.2px' }}>
-                    {curLabel}
-                  </div>
-                </div>
-                <button
-                  onClick={() => setMenuOpen(true)}
-                  style={{
-                    flex: 'none',
-                    maxWidth: '42%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    cursor: 'pointer',
-                    padding: '7px 11px',
-                    borderRadius: '99px',
-                    fontSize: '12px',
-                    fontWeight: 800,
-                    color: c.text,
-                    background: dark ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.04)',
-                    border: '1px solid ' + c.line,
-                  }}
-                >
-                  <span style={{ fontSize: '11px', flex: 'none' }}>{SCN_ICON[scnType]}</span>
-                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{scnName}</span>
-                </button>
-              </div>
               {drawer}
               {mainContent}
             </>

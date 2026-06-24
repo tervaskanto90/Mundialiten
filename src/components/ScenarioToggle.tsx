@@ -15,7 +15,7 @@ const SEGMENTS: { key: SegKey; icon: string; es: string; en: string; accent: str
  * arriba. El What-if es ÚNICO (se reusa o se crea uno solo); la predicción se
  * reusa la de la cuenta (o la primera) y se crea si no hay.
  */
-export function ScenarioToggle() {
+export function ScenarioToggle({ compact = false }: { compact?: boolean } = {}) {
   const scenarios = useStore((s) => s.scenarios)
   const activeId = useStore((s) => s.activeId)
   const setActive = useStore((s) => s.setActive)
@@ -42,7 +42,7 @@ export function ScenarioToggle() {
   }
 
   return (
-    <div className="flex justify-center">
+    <div className="flex justify-center" style={{ overflowX: 'auto' }}>
       <div
         className="inline-flex p-1 rounded-full"
         style={{ background: dark ? 'rgba(0,0,0,.3)' : 'rgba(0,0,0,.05)', border: '1px solid ' + c.line, boxShadow: c.shadow }}
@@ -58,10 +58,10 @@ export function ScenarioToggle() {
                 alignItems: 'center',
                 gap: '6px',
                 fontFamily: "'Archivo'",
-                fontSize: '13px',
+                fontSize: compact ? '12px' : '13px',
                 fontWeight: 800,
                 cursor: 'pointer',
-                padding: '8px 18px',
+                padding: compact ? '7px 13px' : '8px 18px',
                 borderRadius: '99px',
                 border: 'none',
                 whiteSpace: 'nowrap',
