@@ -126,5 +126,6 @@ async function pushScore(userId: string, displayName: string): Promise<void> {
     report.factors,
     score.exact,
     score.exact + score.tendency,
+    score.advance,
   )
 }

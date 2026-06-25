@@ -115,26 +115,25 @@ export function RankingView() {
   )
   const anyLive = liveIds.size > 0
 
-  // Predicción de cada usuario para esos partidos (del historial público).
+  // Predicción de cada usuario para esos partidos (del historial público),
+  // incluyendo los penales (para saber a quién eligió que pasa en empates).
   const predByKey = useMemo(() => {
-    const m = new Map<string, { home: number; away: number }>()
-    for (const p of past ?? []) m.set(`${p.user_id}|${p.match_id}`, { home: p.home, away: p.away })
+    const m = new Map<string, { home: number; away: number; homePens?: number | null; awayPens?: number | null }>()
+    for (const p of past ?? []) m.set(`${p.user_id}|${p.match_id}`, { home: p.home, away: p.away, homePens: p.homePens, awayPens: p.awayPens })
     return m
   }, [past])
 
   // En staging, si no hay predicción real para el partido (eliminatorias no se
   // suben a Supabase), usamos una sintética para poblar el preview.
-  const predFor = (userId: string, matchId: number): { home: number; away: number; homePens?: number; awayPens?: number } | undefined =>
+  const predFor = (userId: string, matchId: number): { home: number; away: number; homePens?: number | null; awayPens?: number | null } | undefined =>
     predByKey.get(`${userId}|${matchId}`) ?? (STAGING ? stagingFakePred(userId, matchId) : undefined)
 
-  // Pases de ronda acertados (3er desempate). El servidor todavía no lo trae;
-  // en staging lo sintetizamos para el preview.
-  const advCountOf = (r: RankingRow): number => {
-    const fromServer = (r as RankingRow & { advance_count?: number }).advance_count
-    if (fromServer != null) return Number(fromServer)
-    return STAGING ? stagingFakeAdvanceCount(r.user_id) : 0
-  }
-  const showAdvance = STAGING || rows?.some((r) => (r as RankingRow & { advance_count?: number }).advance_count != null)
+  // Pases de ronda acertados (3er desempate). En producción viene del servidor
+  // (advance_count); en STAGING usamos el sintético para el preview.
+  const advCountOf = (r: RankingRow): number => (STAGING ? stagingFakeAdvanceCount(r.user_id) : Number(r.advance_count ?? 0))
+  // El badge 🎟️ aparece recién cuando alguien sumó algún pase (empiezan las
+  // eliminatorias); durante los grupos no tiene sentido mostrar "0 pases".
+  const showAdvance = STAGING || !!rows?.some((r) => Number(r.advance_count ?? 0) > 0)
 
   const deltas = useMemo(
     () =>

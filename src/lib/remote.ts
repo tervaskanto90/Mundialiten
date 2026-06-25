@@ -11,9 +11,11 @@ export interface RankingRow {
   accuracy: number // % de acierto (dato secundario)
   points: number // puntos acumulados (ordena el ranking)
   // Desempate cuando hay igualdad de puntos: 1º más marcadores EXACTOS,
-  // 2º más resultados acertados (ganó/empató/perdió, incluye los exactos).
+  // 2º más resultados acertados (ganó/empató/perdió, incluye los exactos),
+  // 3º más pases de ronda acertados (quién avanza en eliminatorias).
   exact_count?: number
   result_count?: number
+  advance_count?: number
   // Snapshot del último partido jugado (lo completa el recálculo en el servidor):
   last_match_id?: number | null // nº del último partido sincronizado
   last_pred_home?: number | null // marcador que predijo (local), o null si no predijo
@@ -126,6 +128,7 @@ export async function upsertScore(
   factors: AccuracyFactor[],
   exactCount: number,
   resultCount: number,
+  advanceCount: number = 0,
 ): Promise<void> {
   if (!supabase) return
   const base = {
@@ -140,8 +143,8 @@ export async function upsertScore(
   // columnas todavía no se corrió, reintentamos sin ellas para no romper el sync.
   let { error } = await supabase
     .from('scores')
-    .upsert({ ...base, exact_count: exactCount, result_count: resultCount })
-  if (error && /exact_count|result_count|column/i.test(error.message)) {
+    .upsert({ ...base, exact_count: exactCount, result_count: resultCount, advance_count: advanceCount })
+  if (error && /exact_count|result_count|advance_count|column/i.test(error.message)) {
     ;({ error } = await supabase.from('scores').upsert(base))
   }
   if (error) throw error
@@ -156,6 +159,10 @@ export interface PastPred {
   avatar_url?: string | null
   home: number
   away: number
+  // Penales que predijo (sólo en eliminatorias con empate): definen a quién eligió
+  // que pasa de ronda. La RPC los devuelve como home_pens/away_pens.
+  homePens?: number | null
+  awayPens?: number | null
 }
 export async function fetchPastPredictions(): Promise<PastPred[]> {
   if (!supabase) return []
@@ -164,7 +171,11 @@ export async function fetchPastPredictions(): Promise<PastPred[]> {
     console.warn('[past_predictions]', error.message)
     return []
   }
-  return (data as PastPred[]) ?? []
+  return ((data as Array<PastPred & { home_pens?: number | null; away_pens?: number | null }>) ?? []).map((r) => ({
+    ...r,
+    homePens: r.home_pens ?? null,
+    awayPens: r.away_pens ?? null,
+  }))
 }
 
 export async function fetchRanking(): Promise<RankingRow[]> {
@@ -173,10 +184,11 @@ export async function fetchRanking(): Promise<RankingRow[]> {
   //    más RESULTADOS acertados. Requiere las columnas exact_count/result_count.
   const withTiebreak = await supabase
     .from('scores')
-    .select('user_id, display_name, accuracy, points, exact_count, result_count, last_match_id, last_pred_home, last_pred_away, last_points, avatar_url')
+    .select('user_id, display_name, accuracy, points, exact_count, result_count, advance_count, last_match_id, last_pred_home, last_pred_away, last_points, avatar_url')
     .order('points', { ascending: false })
     .order('exact_count', { ascending: false })
     .order('result_count', { ascending: false })
+    .order('advance_count', { ascending: false })
   if (!withTiebreak.error) return (withTiebreak.data as RankingRow[]) ?? []
   // 1) con avatar + snapshot del último partido.
   const withAvatar = await supabase

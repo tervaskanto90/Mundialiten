@@ -47,6 +47,8 @@ alter table public.scores add column if not exists last_points numeric not null 
 alter table public.scores add column if not exists avatar_url text; -- foto de perfil (data URL)
 alter table public.scores add column if not exists exact_count int not null default 0;
 alter table public.scores add column if not exists result_count int not null default 0;
+-- 3er desempate: pases de ronda acertados (quién avanza en eliminatorias).
+alter table public.scores add column if not exists advance_count int not null default 0;
 alter table public.scores enable row level security;
 create policy "scores_select_all" on public.scores
   for select to authenticated using (true);
@@ -195,7 +197,9 @@ as $$
            -- exacto: el premio de marcador es el de "exacto" (siempre > tendencia).
            sum(case when award = exact_pts then 1 else 0 end) as exact_count,
            -- resultado acertado (incluye exactos): cualquier premio de marcador > 0.
-           sum(case when award > 0 then 1 else 0 end) as result_count
+           sum(case when award > 0 then 1 else 0 end) as result_count,
+           -- pases de ronda acertados (3er desempate): bonus "quién pasa" cobrado.
+           sum(case when adv_award > 0 then 1 else 0 end) as advance_count
     from calc group by user_id
   ),
   -- Último partido jugado, por HORA DE INICIO. Los nº de partido NO están en
@@ -235,6 +239,7 @@ as $$
                       then round(coalesce(a.points, 0)::numeric / a.maxp * 100, 2) else 0 end,
       exact_count = coalesce(a.exact_count, 0),
       result_count = coalesce(a.result_count, 0),
+      advance_count = coalesce(a.advance_count, 0),
       last_match_id = (select mid from lastm),
       last_pred_home = lp.ph,
       last_pred_away = lp.pa,
@@ -276,7 +281,7 @@ create trigger recompute_on_real_change
 -- pero el filtro por partido jugado garantiza que sólo se ven cosas del pasado.
 -- ─────────────────────────────────────────────────────────────────────────────
 create or replace function public.past_predictions()
-returns table(match_id int, user_id uuid, display_name text, avatar_url text, home int, away int)
+returns table(match_id int, user_id uuid, display_name text, avatar_url text, home int, away int, home_pens int, away_pens int)
 language sql
 security definer
 set search_path = public
@@ -291,7 +296,11 @@ as $$
          coalesce(s.display_name, 'Jugador') as display_name,
          s.avatar_url,
          (pe.value->>'homeScore')::int as home,
-         (pe.value->>'awayScore')::int as away
+         (pe.value->>'awayScore')::int as away,
+         -- penales predichos (sólo en eliminatorias con empate): definen a quién
+         -- eligió que pasa de ronda.
+         (pe.value->>'homePens')::int as home_pens,
+         (pe.value->>'awayPens')::int as away_pens
   from public.predictions p
   cross join lateral jsonb_each(p.results) pe
   join played pl on pl.mid = (pe.key)::int
