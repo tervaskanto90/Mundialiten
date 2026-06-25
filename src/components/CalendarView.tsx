@@ -15,7 +15,8 @@ const BUCKET_LABEL: Record<BucketId, { es: string; en: string }> = {
   r32: { es: 'Dieciseisavos', en: 'Round of 32' },
   r16: { es: 'Octavos', en: 'Round of 16' },
   qf: { es: 'Cuartos', en: 'Quarter-finals' },
-  finals: { es: 'Semifinal, final y 3er puesto', en: 'Semi-finals, final & third place' },
+  sf: { es: 'Semifinales', en: 'Semi-finals' },
+  finals: { es: 'Final y 3er puesto', en: 'Final & third place' },
 }
 
 interface Props {

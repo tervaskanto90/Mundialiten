@@ -19,7 +19,7 @@ const T = (iso: string) => Date.parse(iso)
 const r = (homeScore: number, awayScore: number, extra: Partial<MatchResult> = {}): MatchResult =>
   ({ played: true, homeScore, awayScore, events: [], ...extra })
 
-const lastKickoff: Record<string, number> = { group: 0, r32: 0, r16: 0, qf: 0, finals: 0 }
+const lastKickoff: Record<string, number> = { group: 0, r32: 0, r16: 0, qf: 0, sf: 0, finals: 0 }
 for (const m of MATCHES) {
   const b = bucketOf(m.stage); const k = T(m.kickoff)
   if (k > lastKickoff[b]) lastKickoff[b] = k
@@ -34,7 +34,8 @@ check('Tras último grupo, antes r32 = r32', activeBucket(lastKickoff.group + 10
 check('Durante r32 (30/06) = r32', activeBucket(T('2026-06-30T12:00:00Z')) === 'r32')
 check('Tras último r32 = r16', activeBucket(lastKickoff.r32 + 1000) === 'r16')
 check('Tras último r16 = qf', activeBucket(lastKickoff.r16 + 1000) === 'qf')
-check('Tras último qf = finals', activeBucket(lastKickoff.qf + 1000) === 'finals')
+check('Tras último qf = sf', activeBucket(lastKickoff.qf + 1000) === 'sf')
+check('Tras último sf = finals', activeBucket(lastKickoff.sf + 1000) === 'finals')
 check('Día de la final (19/07) = finals', activeBucket(T('2026-07-19T12:00:00Z')) === 'finals')
 check('Tras la final = null', activeBucket(lastKickoff.finals + 1000) === null)
 check('Año 2027 = null', activeBucket(T('2027-01-01T00:00:00Z')) === null)

@@ -22,8 +22,8 @@ import { createClient } from '@supabase/supabase-js'
 // Datos del calendario oficial, derivados de src/data/schedule.ts (estáticos: el
 // fixture del Mundial no cambia). El test de paridad garantiza que sigan iguales.
 // ─────────────────────────────────────────────────────────────────────────────
-export type BucketId = 'group' | 'r32' | 'r16' | 'qf' | 'finals'
-export const BUCKET_ORDER: BucketId[] = ['group', 'r32', 'r16', 'qf', 'finals']
+export type BucketId = 'group' | 'r32' | 'r16' | 'qf' | 'sf' | 'finals'
+export const BUCKET_ORDER: BucketId[] = ['group', 'r32', 'r16', 'qf', 'sf', 'finals']
 
 interface BucketInfo {
   first: number // primer kickoff del bucket (ms UTC)
@@ -37,7 +37,8 @@ export const REMIND_BUCKETS: Record<BucketId, BucketInfo> = {
   r32: { first: Date.parse('2026-06-28T19:00:00Z'), last: Date.parse('2026-07-04T01:30:00Z'), ids: range(73, 88) },
   r16: { first: Date.parse('2026-07-04T17:00:00Z'), last: Date.parse('2026-07-07T20:00:00Z'), ids: range(89, 96) },
   qf: { first: Date.parse('2026-07-09T20:00:00Z'), last: Date.parse('2026-07-12T01:00:00Z'), ids: range(97, 100) },
-  finals: { first: Date.parse('2026-07-14T19:00:00Z'), last: Date.parse('2026-07-19T19:00:00Z'), ids: range(101, 104) },
+  sf: { first: Date.parse('2026-07-14T19:00:00Z'), last: Date.parse('2026-07-15T19:00:00Z'), ids: range(101, 102) },
+  finals: { first: Date.parse('2026-07-18T21:00:00Z'), last: Date.parse('2026-07-19T19:00:00Z'), ids: range(103, 104) },
 }
 
 /** Bucket de predicción abierto ahora (el primero no terminado), o null si terminó todo. */
@@ -99,14 +100,16 @@ const BUCKET_ES: Record<BucketId, string> = {
   r32: 'los 16avos de final',
   r16: 'los octavos de final',
   qf: 'los cuartos de final',
-  finals: 'las semifinales, la final y el 3.º puesto',
+  sf: 'las semifinales',
+  finals: 'la final y el 3.º puesto',
 }
 const BUCKET_EN: Record<BucketId, string> = {
   group: 'the group stage',
   r32: 'the round of 32',
   r16: 'the round of 16',
   qf: 'the quarter-finals',
-  finals: 'the semi-finals, final and 3rd place',
+  sf: 'the semi-finals',
+  finals: 'the final and 3rd place',
 }
 
 export function buildReminderEmail(

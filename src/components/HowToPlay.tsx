@@ -158,7 +158,7 @@ function GuideES() {
         predecís <strong>una etapa por vez</strong>, acompañando al Mundial real:
       </p>
       <p className="text-center text-xs rounded-lg py-2" style={{ background: 'rgba(127,127,127,.12)', color: 'inherit', fontWeight: 600 }}>
-        Grupos → 16avos → 8vos → Cuartos → (Semis + Final + 3er puesto)
+        Grupos → 16avos → 8vos → Cuartos → Semis → (Final + 3er puesto)
       </p>
       <ul className="list-disc pl-5 space-y-1">
         <li>Sólo está abierta <strong>la etapa en curso</strong>; las demás se van abriendo solas a medida que avanza el torneo.</li>
@@ -279,7 +279,7 @@ function GuideEN() {
         predict <strong>one stage at a time</strong>, following the real tournament:
       </p>
       <p className="text-center text-xs rounded-lg py-2" style={{ background: 'rgba(127,127,127,.12)', color: 'inherit', fontWeight: 600 }}>
-        Groups → Round of 32 → Round of 16 → Quarter-finals → (Semis + Final + 3rd place)
+        Groups → Round of 32 → Round of 16 → Quarter-finals → Semis → (Final + 3rd place)
       </p>
       <ul className="list-disc pl-5 space-y-1">
         <li>Only the <strong>current stage</strong> is open; the rest open automatically as the tournament progresses.</li>

@@ -9,7 +9,8 @@ const LABEL: Record<BucketId, string> = {
   r32: '16avos',
   r16: '8vos',
   qf: '4tos',
-  finals: 'Semis/Final',
+  sf: 'Semis',
+  finals: 'Final/3º',
 }
 
 function nextOf(b: BucketId): BucketId | null {

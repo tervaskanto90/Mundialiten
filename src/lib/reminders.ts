@@ -81,14 +81,16 @@ const BUCKET_ES: Record<BucketId, string> = {
   r32: 'los 16avos de final',
   r16: 'los octavos de final',
   qf: 'los cuartos de final',
-  finals: 'las semifinales, la final y el 3.º puesto',
+  sf: 'las semifinales',
+  finals: 'la final y el 3.º puesto',
 }
 const BUCKET_EN: Record<BucketId, string> = {
   group: 'the group stage',
   r32: 'the round of 32',
   r16: 'the round of 16',
   qf: 'the quarter-finals',
-  finals: 'the semi-finals, final and 3rd place',
+  sf: 'the semi-finals',
+  finals: 'the final and 3rd place',
 }
 
 export function buildReminderEmail(

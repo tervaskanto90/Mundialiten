@@ -7,27 +7,28 @@ import { STAGING, stagingActiveBucket } from '../staging'
 // ETAPA ACTIVA DE PREDICCIÓN
 //
 // Las predicciones se habilitan por etapa según la fase real en curso:
-//  grupos → 16avos → 8avos → 4tos → (semifinal + final + 3er puesto).
+//  grupos → 16avos → 8avos → 4tos → semifinales → (final + 3er puesto).
 // Sólo hay UNA etapa abierta a la vez = el primer "bucket" todavía no terminado
 // (un bucket termina cuando ya arrancaron todos sus partidos). Además, cada
 // partido deja de poder predecirse 5 minutos antes de su inicio.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type BucketId = 'group' | 'r32' | 'r16' | 'qf' | 'finals'
+export type BucketId = 'group' | 'r32' | 'r16' | 'qf' | 'sf' | 'finals'
 
-export const BUCKET_ORDER: BucketId[] = ['group', 'r32', 'r16', 'qf', 'finals']
+export const BUCKET_ORDER: BucketId[] = ['group', 'r32', 'r16', 'qf', 'sf', 'finals']
 
 export function bucketOf(stage: StageId): BucketId {
   if (stage === 'group') return 'group'
   if (stage === 'r32') return 'r32'
   if (stage === 'r16') return 'r16'
   if (stage === 'qf') return 'qf'
-  return 'finals' // sf, third, final
+  if (stage === 'sf') return 'sf'
+  return 'finals' // third, final
 }
 
 // Último kickoff (ms) de cada bucket — fijo, se calcula una vez.
 const LAST_KICKOFF: Record<BucketId, number> = (() => {
-  const out = { group: 0, r32: 0, r16: 0, qf: 0, finals: 0 } as Record<BucketId, number>
+  const out = { group: 0, r32: 0, r16: 0, qf: 0, sf: 0, finals: 0 } as Record<BucketId, number>
   for (const m of MATCHES) {
     const b = bucketOf(m.stage)
     const k = Date.parse(m.kickoff)
@@ -39,7 +40,7 @@ const LAST_KICKOFF: Record<BucketId, number> = (() => {
 /** Bucket de predicción abierto ahora (el primero no terminado), o null si terminó todo. */
 export function activeBucket(now: number = Date.now()): BucketId | null {
   // Staging: la etapa abierta avanza según los resultados reales SIMULADOS
-  // (16avos → 8vos → 4tos → finales), no por fecha. Ver staging.ts.
+  // (16avos → 8vos → 4tos → semis → final/3º), no por fecha. Ver staging.ts.
   if (STAGING) return stagingActiveBucket()
   for (const b of BUCKET_ORDER) {
     if (now <= LAST_KICKOFF[b]) return b

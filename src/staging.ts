@@ -20,13 +20,14 @@ import { GROUPS, teamsOfGroup } from './data/teams'
 export const STAGING: boolean = typeof __STAGING__ !== 'undefined' ? __STAGING__ === true : false
 
 // Buckets de eliminatoria, en orden, y qué fases agrupa cada uno.
-export const KO_BUCKETS: BucketId[] = ['r32', 'r16', 'qf', 'finals']
+export const KO_BUCKETS: BucketId[] = ['r32', 'r16', 'qf', 'sf', 'finals']
 const STAGES_OF_BUCKET: Record<BucketId, StageId[]> = {
   group: ['group'],
   r32: ['r32'],
   r16: ['r16'],
   qf: ['qf'],
-  finals: ['sf', 'third', 'final'],
+  sf: ['sf'],
+  finals: ['third', 'final'],
 }
 
 function matchesOfBucket(b: BucketId): typeof MATCHES {
