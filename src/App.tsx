@@ -487,13 +487,6 @@ export default function App() {
                 <span>🎓</span> {t('Ver el tutorial', 'View the tutorial')}
               </button>
 
-              {!isDesktop && (
-                <>
-                  <div style={drawerLabel}>{t('Vista', 'View')}</div>
-                  <ScenarioToggle compact block />
-                </>
-              )}
-
               <div style={{ marginTop: isDesktop ? 30 : 22, paddingTop: isDesktop ? 18 : 16, borderTop: '1px solid ' + c.line }}>
                 {isDesktop ? <ProjectsShowcase tiny /> : <ProjectsShowcase micro />}
               </div>
@@ -501,8 +494,14 @@ export default function App() {
           )
           const mainContent = (
             <main style={mainStyle} key={view}>
-              {view === 'fixture' && isDesktop && (
-                <div style={{ position: 'sticky', top: 0, zIndex: 20, background: c.canvas, paddingTop: '2px', paddingBottom: '12px', marginBottom: '6px' }}>
+              {view === 'fixture' && (
+                <div
+                  style={
+                    isDesktop
+                      ? { position: 'sticky', top: 0, zIndex: 20, background: c.canvas, paddingTop: '2px', paddingBottom: '12px', marginBottom: '6px' }
+                      : { paddingBottom: '10px', marginBottom: '2px' }
+                  }
+                >
                   <ScenarioToggle />
                 </div>
               )}

@@ -1,6 +1,6 @@
 import { GROUPS, TEAM_BY_ID } from '../data/teams'
 import type { ActiveContext } from '../hooks'
-import type { StandingRow } from '../engine/standings'
+import { sortStanding, type StandingRow } from '../engine/standings'
 import { useT } from '../i18n'
 import { teamDisplayName } from '../utils/labels'
 import { useTheme, ACCENT } from '../theme'
@@ -10,39 +10,108 @@ interface Props {
 }
 
 export function GroupsView({ ctx }: Props) {
-  const { standings, bestThirds, eliminated, qualified } = ctx.resolution
-  const qualifiedThirds = new Set((bestThirds ?? []).slice(0, 8))
+  const { standings, eliminated, qualified } = ctx.resolution
   const { t } = useT()
   const { c } = useTheme()
+
+  // Ranking PROVISORIO de los 3° de cada grupo (mismo criterio que la FIFA):
+  // los 8 mejores clasifican. Se calcula siempre (no sólo al cerrar los grupos)
+  // para mostrar en amarillo quién clasificaría hasta el momento.
+  const thirdsRanked = GROUPS.map((g) => ({ row: standings[g]?.[2], group: g }))
+    .filter((x): x is { row: StandingRow; group: string } => !!x.row)
+    .sort((a, b) => sortStanding(a.row, b.row))
+  const qualifyingThirds = new Set(thirdsRanked.slice(0, 8).map((x) => x.row.teamId))
 
   return (
     <div>
       <div className="flex flex-wrap gap-3 text-[11px] mb-3" style={{ color: c.muted }}>
-        <span className="flex items-center gap-1.5">
-          <span style={{ color: ACCENT.green, fontWeight: 800 }}>ABC</span>
-          {t('Clasificado', 'Qualified')}
-        </span>
         <Legend color={ACCENT.green} label={t('Zona directa (1° y 2°)', 'Direct zone (1st & 2nd)')} />
-        <Legend color={ACCENT.gold} label={t('Mejor 3°', 'Best 3rd')} />
+        <Legend color={ACCENT.gold} label={t('Mejor 3° (clasifican 8)', 'Best 3rd (8 qualify)')} />
         <span className="flex items-center gap-1.5">
           <span style={{ textDecoration: 'line-through', color: ACCENT.red, fontWeight: 800 }}>ABC</span>
           {t('Eliminado', 'Eliminated')}
         </span>
       </div>
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {GROUPS.map((g) => (
-          <GroupTable
-            key={g}
-            group={g}
-            rows={standings[g]}
-            qualifiedThirds={qualifiedThirds}
-            thirdsKnown={bestThirds != null}
-            eliminated={eliminated}
-            qualified={qualified}
-            t={t}
-          />
-        ))}
+      <div className="flex flex-col xl:flex-row gap-3 items-start">
+        <div className="w-full flex-1 grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {GROUPS.map((g) => (
+            <GroupTable
+              key={g}
+              group={g}
+              rows={standings[g]}
+              qualifyingThirds={qualifyingThirds}
+              eliminated={eliminated}
+              qualified={qualified}
+              t={t}
+            />
+          ))}
+        </div>
+        <ThirdsTable entries={thirdsRanked} eliminated={eliminated} t={t} />
       </div>
+    </div>
+  )
+}
+
+// Tabla lateral con el ranking de terceros: los 8 primeros (en amarillo) son los
+// que clasificarían hasta el momento.
+function ThirdsTable({
+  entries,
+  eliminated,
+  t,
+}: {
+  entries: { row: StandingRow; group: string }[]
+  eliminated: Set<string>
+  t: (es: string, en: string) => string
+}) {
+  const { c, dark } = useTheme()
+  if (entries.length === 0) return null
+  return (
+    <div
+      className="w-full xl:w-[260px] xl:shrink-0 rounded-2xl overflow-hidden"
+      style={{ background: c.cardGrad, border: '1px solid ' + ACCENT.gold + '66', boxShadow: c.shadow }}
+    >
+      <div
+        className="px-3.5 py-2.5"
+        style={{ fontFamily: "'Archivo'", fontWeight: 800, fontSize: '13px', color: c.text }}
+      >
+        🥉 {t('Mejores terceros', 'Best third-placed')}
+        <div style={{ fontSize: '9.5px', color: c.faint, fontWeight: 700, letterSpacing: '.3px' }}>
+          {t('Clasifican los primeros 8', 'Top 8 qualify')}
+        </div>
+      </div>
+      <table className="w-full text-xs">
+        <tbody>
+          {entries.map(({ row, group }, i) => {
+            const qualifies = i < 8
+            const team = TEAM_BY_ID[row.teamId]
+            const elim = eliminated.has(row.teamId)
+            const nameColor = elim ? ACCENT.red : qualifies ? ACCENT.gold : c.muted
+            const cut = i === 8 // primera fila que NO clasifica
+            return (
+              <tr
+                key={row.teamId}
+                style={{
+                  background: qualifies ? (dark ? 'rgba(255,194,26,.10)' : 'rgba(255,194,26,.12)') : 'transparent',
+                  borderTop: cut ? '2px dashed ' + c.line : undefined,
+                }}
+              >
+                <td className="px-2 py-1.5" style={{ width: 14, color: c.faint, fontFamily: "'Archivo'", fontWeight: 800 }}>{i + 1}</td>
+                <td className="py-1.5">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span style={{ filter: elim ? 'grayscale(1)' : 'none', opacity: elim ? 0.5 : 1 }}>{team?.flag}</span>
+                    <span className="truncate" style={{ color: nameColor, fontWeight: qualifies || elim ? 800 : 600, textDecoration: elim ? 'line-through' : 'none' }}>
+                      {team ? teamDisplayName(team) : row.teamId}
+                    </span>
+                    <span className="text-[9px]" style={{ color: c.faint }}>{group}</span>
+                  </div>
+                </td>
+                <td className="text-center px-1" style={{ color: c.muted }}>{row.gd > 0 ? `+${row.gd}` : row.gd}</td>
+                <td className="text-center px-2" style={{ fontFamily: "'Archivo'", fontWeight: 800, color: c.text }}>{row.points}</td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
     </div>
   )
 }
@@ -59,16 +128,14 @@ function Legend({ color, label }: { color: string; label: string }) {
 function GroupTable({
   group,
   rows,
-  qualifiedThirds,
-  thirdsKnown,
+  qualifyingThirds,
   eliminated,
   qualified,
   t,
 }: {
   group: string
   rows: StandingRow[]
-  qualifiedThirds: Set<string>
-  thirdsKnown: boolean
+  qualifyingThirds: Set<string>
   eliminated: Set<string>
   qualified: Set<string>
   t: (es: string, en: string) => string
@@ -96,15 +163,16 @@ function GroupTable({
             const team = TEAM_BY_ID[r.teamId]
             const direct = i < 2
             const isThird = i === 2
-            const thirdQual = isThird && qualifiedThirds.has(r.teamId)
             const elim = eliminated.has(r.teamId)
+            const thirdQual = isThird && !elim && qualifyingThirds.has(r.teamId)
             const qual = qualified.has(r.teamId)
-            const nameColor = qual ? ACCENT.green : elim ? ACCENT.red : c.text
+            // Amarillo: 3° que clasificaría (hasta el momento). Verde: zona directa.
+            const nameColor = elim ? ACCENT.red : thirdQual ? ACCENT.gold : qual ? ACCENT.green : c.text
             const barColor = direct
               ? ACCENT.green
               : thirdQual
                 ? ACCENT.gold
-                : isThird && !thirdsKnown
+                : isThird
                   ? 'rgba(255,194,26,.4)'
                   : c.line
             const rowBg = direct

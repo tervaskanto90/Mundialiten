@@ -1,11 +1,16 @@
 import { useRef } from 'react'
 import { MATCHES, MATCH_BY_ID, STAGE_I18N } from '../data/schedule'
+import { TEAM_BY_ID } from '../data/teams'
+import { flagColors } from '../data/flagColors'
 import type { StageId } from '../types'
-import { sideLabel, sideLabelFor } from '../utils/labels'
+import { sideLabel, sideLabelFor, teamDisplayName } from '../utils/labels'
 import type { ActiveContext } from '../hooks'
 import { useT } from '../i18n'
 import { useTheme, ACCENT } from '../theme'
 import { useIsDesktop } from '../hooks/useIsDesktop'
+import { Confetti } from './Confetti'
+
+const FLAG_FONT = "'Twemoji Country Flags', 'Noto Color Emoji', sans-serif"
 
 interface Props {
   ctx: ActiveContext
@@ -117,8 +122,15 @@ export function BracketView({ ctx, onEdit }: Props) {
   const thirdMatch = MATCHES.find((m) => m.stage === 'third')
   const championed = champLabel?.resolved
 
+  // Podio: 1° = ganador de la final, 2° = perdedor de la final, 3° = ganador del
+  // partido por el tercer puesto (cada uno, si ya está definido).
+  const firstId = finalMatch?.winner
+  const secondId = finalMatch?.loser
+  const thirdId = thirdMatch ? ctx.resolution.matches[thirdMatch.id]?.winner : undefined
+
   return (
     <div>
+      {championed && <Confetti key={firstId} colors={flagColors(firstId)} />}
       <div
         className="mb-4 text-center rounded-2xl py-4"
         style={{
@@ -138,13 +150,15 @@ export function BracketView({ ctx, onEdit }: Props) {
         <div className="flex items-center justify-center gap-2 mt-1" style={{ fontFamily: "'Archivo'", fontWeight: 900, fontSize: '20px', color: c.text }}>
           {championed ? (
             <>
-              <span style={{ fontSize: '26px' }}>{champLabel!.flag}</span> {champLabel!.name}
+              <span style={{ fontSize: '26px', fontFamily: FLAG_FONT }}>{champLabel!.flag}</span> {champLabel!.name}
             </>
           ) : (
             <span style={{ color: c.faint, fontSize: '15px', fontWeight: 600 }}>{t('Por definir', 'To be decided')}</span>
           )}
         </div>
       </div>
+
+      {championed && <Podium firstId={firstId} secondId={secondId} thirdId={thirdId} />}
 
       <p className="text-[11px] mb-2" style={{ color: c.faint }}>
         {t(
@@ -192,21 +206,57 @@ export function BracketView({ ctx, onEdit }: Props) {
                       <BracketCard matchId={m.id} ctx={ctx} onEdit={onEdit} highlight={stage === 'final'} />
                     </div>
                   ))}
+                  {/* El partido por el 3er puesto va JUSTO DEBAJO de la final,
+                      en la misma columna y con el mismo tamaño. */}
+                  {stage === 'final' && thirdMatch && (
+                    <div className="bracket-match" style={{ marginTop: 16 }}>
+                      <div className="text-[10px] font-semibold uppercase tracking-wide mb-1" style={{ color: c.muted }}>
+                        🥉 {t('Tercer puesto', 'Third place')}
+                      </div>
+                      <BracketCard matchId={thirdMatch.id} ctx={ctx} onEdit={onEdit} />
+                    </div>
+                  )}
                 </div>
               </div>
             )
           })}
         </div>
       </div>
+    </div>
+  )
+}
 
-      {thirdMatch && (
-        <div className="mt-5 max-w-xs">
-          <div className="text-[11px] font-semibold uppercase tracking-wide mb-1.5" style={{ color: c.muted }}>
-            🥉 {t('Tercer puesto', 'Third place')}
+// Podio del torneo: 1° (campeón), 2° (finalista) y 3° (ganador del 3er puesto).
+function Podium({ firstId, secondId, thirdId }: { firstId?: string; secondId?: string; thirdId?: string }) {
+  const { t } = useT()
+  const { c, dark } = useTheme()
+  const steps: Array<{ id?: string; place: 1 | 2 | 3; h: number; medal: string; col: string }> = [
+    { id: secondId, place: 2, h: 54, medal: '🥈', col: '#C0C7D1' },
+    { id: firstId, place: 1, h: 78, medal: '🥇', col: ACCENT.gold },
+    { id: thirdId, place: 3, h: 38, medal: '🥉', col: '#CD8E5A' },
+  ]
+  return (
+    <div
+      className="mb-4 rounded-2xl px-3 pt-3 pb-0 flex items-end justify-center gap-2"
+      style={{ background: c.cardGrad, border: '1px solid ' + c.line, boxShadow: c.shadow }}
+    >
+      {steps.map(({ id, place, h, medal, col }) => {
+        const team = id ? TEAM_BY_ID[id] : undefined
+        return (
+          <div key={place} className="flex flex-col items-center" style={{ width: 92 }}>
+            <div style={{ fontSize: 26, fontFamily: FLAG_FONT, lineHeight: 1 }}>{team?.flag ?? '🏳️'}</div>
+            <div className="text-[11px] font-bold truncate w-full text-center mt-0.5" style={{ color: c.text }}>
+              {team ? teamDisplayName(team) : t('—', '—')}
+            </div>
+            <div
+              className="w-full rounded-t-lg mt-1.5 flex items-start justify-center pt-1"
+              style={{ height: h, background: col + (dark ? '33' : '55'), borderTop: '2px solid ' + col }}
+            >
+              <span style={{ fontSize: 18 }}>{medal}</span>
+            </div>
           </div>
-          <BracketCard matchId={thirdMatch.id} ctx={ctx} onEdit={onEdit} />
-        </div>
-      )}
+        )
+      })}
     </div>
   )
 }
