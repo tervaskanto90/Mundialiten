@@ -83,17 +83,34 @@ export function liveBucketResults(b: BucketId): Record<number, MatchResult> {
   return { [first.id]: { played: true, finished: false, homeScore: 1, awayScore: 1, events: [] } }
 }
 
-// Predicción SINTÉTICA y determinística por (usuario, partido) — sólo staging:
-// como el real simulado no se sube a Supabase, el historial no trae predicciones
-// para los partidos de eliminatoria. Esto puebla el ranking para el preview.
-export function stagingFakePred(userId: string, matchId: number): { home: number; away: number } {
+function hash(s: string): number {
   let h = 2166136261
-  const s = `${userId}|${matchId}`
   for (let i = 0; i < s.length; i++) {
     h ^= s.charCodeAt(i)
     h = Math.imul(h, 16777619) >>> 0
   }
-  return { home: h % 3, away: (h >>> 5) % 3 }
+  return h
+}
+
+// Predicción SINTÉTICA y determinística por (usuario, partido) — sólo staging:
+// como el real simulado no se sube a Supabase, el historial no trae predicciones
+// para los partidos de eliminatoria. Esto puebla el ranking para el preview.
+// En empates se incluye un "ganador de penales" (quién pasa) determinístico.
+export function stagingFakePred(userId: string, matchId: number): { home: number; away: number; homePens?: number; awayPens?: number } {
+  const h = hash(`${userId}|${matchId}`)
+  const home = h % 3
+  const away = (h >>> 5) % 3
+  if (home === away) {
+    const homeAdvances = ((h >>> 9) & 1) === 0
+    return { home, away, homePens: homeAdvances ? 4 : 3, awayPens: homeAdvances ? 3 : 4 }
+  }
+  return { home, away }
+}
+
+// Conteo SINTÉTICO de "pases de ronda acertados" por usuario (sólo staging,
+// para previsualizar el 3er desempate). 0-8.
+export function stagingFakeAdvanceCount(userId: string): number {
+  return hash(`adv|${userId}`) % 9
 }
 
 // Holder del real para que utils/stage (activeBucket) sepa qué ronda abrir en

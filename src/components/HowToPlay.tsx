@@ -296,6 +296,18 @@ function GuideES() {
         en la final, 10+5 = <strong>15</strong>.
       </p>
 
+      <H>⚖️ Desempate del ranking (en orden)</H>
+      <p>
+        Si dos personas terminan con los <strong>mismos puntos</strong>, se ordenan por estos criterios,
+        uno tras otro:
+      </p>
+      <ol className="list-decimal pl-5 space-y-1">
+        <li><strong style={{ color: '#1FA85C' }}>🎯 Más marcadores exactos</strong> (acertaste el resultado tal cual, ej. 2-1 = 2-1).</li>
+        <li><strong style={{ color: '#2F6DF0' }}>✅ Más resultados acertados</strong> (acertaste quién ganó/empató/perdió, aunque no el marcador).</li>
+        <li><strong style={{ color: '#E59A12' }}>🎟️ Más pases de ronda acertados</strong> — en eliminatorias, cuántas veces le pegaste a <strong>qué equipo avanza</strong> (en una victoria, el ganador; en un empate, el que elegiste por penales). Es un <strong>parámetro aparte</strong> del marcador.</li>
+      </ol>
+      <p>Si después de los tres siguen iguales, <strong>comparten el mismo puesto</strong>.</p>
+
       <p>
         El <strong>ranking se ordena por los puntos acumulados</strong> durante todo el Mundial (no por
         porcentaje). Por eso conviene jugar todas las etapas que puedas: quien participa más, tiene más
@@ -452,6 +464,18 @@ function GuideEN() {
         advances (in the final and 3rd place, who wins). In the R32 a match is worth up to 4+2 =
         <strong> 6</strong>; in the final, 10+5 = <strong>15</strong>.
       </p>
+
+      <H>⚖️ Ranking tie-breaker (in order)</H>
+      <p>
+        If two people end with the <strong>same points</strong>, they're ordered by these criteria, one
+        after another:
+      </p>
+      <ol className="list-decimal pl-5 space-y-1">
+        <li><strong style={{ color: '#1FA85C' }}>🎯 More exact scores</strong> (you nailed the score, e.g. 2-1 = 2-1).</li>
+        <li><strong style={{ color: '#2F6DF0' }}>✅ More correct results</strong> (you got who won/drew/lost, even if not the score).</li>
+        <li><strong style={{ color: '#E59A12' }}>🎟️ More correct advances</strong> — in the knockouts, how often you called <strong>which team goes through</strong> (in a win, the winner; in a draw, the team you picked on penalties). It's a <strong>separate parameter</strong> from the score.</li>
+      </ol>
+      <p>If they're still level after all three, they <strong>share the same position</strong>.</p>
 
       <p>
         The <strong>ranking is ordered by total points accumulated</strong> over the whole World Cup

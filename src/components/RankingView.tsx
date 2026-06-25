@@ -5,12 +5,12 @@ import { useT } from '../i18n'
 import { useStore, getScenario, REAL_SCENARIO_ID } from '../store/useStore'
 import { resolve } from '../engine/resolve'
 import { MATCH_BY_ID } from '../data/schedule'
-import { STAGE_POINTS } from '../engine/accuracy'
+import { STAGE_POINTS, advancingSide } from '../engine/accuracy'
 import { TEAM_BY_ID } from '../data/teams'
 import { rankDeltas, tieGroups } from '../lib/rankDelta'
 import { Avatar } from './Avatar'
 import { useIsDesktop } from '../hooks/useIsDesktop'
-import { STAGING, stagingFakePred } from '../staging'
+import { STAGING, stagingFakePred, stagingFakeAdvanceCount } from '../staging'
 import { useTheme, ACCENT } from '../theme'
 
 const MEDALS = ['🥇', '🥈', '🥉']
@@ -124,8 +124,17 @@ export function RankingView() {
 
   // En staging, si no hay predicción real para el partido (eliminatorias no se
   // suben a Supabase), usamos una sintética para poblar el preview.
-  const predFor = (userId: string, matchId: number): { home: number; away: number } | undefined =>
+  const predFor = (userId: string, matchId: number): { home: number; away: number; homePens?: number; awayPens?: number } | undefined =>
     predByKey.get(`${userId}|${matchId}`) ?? (STAGING ? stagingFakePred(userId, matchId) : undefined)
+
+  // Pases de ronda acertados (3er desempate). El servidor todavía no lo trae;
+  // en staging lo sintetizamos para el preview.
+  const advCountOf = (r: RankingRow): number => {
+    const fromServer = (r as RankingRow & { advance_count?: number }).advance_count
+    if (fromServer != null) return Number(fromServer)
+    return STAGING ? stagingFakeAdvanceCount(r.user_id) : 0
+  }
+  const showAdvance = STAGING || rows?.some((r) => (r as RankingRow & { advance_count?: number }).advance_count != null)
 
   const deltas = useMemo(
     () =>
@@ -137,19 +146,22 @@ export function RankingView() {
 
   // Orden del ranking (también lo hace el servidor, pero lo reforzamos en el
   // cliente para que el desempate valga aun con datos viejos):
-  //   1º más PUNTOS · 2º más marcadores EXACTOS · 3º más RESULTADOS acertados.
-  // Sólo comparten puesto quienes empatan en los tres.
+  //   1º más PUNTOS · 2º más marcadores EXACTOS · 3º más RESULTADOS acertados ·
+  //   4º más PASES DE RONDA acertados. Sólo comparten puesto quienes empatan en
+  //   los cuatro.
   const rowList = useMemo(() => {
     const sorted = [...(rows ?? [])].sort(
       (a, b) =>
         Number(b.points) - Number(a.points) ||
         Number(b.exact_count ?? 0) - Number(a.exact_count ?? 0) ||
-        Number(b.result_count ?? 0) - Number(a.result_count ?? 0),
+        Number(b.result_count ?? 0) - Number(a.result_count ?? 0) ||
+        advCountOf(b) - advCountOf(a),
     )
     return tieGroups(
       sorted,
-      (r) => `${Number(r.points)}|${Number(r.exact_count ?? 0)}|${Number(r.result_count ?? 0)}`,
+      (r) => `${Number(r.points)}|${Number(r.exact_count ?? 0)}|${Number(r.result_count ?? 0)}|${advCountOf(r)}`,
     ).flatMap((g) => g.members.map((r) => ({ r, rank: g.rank })))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows])
 
   const load = () => {
@@ -266,13 +278,15 @@ export function RankingView() {
             <li><strong style={{ color: c.text }}>{t('Total: 3 puntos', 'Total: 3 points')}</strong> {t('(de 9 posibles en cuartos: 6 exacto + 3 bonus).', '(out of 9 possible in the QF: 6 exact + 3 bonus).')}</li>
           </ul>
         </div>
-        <p className="font-semibold pt-1" style={{ color: c.text }}>⚖️ {t('Desempate', 'Tie-breaker')}</p>
+        <p className="font-semibold pt-1" style={{ color: c.text }}>⚖️ {t('Desempate (en orden)', 'Tie-breaker (in order)')}</p>
         <p style={{ color: c.muted }}>
-          {t('Si dos personas tienen los mismos puntos, queda más arriba quien tenga ', 'If two people have the same points, the one ranked higher is whoever has ')}
-          <strong style={{ color: ACCENT.green }}>{t('más marcadores exactos', 'more exact scores')}</strong>
-          {t('. Si siguen iguales, quien tenga ', '. If still tied, whoever has ')}
-          <strong style={{ color: ACCENT.blue }}>{t('más resultados acertados', 'more correct results')}</strong>
-          {t(' (ganó/empató/perdió). Si todo coincide, comparten el mismo puesto.', ' (win/draw/loss). If everything matches, they share the same position.')}
+          {t('Si dos personas tienen los mismos puntos, queda más arriba quien tenga, en este orden: ', 'If two people have the same points, the one ranked higher is whoever has, in this order: ')}
+          <strong style={{ color: ACCENT.green }}>{t('🎯 más marcadores exactos', '🎯 more exact scores')}</strong>
+          {t('; si siguen iguales, ', '; if still tied, ')}
+          <strong style={{ color: ACCENT.blue }}>{t('✅ más resultados acertados', '✅ more correct results')}</strong>
+          {t(' (ganó/empató/perdió); si siguen iguales, ', ' (win/draw/loss); if still tied, ')}
+          <strong style={{ color: ACCENT.gold }}>{t('🎟️ más pases de ronda acertados', '🎟️ more correct advances')}</strong>
+          {t(' (a quién acertaste que avanza en eliminatorias). Si todo coincide, comparten el mismo puesto.', ' (who you correctly called to go through in the knockouts). If everything matches, they share the same position.')}
         </p>
         </div>
         )}
@@ -302,6 +316,11 @@ export function RankingView() {
                 <span className="text-[10px] font-semibold tabular-nums" style={{ color: ACCENT.blue }} title={t('Resultados acertados — ganó/empató/perdió (2º desempate)', 'Correct results — win/draw/loss (2nd tie-breaker)')}>
                   ✅ {Number(r.result_count ?? 0)} {t('result.', 'results')}
                 </span>
+                {showAdvance && (
+                  <span className="text-[10px] font-semibold tabular-nums" style={{ color: ACCENT.gold }} title={t('Pases de ronda acertados — quién avanza en eliminatorias (3er desempate)', 'Correct advances — who goes through in knockouts (3rd tie-breaker)')}>
+                    🎟️ {advCountOf(r)} {t('pases', 'advances')}
+                  </span>
+                )}
                 <span className="text-[10px]" style={{ color: c.faint }}>{Number(r.accuracy).toFixed(0)}% {t('efectiv.', 'acc.')}</span>
               </>
             )
@@ -323,8 +342,26 @@ export function RankingView() {
                     const af = TEAM_BY_ID[tm?.away ?? '']?.flag ?? '🏳️'
                     const p = predFor(r.user_id, mid)
                     const live = liveIds.has(mid)
+                    // Equipo que el usuario eligió que PASA de ronda (sólo
+                    // eliminatorias): el ganador del marcador o, si predijo
+                    // empate, su elegido por penales.
+                    const isKO = MATCH_BY_ID[mid]?.stage !== 'group'
+                    const advSide = isKO && p ? advancingSide({ homeScore: p.home, awayScore: p.away, homePens: p.homePens, awayPens: p.awayPens }) : null
+                    const advTeam = advSide === 'home' ? tm?.home : advSide === 'away' ? tm?.away : undefined
+                    const realAdv = rr.finished ? advancingSide({ homeScore: rr.homeScore, awayScore: rr.awayScore, homePens: rr.homePens, awayPens: rr.awayPens }) : null
+                    const advRight = realAdv != null && advSide != null && advSide === realAdv
+                    const advCol = live ? '#9b8d6e' : advRight ? ACCENT.green : realAdv != null ? ACCENT.red : '#9b8d6e'
                     return p ? (
                       <span key={mid} className="inline-flex items-center gap-1 shrink-0">
+                        {advTeam && (
+                          <span
+                            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold shrink-0"
+                            style={{ background: advCol + '1A', border: '1px solid ' + advCol + '66', color: c.text, opacity: live ? 0.72 : 1 }}
+                            title={t('Eligió que pase de ronda', 'Picked to advance')}
+                          >
+                            🎟️ {TEAM_BY_ID[advTeam]?.flag} {advTeam}
+                          </span>
+                        )}
                         <PredScore compact={isDesktop} ph={p.home} pa={p.away} rh={rr.homeScore} ra={rr.awayScore} homeFlag={hf} awayFlag={af} points={marcadorPoints(mid, p.home, p.away, rr.homeScore, rr.awayScore)} dim={live} />
                         {live && <span className="text-[8px] font-bold uppercase" style={{ color: ACCENT.red }}>{t('prov', 'prov')}</span>}
                       </span>
