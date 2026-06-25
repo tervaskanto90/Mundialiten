@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 import { supabase, isSupabaseEnabled } from './lib/supabase'
+import { fetchMyAvatar } from './lib/remote'
 
 interface AuthState {
   enabled: boolean
@@ -39,6 +40,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(isSupabaseEnabled)
   const [recovery, setRecovery] = useState(false)
+  // Avatar propio: se lee de la tabla `scores` (NO del JWT, ver updateAvatar).
+  const [myAvatar, setMyAvatar] = useState<string | null>(null)
 
   useEffect(() => {
     if (!supabase) {
@@ -57,12 +60,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => sub.subscription.unsubscribe()
   }, [])
 
+  // Trae el avatar propio desde scores al iniciar sesión (o lo limpia al salir).
+  const userId = session?.user?.id ?? null
+  useEffect(() => {
+    if (!userId) {
+      setMyAvatar(null)
+      return
+    }
+    let cancelled = false
+    fetchMyAvatar(userId).then((a) => {
+      if (!cancelled) setMyAvatar(a)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [userId])
+
   const value: AuthState = {
     enabled: isSupabaseEnabled,
     loading,
     user: session?.user ?? null,
     displayName: nameFromUser(session?.user ?? null),
-    avatarUrl: (session?.user?.user_metadata?.avatar_url as string) || null,
+    // Avatar propio desde scores; fallback al metadata por compatibilidad (hasta
+    // que se limpie en todos). NUNCA se vuelve a escribir en el metadata/JWT.
+    avatarUrl: myAvatar ?? ((session?.user?.user_metadata?.avatar_url as string) || null),
     isAdmin: isAdminUser(session?.user ?? null),
     recovery,
     signIn: async (email, password) => {
@@ -89,9 +110,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error) throw error
     },
     updateAvatar: async (dataUrl) => {
-      if (!supabase) throw new Error('Supabase no configurado')
-      const { error } = await supabase.auth.updateUser({ data: { avatar_url: dataUrl } })
-      if (error) throw error
+      // La foto se guarda en scores.avatar_url (saveAvatar, desde AccountModal).
+      // NO la metemos en el JWT (user_metadata): infla el token y rompe TODOS los
+      // requests (header demasiado grande). Acá sólo actualizamos el estado local.
+      setMyAvatar(dataUrl)
     },
     resetPassword: async (email) => {
       if (!supabase) throw new Error('Supabase no configurado')

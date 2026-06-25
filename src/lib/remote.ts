@@ -33,6 +33,19 @@ export async function saveAvatar(userId: string, displayName: string, avatarUrl:
   if (error) throw error
 }
 
+// Avatar propio (desde la tabla scores). El avatar NO se guarda en el JWT
+// (user_metadata) porque lo infla y rompe los requests; vive sólo en scores.
+export async function fetchMyAvatar(userId: string): Promise<string | null> {
+  if (!supabase) return null
+  const { data, error } = await supabase
+    .from('scores')
+    .select('avatar_url')
+    .eq('user_id', userId)
+    .maybeSingle()
+  if (error) return null
+  return (data?.avatar_url as string | null) ?? null
+}
+
 // ─── Imagen compartida del encabezado (una para modo claro, otra para oscuro) ──
 // La sube SÓLO el admin (RLS por email en Supabase) pero la ve todo el mundo.
 // `scale` agranda toda la barra de arriba (imagen + textos + botones) y también
