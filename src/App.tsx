@@ -378,7 +378,7 @@ export default function App() {
               </div>
             </div>
             <div style={{ flex: 1, display: 'flex', justifyContent: 'center', minWidth: 0, padding: '0 12px' }}>
-              <HeaderScore ctx={ctx} />
+              <HeaderScore ctx={ctx} onSelect={setEditingMatch} />
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: px(8), flex: 'none' }}>
               <HowToPlay />

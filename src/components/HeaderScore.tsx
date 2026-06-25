@@ -9,7 +9,7 @@ import { useTheme, ACCENT } from '../theme'
  * Marcador del header: los partidos EN VIVO (pueden ser varios simultáneos en la
  * última fecha de grupos) o, si no hay, el último resultado. Bien visible.
  */
-export function HeaderScore({ ctx }: { ctx: ActiveContext }) {
+export function HeaderScore({ ctx, onSelect }: { ctx: ActiveContext; onSelect?: (matchId: number) => void }) {
   const { t } = useT()
   const { c, dark } = useTheme()
   const real = ctx.real.results
@@ -52,13 +52,16 @@ export function HeaderScore({ ctx }: { ctx: ActiveContext }) {
           const home = sideLabelFor(id, m.home, 'home', ctx.resolution)
           const away = sideLabelFor(id, m.away, 'away', ctx.resolution)
           return (
-            <span
+            <button
               key={id}
+              onClick={() => onSelect?.(id)}
+              title={t('Ver el partido', 'View match')}
               className="flex items-center gap-1.5 text-sm font-bold tabular-nums px-2.5 py-1 rounded-lg shrink-0"
               style={{
                 background: dark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.05)',
                 border: '1px solid ' + (isLive ? ACCENT.red + '66' : c.line),
                 color: c.text,
+                cursor: onSelect ? 'pointer' : 'default',
                 animation: isLive ? 'mdlLiveCard 1.8s ease-in-out infinite' : undefined,
               }}
             >
@@ -68,7 +71,7 @@ export function HeaderScore({ ctx }: { ctx: ActiveContext }) {
               <span>{home.flag} {home.short}</span>
               <span style={{ color: isLive ? ACCENT.red : c.text }}>{r?.homeScore ?? 0}-{r?.awayScore ?? 0}</span>
               <span>{away.short} {away.flag}</span>
-            </span>
+            </button>
           )
         })}
       </div>

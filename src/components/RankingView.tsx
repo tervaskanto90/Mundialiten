@@ -88,6 +88,7 @@ export function RankingView() {
   const [rows, setRows] = useState<RankingRow[] | null>(null)
   const [past, setPast] = useState<PastPred[] | null>(null)
   const [error, setError] = useState('')
+  const [scoringOpen, setScoringOpen] = useState(false)
 
   const real = useStore((s) => getScenario(s.scenarios, REAL_SCENARIO_ID))
   const realResults = real?.results ?? {}
@@ -191,8 +192,17 @@ export function RankingView() {
         </div>
       )}
 
-      <div className="rounded-xl p-3 mb-4 text-xs space-y-1.5" style={{ background: c.cardGrad, border: '1px solid ' + c.line, color: c.muted }}>
-        <p className="font-semibold" style={{ color: c.text }}>📋 {t('Cómo se puntúa', 'How scoring works')}</p>
+      <div className="rounded-xl mb-4 text-xs overflow-hidden" style={{ background: c.cardGrad, border: '1px solid ' + c.line, color: c.muted }}>
+        <button
+          onClick={() => setScoringOpen((o) => !o)}
+          className="w-full flex items-center justify-between p-3"
+          style={{ color: c.text }}
+        >
+          <span className="font-semibold">📋 {t('Cómo se puntúa', 'How scoring works')}</span>
+          <span className="text-[11px]" style={{ color: c.muted }}>{scoringOpen ? '▾' : '▸'} {scoringOpen ? t('ocultar', 'hide') : t('ver detalle', 'details')}</span>
+        </button>
+        {scoringOpen && (
+        <div className="px-3 pb-3 space-y-1.5">
         <p>
           {t('El ranking cuenta sólo los resultados de los partidos, que es lo que la app verifica con los marcadores en vivo:', 'The ranking counts only match results, which the app verifies from the live scores:')}
         </p>
@@ -211,6 +221,9 @@ export function RankingView() {
         </p>
         <p style={{ color: c.muted }}>
           {t('Ojo: el marcador y el bonus de “quién pasa” se cuentan POR SEPARADO. Podés fallar el marcador y aun así llevarte el bonus por acertar quién avanza (y al revés).', 'Heads up: the score and the “who advances” bonus are counted SEPARATELY. You can miss the score and still take the bonus for calling who advances (and vice versa).')}
+        </p>
+        <p style={{ color: c.muted }}>
+          {t('Cada ronda (16avos → 8vos → 4tos → semis → final/3º) se predice CUANDO SE ABRE, ya armada con los equipos que realmente clasificaron y avanzaron. Por eso errar una ronda no te impide predecir la siguiente. El detalle completo está en “¿Cómo jugar?”.', 'Each round (R32 → R16 → QF → semis → final/3rd) is predicted WHEN IT OPENS, already built with the teams that actually qualified and advanced. So missing a round doesn’t stop you from predicting the next. Full detail is in “How to play”.')}
         </p>
         <div className="rounded-lg p-2.5 mt-1 space-y-1" style={{ background: dark ? 'rgba(31,168,92,.10)' : 'rgba(31,168,92,.08)', border: '1px solid rgba(31,168,92,.32)' }}>
           <p className="font-semibold" style={{ color: c.text }}>📐 {t('Ejemplo en CUARTOS de final', 'Example in the QUARTER-finals')}</p>
@@ -231,6 +244,8 @@ export function RankingView() {
           <strong style={{ color: ACCENT.blue }}>{t('más resultados acertados', 'more correct results')}</strong>
           {t(' (ganó/empató/perdió). Si todo coincide, comparten el mismo puesto.', ' (win/draw/loss). If everything matches, they share the same position.')}
         </p>
+        </div>
+        )}
       </div>
 
       {error && <p className="text-xs mb-2" style={{ color: ACCENT.red }}>{error}</p>}

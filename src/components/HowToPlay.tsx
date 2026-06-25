@@ -129,6 +129,42 @@ function KnockoutExample({ lang }: { lang: 'es' | 'en' }) {
   )
 }
 
+// Tabla resumen de cómo se predice y puntúa cada ronda de eliminatoria.
+const STAGE_ROWS: Array<{ es: [string, string]; en: [string, string]; sc: string; bonus: string }> = [
+  { es: ['16avos', '1° y 2° de cada grupo + los 8 mejores 3° · 16 partidos'], en: ['Round of 32', 'Top 2 of each group + the 8 best 3rd-placed · 16 matches'], sc: '4 / 2', bonus: '+2' },
+  { es: ['8vos', 'Los 16 ganadores de 16avos · 8 partidos'], en: ['Round of 16', 'The 16 R32 winners · 8 matches'], sc: '5 / 2', bonus: '+2' },
+  { es: ['4tos', 'Los 8 ganadores de 8vos · 4 partidos'], en: ['Quarter-finals', 'The 8 R16 winners · 4 matches'], sc: '6 / 3', bonus: '+3' },
+  { es: ['Semifinales', 'Los 4 ganadores de 4tos · 2 partidos'], en: ['Semi-finals', 'The 4 QF winners · 2 matches'], sc: '8 / 4', bonus: '+4' },
+  { es: ['Final', 'Los 2 ganadores de semis · 1 partido'], en: ['Final', 'The 2 semi winners · 1 match'], sc: '10 / 5', bonus: '+5' },
+  { es: ['3er puesto', 'Los 2 perdedores de semis · 1 partido'], en: ['Third place', 'The 2 semi losers · 1 match'], sc: '10 / 5', bonus: '+5' },
+]
+
+function KnockoutStages({ lang }: { lang: 'es' | 'en' }) {
+  const { c, dark } = useTheme()
+  const headBg = dark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.04)'
+  const head = lang === 'es' ? ['Etapa', 'Quiénes juegan', 'Exacto/Result.', 'Bonus'] : ['Stage', 'Who plays', 'Exact/Result', 'Bonus']
+  return (
+    <div className="rounded-lg overflow-hidden text-[11px] mt-1" style={{ border: '1px solid ' + c.line }}>
+      <div className="grid font-semibold" style={{ gridTemplateColumns: '1.1fr 2.6fr 1fr .7fr', background: headBg, color: c.text }}>
+        {head.map((h, i) => (
+          <span key={i} className={`px-2 py-1.5 ${i >= 2 ? 'text-center' : ''}`}>{h}</span>
+        ))}
+      </div>
+      {STAGE_ROWS.map((r) => {
+        const [name, who] = lang === 'es' ? r.es : r.en
+        return (
+          <div key={name} className="grid" style={{ gridTemplateColumns: '1.1fr 2.6fr 1fr .7fr', borderTop: '1px solid ' + c.line, color: c.muted }}>
+            <span className="px-2 py-1.5 font-semibold" style={{ color: c.text }}>{name}</span>
+            <span className="px-2 py-1.5">{who}</span>
+            <span className="px-2 py-1.5 text-center font-semibold" style={{ color: '#1FA85C' }}>{r.sc}</span>
+            <span className="px-2 py-1.5 text-center font-semibold" style={{ color: '#E59A12' }}>{r.bonus}</span>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 function GuideES() {
   return (
     <>
@@ -222,6 +258,44 @@ function GuideES() {
         <strong> no exige</strong> acertar el marcador.
       </p>
       <KnockoutExample lang="es" />
+
+      <H>🥊 Cómo se predice cada ronda (en detalle)</H>
+      <p>
+        Las eliminatorias se predicen <strong>una etapa por vez</strong>, en orden:
+        <strong> 16avos → 8vos → cuartos → semifinales → (final + 3er puesto)</strong>. Cada etapa se
+        <strong> abre</strong> cuando el Mundial real llega a esa instancia.
+      </p>
+      <ul className="list-disc pl-5 space-y-1">
+        <li>
+          Cada ronda ya viene <strong>armada con los equipos REALES</strong>: los 16avos, con los que
+          clasificaron de los grupos (1°, 2° y los 8 mejores 3°); las rondas siguientes, con los
+          <strong> ganadores REALES</strong> de la ronda anterior. Aunque hayas errado un cruce,
+          <strong> en la próxima ronda predecís los partidos verdaderos</strong> (no equipos fantasma) y
+          nunca te quedás afuera de seguir jugando.
+        </li>
+        <li>
+          En cada partido cargás el <strong>marcador</strong> (el de <strong>después del alargue</strong>).
+          Si te queda <strong>empate</strong>, elegís <strong>quién avanza</strong> (gana en el tiempo
+          extra o en los penales).
+        </li>
+        <li>
+          Sumás por el <strong>marcador</strong> (exacto o sólo resultado) y, <strong>aparte</strong>, un
+          <strong> bonus por acertar quién pasa</strong>. Los dos se cuentan por separado.
+        </li>
+        <li>
+          La <strong>semifinal es su propia etapa</strong>: predecís las 2 semis y, cuando se juegan, se
+          abren la <strong>final</strong> (con los ganadores reales de las semis) y el
+          <strong> 3er puesto</strong> (con los perdedores). Así, errar una semi
+          <strong> no te impide</strong> predecir la final ni el tercer puesto.
+        </li>
+      </ul>
+      <KnockoutStages lang="es" />
+      <p className="text-slate-400 text-xs">
+        Marcador = puntos por exacto / sólo resultado. Bonus = se suma por acertar quién avanza (en la
+        final y el 3er puesto, quién gana). En 16avos el máximo de un partido es 4+2 = <strong>6</strong>;
+        en la final, 10+5 = <strong>15</strong>.
+      </p>
+
       <p>
         El <strong>ranking se ordena por los puntos acumulados</strong> durante todo el Mundial (no por
         porcentaje). Por eso conviene jugar todas las etapas que puedas: quien participa más, tiene más
@@ -341,6 +415,44 @@ function GuideEN() {
         <strong> does not require</strong> getting the score right.
       </p>
       <KnockoutExample lang="en" />
+
+      <H>🥊 How each round is predicted (in detail)</H>
+      <p>
+        The knockouts are predicted <strong>one stage at a time</strong>, in order:
+        <strong> Round of 32 → Round of 16 → quarter-finals → semi-finals → (final + 3rd place)</strong>.
+        Each stage <strong>opens</strong> when the real World Cup reaches it.
+      </p>
+      <ul className="list-disc pl-5 space-y-1">
+        <li>
+          Each round is already <strong>built with the REAL teams</strong>: the Round of 32 with the
+          teams that qualified from the groups (1st, 2nd and the 8 best 3rd); the later rounds, with the
+          <strong> REAL winners</strong> of the previous round. Even if you missed a tie,
+          <strong> in the next round you predict the real matches</strong> (no phantom teams) and you're
+          never left out of playing on.
+        </li>
+        <li>
+          For each match you enter the <strong>score</strong> (the one <strong>after extra time</strong>).
+          If it's a <strong>draw</strong>, you pick <strong>who advances</strong> (wins in extra time or
+          on penalties).
+        </li>
+        <li>
+          You score on the <strong>result</strong> (exact or just the result) and, <strong>separately</strong>,
+          a <strong>bonus for calling who advances</strong>. The two are counted independently.
+        </li>
+        <li>
+          The <strong>semi-final is its own stage</strong>: you predict the 2 semis and, once they're
+          played, the <strong>final</strong> (with the real semi winners) and the
+          <strong> 3rd place</strong> (with the losers) open up. So missing a semi
+          <strong> doesn't stop you</strong> predicting the final or the third-place match.
+        </li>
+      </ul>
+      <KnockoutStages lang="en" />
+      <p className="text-slate-400 text-xs">
+        Exact/Result = points for an exact score / just the result. Bonus = added for calling who
+        advances (in the final and 3rd place, who wins). In the R32 a match is worth up to 4+2 =
+        <strong> 6</strong>; in the final, 10+5 = <strong>15</strong>.
+      </p>
+
       <p>
         The <strong>ranking is ordered by total points accumulated</strong> over the whole World Cup
         (not by percentage). That's why it pays to play every stage you can: the more you take part, the

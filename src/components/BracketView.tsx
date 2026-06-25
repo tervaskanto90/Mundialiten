@@ -8,6 +8,8 @@ import type { ActiveContext } from '../hooks'
 import { useT } from '../i18n'
 import { useTheme, ACCENT } from '../theme'
 import { useIsDesktop } from '../hooks/useIsDesktop'
+import { useBranding } from '../lib/branding'
+import { HeaderBrand } from './HeaderBrand'
 import { Confetti } from './Confetti'
 
 const FLAG_FONT = "'Twemoji Country Flags', 'Noto Color Emoji', sans-serif"
@@ -70,6 +72,7 @@ export function BracketView({ ctx, onEdit }: Props) {
   const { t } = useT()
   const { c, dark } = useTheme()
   const isDesktop = useIsDesktop()
+  const [branding] = useBranding()
   // Scroll horizontal de la llave sin tener que bajar hasta la barra del fondo:
   // se arrastra con el mouse (grab) y/o con los botones ◀ ▶ de arriba.
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -150,6 +153,7 @@ export function BracketView({ ctx, onEdit }: Props) {
         <div className="flex items-center justify-center gap-2 mt-1" style={{ fontFamily: "'Archivo'", fontWeight: 900, fontSize: '20px', color: c.text }}>
           {championed ? (
             <>
+              <HeaderBrand branding={branding} size={30} />
               <span style={{ fontSize: '26px', fontFamily: FLAG_FONT }}>{champLabel!.flag}</span> {champLabel!.name}
             </>
           ) : (
@@ -201,20 +205,27 @@ export function BracketView({ ctx, onEdit }: Props) {
               <div key={stage} className="bracket-round">
                 <div className="bracket-round-title">{t(STAGE_I18N[stage].es, STAGE_I18N[stage].en)}</div>
                 <div className="bracket-col">
-                  {matches.map((m) => (
-                    <div key={m.id} className="bracket-match">
-                      <BracketCard matchId={m.id} ctx={ctx} onEdit={onEdit} highlight={stage === 'final'} />
-                    </div>
-                  ))}
-                  {/* El partido por el 3er puesto va JUSTO DEBAJO de la final,
-                      en la misma columna y con el mismo tamaño. */}
-                  {stage === 'final' && thirdMatch && (
-                    <div className="bracket-match" style={{ marginTop: 16 }}>
-                      <div className="text-[10px] font-semibold uppercase tracking-wide mb-1" style={{ color: c.muted }}>
-                        🥉 {t('Tercer puesto', 'Third place')}
+                  {matches.map((m) =>
+                    stage === 'final' && thirdMatch ? (
+                      // La final queda como antes (centrada, con su conector). El
+                      // 3er puesto va absoluto, MISMO tamaño, 2cm debajo de la
+                      // tarjeta de la final y SIN línea que lo conecte.
+                      <div key={m.id} className="bracket-match">
+                        <div style={{ position: 'relative', width: '100%' }}>
+                          <BracketCard matchId={m.id} ctx={ctx} onEdit={onEdit} highlight />
+                          <div style={{ position: 'absolute', top: 'calc(100% + 2cm)', left: 0, width: '100%' }}>
+                            <div className="text-[10px] font-semibold uppercase tracking-wide mb-1" style={{ color: c.muted }}>
+                              🥉 {t('Tercer puesto', 'Third place')}
+                            </div>
+                            <BracketCard matchId={thirdMatch.id} ctx={ctx} onEdit={onEdit} />
+                          </div>
+                        </div>
                       </div>
-                      <BracketCard matchId={thirdMatch.id} ctx={ctx} onEdit={onEdit} />
-                    </div>
+                    ) : (
+                      <div key={m.id} className="bracket-match">
+                        <BracketCard matchId={m.id} ctx={ctx} onEdit={onEdit} highlight={stage === 'final'} />
+                      </div>
+                    ),
                   )}
                 </div>
               </div>

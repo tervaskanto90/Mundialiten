@@ -19,7 +19,7 @@ interface Piece {
  * que se le pasen (los de la bandera del campeón). Corre una ráfaga de unos
  * segundos y termina sola. No intercepta clicks.
  */
-export function Confetti({ colors, durationMs = 7000 }: { colors: string[]; durationMs?: number }) {
+export function Confetti({ colors, durationMs = 10000 }: { colors: string[]; durationMs?: number }) {
   const ref = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
@@ -46,19 +46,19 @@ export function Confetti({ colors, durationMs = 7000 }: { colors: string[]; dura
     const rand = (a: number, b: number) => a + Math.random() * (b - a)
     const spawn = (top = false): Piece => ({
       x: rand(0, W),
-      y: top ? rand(-80, -10) : rand(-H, 0),
-      w: rand(6, 11),
-      h: rand(9, 16),
+      y: top ? rand(-120, -10) : rand(-H, 0),
+      w: rand(7, 13),
+      h: rand(10, 20),
       color: palette[Math.floor(Math.random() * palette.length)],
       rot: rand(0, Math.PI * 2),
-      vrot: rand(-0.22, 0.22),
-      vy: rand(1.6, 4),
-      sway: rand(10, 30),
-      swaySpeed: rand(0.01, 0.045),
+      vrot: rand(-0.24, 0.24),
+      vy: rand(1.8, 4.6),
+      sway: rand(12, 34),
+      swaySpeed: rand(0.01, 0.05),
       phase: rand(0, Math.PI * 2),
     })
 
-    const COUNT = 180
+    const COUNT = 340
     const pieces: Piece[] = Array.from({ length: COUNT }, () => spawn(false))
 
     let raf = 0
