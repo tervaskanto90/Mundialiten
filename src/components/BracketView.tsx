@@ -150,11 +150,11 @@ export function BracketView({ ctx, onEdit }: Props) {
         <div style={{ fontSize: '10px', fontWeight: 800, letterSpacing: '1px', color: dark ? '#FFCF45' : '#B07D08' }}>
           🏆 {t('TU CAMPEÓN', 'YOUR CHAMPION')}
         </div>
-        <div className="flex items-center justify-center gap-2 mt-1" style={{ fontFamily: "'Archivo'", fontWeight: 900, fontSize: '20px', color: c.text }}>
+        <div className="flex items-center justify-center flex-wrap gap-x-2 gap-y-1 mt-1 px-3" style={{ fontFamily: "'Archivo'", fontWeight: 900, fontSize: isDesktop ? '20px' : '17px', color: c.text }}>
           {championed ? (
             <>
-              <HeaderBrand branding={branding} size={30} />
-              <span style={{ fontSize: '26px', fontFamily: FLAG_FONT }}>{champLabel!.flag}</span> {champLabel!.name}
+              <HeaderBrand branding={branding} size={isDesktop ? 30 : 26} />
+              <span style={{ fontSize: isDesktop ? '26px' : '22px', fontFamily: FLAG_FONT }}>{champLabel!.flag}</span> {champLabel!.name}
             </>
           ) : (
             <span style={{ color: c.faint, fontSize: '15px', fontWeight: 600 }}>{t('Por definir', 'To be decided')}</span>

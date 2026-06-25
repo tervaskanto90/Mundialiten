@@ -42,7 +42,7 @@ const tutorialSeen = (): boolean => {
 
 const NAV: { id: View; es: string; en: string; icon: string }[] = [
   { id: 'home', es: 'Inicio', en: 'Home', icon: '🏠' },
-  { id: 'fixture', es: 'Fixture y Tablas', en: 'Fixtures & Tables', icon: '🗓️' },
+  { id: 'fixture', es: 'Predicciones, Calendario y Tablas', en: 'Predictions, Calendar & Tables', icon: '🗓️' },
   { id: 'precision', es: 'Estadísticas', en: 'Stats', icon: '📊' },
   { id: 'ranking', es: 'Ranking', en: 'Ranking', icon: '🏆' },
 ]
