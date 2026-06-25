@@ -280,6 +280,9 @@ create trigger recompute_on_real_change
 -- copiar a nadie). security definer: saltea la RLS privada de `predictions`,
 -- pero el filtro por partido jugado garantiza que sólo se ven cosas del pasado.
 -- ─────────────────────────────────────────────────────────────────────────────
+-- OJO: si la función ya existía con menos columnas, hay que dropearla primero
+-- (no se puede cambiar el tipo de retorno con CREATE OR REPLACE).
+drop function if exists public.past_predictions();
 create or replace function public.past_predictions()
 returns table(match_id int, user_id uuid, display_name text, avatar_url text, home int, away int, home_pens int, away_pens int)
 language sql

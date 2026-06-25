@@ -1,0 +1,154 @@
+-- ─────────────────────────────────────────────────────────────────────────────
+-- MIGRACIÓN v6 — "Pases de ronda" (3er desempate) + penales en past_predictions
+--
+-- Correr ENTERA en el SQL editor de Supabase. Es idempotente y retrocompatible:
+-- el cliente viejo (main actual) ignora la columna/los campos nuevos, así que se
+-- puede correr ANTES de mergear a main sin romper producción.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+-- 1) Nueva columna del 3er desempate (pases de ronda acertados).
+alter table public.scores add column if not exists advance_count int not null default 0;
+
+-- 2) recompute_all_scores: ahora también cuenta los pases de ronda (adv_award>0).
+--    (return type = void, no cambia: CREATE OR REPLACE alcanza.)
+create or replace function public.recompute_all_scores()
+returns void
+language sql
+security definer
+set search_path = public
+as $$
+  with realm as (
+    select (e.key)::int as mid, e.value as rv
+    from public.real_results rr, lateral jsonb_each(rr.results) e
+    where rr.id = 1 and e.key ~ '^[0-9]+$' and (e.value->>'played') = 'true'
+  ),
+  predm as (
+    select p.user_id, (e.key)::int as mid, e.value as pv
+    from public.predictions p, lateral jsonb_each(p.results) e
+    where e.key ~ '^[0-9]+$' and (e.value->>'played') = 'true'
+  ),
+  calc as (
+    select p.user_id, r.mid as mid,
+      (case when r.mid<=72 then 3 when r.mid<=88 then 4 when r.mid<=96 then 5
+            when r.mid<=100 then 6 when r.mid<=102 then 8 else 10 end) as exact_pts,
+      (case when r.mid<=72 then 0 when r.mid<=88 then 2 when r.mid<=96 then 2
+            when r.mid<=100 then 3 when r.mid<=102 then 4 else 5 end) as adv_pts,
+      case
+        when (p.pv->>'homeScore') = (r.rv->>'homeScore')
+         and (p.pv->>'awayScore') = (r.rv->>'awayScore')
+          then (case when r.mid<=72 then 3 when r.mid<=88 then 4 when r.mid<=96 then 5
+                     when r.mid<=100 then 6 when r.mid<=102 then 8 else 10 end)
+        when sign(((p.pv->>'homeScore')::int) - ((p.pv->>'awayScore')::int))
+           = sign(((r.rv->>'homeScore')::int) - ((r.rv->>'awayScore')::int))
+          then (case when r.mid<=72 then 1 when r.mid<=88 then 2 when r.mid<=96 then 2
+                     when r.mid<=100 then 3 when r.mid<=102 then 4 else 5 end)
+        else 0
+      end as award,
+      case
+        when (case when r.mid<=72 then 0 when r.mid<=88 then 2 when r.mid<=96 then 2
+                   when r.mid<=100 then 3 when r.mid<=102 then 4 else 5 end) = 0 then 0
+        when (
+          case when (p.pv->>'homeScore')::int > (p.pv->>'awayScore')::int then 'h'
+               when (p.pv->>'awayScore')::int > (p.pv->>'homeScore')::int then 'a'
+               when coalesce((p.pv->>'homePens')::int,0) > coalesce((p.pv->>'awayPens')::int,0) then 'h'
+               when coalesce((p.pv->>'awayPens')::int,0) > coalesce((p.pv->>'homePens')::int,0) then 'a'
+               else 'p' end
+        ) = (
+          case when (r.rv->>'homeScore')::int > (r.rv->>'awayScore')::int then 'h'
+               when (r.rv->>'awayScore')::int > (r.rv->>'homeScore')::int then 'a'
+               when coalesce((r.rv->>'homePens')::int,0) > coalesce((r.rv->>'awayPens')::int,0) then 'h'
+               when coalesce((r.rv->>'awayPens')::int,0) > coalesce((r.rv->>'homePens')::int,0) then 'a'
+               else 'r' end
+        )
+          then (case when r.mid<=72 then 0 when r.mid<=88 then 2 when r.mid<=96 then 2
+                     when r.mid<=100 then 3 when r.mid<=102 then 4 else 5 end)
+        else 0
+      end as adv_award
+    from realm r join predm p on p.mid = r.mid
+  ),
+  agg as (
+    select user_id,
+           sum(award + adv_award) as points,
+           sum(exact_pts + adv_pts) as maxp,
+           sum(case when award = exact_pts then 1 else 0 end) as exact_count,
+           sum(case when award > 0 then 1 else 0 end) as result_count,
+           sum(case when adv_award > 0 then 1 else 0 end) as advance_count
+    from calc group by user_id
+  ),
+  ko(mid, ts) as (values
+    (1,1781204400000), (2,1781229600000), (3,1781290800000), (4,1781312400000), (5,1781377200000), (6,1781388000000), (7,1781398800000), (8,1781409600000),
+    (9,1781456400000), (10,1781467200000), (11,1781478000000), (12,1781488800000), (13,1781550000000), (14,1781539200000), (15,1781571600000), (16,1781560800000),
+    (17,1781636400000), (18,1781647200000), (19,1781658000000), (20,1781668800000), (21,1781715600000), (22,1781726400000), (23,1781737200000), (24,1781748000000),
+    (25,1781798400000), (26,1781809200000), (27,1781820000000), (28,1781830800000), (29,1781895600000), (30,1781906400000), (31,1781924400000), (32,1781915400000),
+    (33,1781974800000), (34,1781985600000), (35,1782000000000), (36,1782014400000), (37,1782068400000), (38,1782057600000), (39,1782090000000), (40,1782079200000),
+    (41,1782147600000), (42,1782162000000), (43,1782172800000), (44,1782183600000), (45,1782234000000), (46,1782244800000), (47,1782255600000), (48,1782266400000),
+    (49,1782338400000), (50,1782338400000), (51,1782349200000), (52,1782349200000), (53,1782327600000), (54,1782327600000), (55,1782417600000), (56,1782417600000),
+    (57,1782428400000), (58,1782428400000), (59,1782439200000), (60,1782439200000), (61,1782500400000), (62,1782500400000), (63,1782518400000), (64,1782518400000),
+    (65,1782529200000), (66,1782529200000), (67,1782603000000), (68,1782603000000), (69,1782594000000), (70,1782594000000), (71,1782612000000), (72,1782612000000),
+    (73,1782673200000), (74,1782765000000), (75,1782781200000), (76,1782752400000), (77,1782853200000), (78,1782838800000), (79,1782867600000), (80,1782921600000),
+    (81,1782950400000), (82,1782936000000), (83,1783033200000), (84,1783018800000), (85,1783047600000), (86,1783116000000), (87,1783128600000), (88,1783101600000),
+    (89,1783198800000), (90,1783184400000), (91,1783281600000), (92,1783296000000), (93,1783364400000), (94,1783382400000), (95,1783440000000), (96,1783454400000),
+    (97,1783627200000), (98,1783710000000), (99,1783803600000), (100,1783818000000), (101,1784055600000), (102,1784142000000), (103,1784408400000), (104,1784487600000)
+  ),
+  lastm as (
+    select r.mid from realm r join ko on ko.mid = r.mid order by ko.ts desc limit 1
+  ),
+  lastpred as (
+    select p.user_id,
+           (p.pv->>'homeScore')::int as ph,
+           (p.pv->>'awayScore')::int as pa,
+           coalesce(c.award, 0) + coalesce(c.adv_award, 0) as lpts
+    from predm p
+    join lastm l on p.mid = l.mid
+    left join calc c on c.user_id = p.user_id and c.mid = l.mid
+  )
+  update public.scores s
+  set points = coalesce(a.points, 0),
+      accuracy = case when coalesce(a.maxp, 0) > 0
+                      then round(coalesce(a.points, 0)::numeric / a.maxp * 100, 2) else 0 end,
+      exact_count = coalesce(a.exact_count, 0),
+      result_count = coalesce(a.result_count, 0),
+      advance_count = coalesce(a.advance_count, 0),
+      last_match_id = (select mid from lastm),
+      last_pred_home = lp.ph,
+      last_pred_away = lp.pa,
+      last_points = coalesce(lp.lpts, 0),
+      updated_at = now()
+  from public.scores s2
+  left join agg a on a.user_id = s2.user_id
+  left join lastpred lp on lp.user_id = s2.user_id
+  where s.user_id = s2.user_id;
+$$;
+
+-- 3) past_predictions: ahora también devuelve los penales predichos
+--    (cambia el tipo de retorno → hay que DROPEAR antes de recrear).
+drop function if exists public.past_predictions();
+create or replace function public.past_predictions()
+returns table(match_id int, user_id uuid, display_name text, avatar_url text, home int, away int, home_pens int, away_pens int)
+language sql
+security definer
+set search_path = public
+as $$
+  with played as (
+    select (e.key)::int as mid
+    from public.real_results rr, lateral jsonb_each(rr.results) e
+    where rr.id = 1 and e.key ~ '^[0-9]+$' and (e.value->>'played') = 'true'
+  )
+  select (pe.key)::int as match_id,
+         p.user_id,
+         coalesce(s.display_name, 'Jugador') as display_name,
+         s.avatar_url,
+         (pe.value->>'homeScore')::int as home,
+         (pe.value->>'awayScore')::int as away,
+         (pe.value->>'homePens')::int as home_pens,
+         (pe.value->>'awayPens')::int as away_pens
+  from public.predictions p
+  cross join lateral jsonb_each(p.results) pe
+  join played pl on pl.mid = (pe.key)::int
+  left join public.scores s on s.user_id = p.user_id
+  where pe.key ~ '^[0-9]+$' and (pe.value->>'played') = 'true';
+$$;
+grant execute on function public.past_predictions() to authenticated;
+
+-- 4) Recalcular ya mismo para poblar advance_count en las filas existentes.
+select public.recompute_all_scores();
