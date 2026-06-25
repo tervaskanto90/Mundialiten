@@ -5,6 +5,7 @@ import { useT } from '../i18n'
 import { useStore, getScenario, REAL_SCENARIO_ID } from '../store/useStore'
 import { resolve } from '../engine/resolve'
 import { MATCH_BY_ID } from '../data/schedule'
+import { liveMatchIds } from '../utils/live'
 import { STAGE_POINTS, advancingSide } from '../engine/accuracy'
 import { TEAM_BY_ID } from '../data/teams'
 import { rankDeltas, tieGroups } from '../lib/rankDelta'
@@ -95,9 +96,13 @@ export function RankingView() {
   const realResults = real?.results ?? {}
   const realRes = useMemo(() => resolve(realResults), [realResults])
 
-  // Partidos del último horario jugado: en la fase final de grupos (y en adelante)
-  // se juegan de a DOS a la vez, así que mostramos ambos (1 o 2).
+  // Partidos a mostrar en el ranking:
+  //  - si hay partidos EN VIVO (con marcador), mostramos TODOS (como el header),
+  //    aunque tengan horarios distintos (no solo el último).
+  //  - si no hay en vivo, el último horario jugado (puede haber 2 simultáneos).
   const targetIds = useMemo(() => {
+    const live = liveMatchIds(realResults, Date.now()).filter((id) => realResults[id]?.played)
+    if (live.length > 0) return live.slice(0, 4)
     const playedIds = Object.keys(realResults)
       .map(Number)
       .filter((id) => MATCH_BY_ID[id] && realResults[id]?.played)
