@@ -10,6 +10,7 @@ import { TEAM_BY_ID } from '../data/teams'
 import { rankDeltas, tieGroups } from '../lib/rankDelta'
 import { Avatar } from './Avatar'
 import { useIsDesktop } from '../hooks/useIsDesktop'
+import { STAGING, stagingFakePred } from '../staging'
 import { useTheme, ACCENT } from '../theme'
 
 const MEDALS = ['🥇', '🥈', '🥉']
@@ -62,7 +63,7 @@ function DeltaBadge({ delta }: { delta: number }) {
 }
 
 // Predicción de un partido, coloreada por acierto (exacto/resultado/error).
-function PredScore({ ph, pa, rh, ra, homeFlag, awayFlag, points, compact }: { ph: number; pa: number; rh: number; ra: number; homeFlag: string; awayFlag: string; points: number; compact?: boolean }) {
+function PredScore({ ph, pa, rh, ra, homeFlag, awayFlag, points, compact, dim }: { ph: number; pa: number; rh: number; ra: number; homeFlag: string; awayFlag: string; points: number; compact?: boolean; dim?: boolean }) {
   const { c } = useTheme()
   const exact = ph === rh && pa === ra
   const result = Math.sign(ph - pa) === Math.sign(rh - ra)
@@ -70,7 +71,7 @@ function PredScore({ ph, pa, rh, ra, homeFlag, awayFlag, points, compact }: { ph
   return (
     <span
       className={`inline-flex items-center rounded-full font-bold shrink-0 ${compact ? 'gap-1 px-2 py-0.5 text-xs' : 'gap-1.5 px-2.5 py-1 text-sm'}`}
-      style={{ background: col + '1A', border: '1px solid ' + col + '55', color: c.text }}
+      style={{ background: col + '1A', border: '1px ' + (dim ? 'dashed ' : 'solid ') + col + (dim ? '99' : '55'), color: c.text, opacity: dim ? 0.72 : 1 }}
     >
       <span>{homeFlag}</span>
       <span className="tabular-nums" style={{ color: col }}>{ph}-{pa}</span>
@@ -106,12 +107,25 @@ export function RankingView() {
     return playedIds.filter((id) => ko(id) === maxKo).sort((a, b) => a - b).slice(0, 2)
   }, [realResults])
 
+  // Partidos del lote que están EN VIVO (jugándose, sin terminar): se muestran
+  // como provisorios en el ranking.
+  const liveIds = useMemo(
+    () => new Set(targetIds.filter((id) => realResults[id]?.played && !realResults[id]?.finished)),
+    [targetIds, realResults],
+  )
+  const anyLive = liveIds.size > 0
+
   // Predicción de cada usuario para esos partidos (del historial público).
   const predByKey = useMemo(() => {
     const m = new Map<string, { home: number; away: number }>()
     for (const p of past ?? []) m.set(`${p.user_id}|${p.match_id}`, { home: p.home, away: p.away })
     return m
   }, [past])
+
+  // En staging, si no hay predicción real para el partido (eliminatorias no se
+  // suben a Supabase), usamos una sintética para poblar el preview.
+  const predFor = (userId: string, matchId: number): { home: number; away: number } | undefined =>
+    predByKey.get(`${userId}|${matchId}`) ?? (STAGING ? stagingFakePred(userId, matchId) : undefined)
 
   const deltas = useMemo(
     () =>
@@ -177,18 +191,34 @@ export function RankingView() {
       </div>
 
       {targetIds.length > 0 && (
-        <div className="rounded-xl px-3 py-2 mb-3 text-sm flex items-center gap-x-3 gap-y-1 flex-wrap" style={{ background: dark ? 'rgba(31,168,92,.14)' : 'rgba(31,168,92,.12)', border: '1px solid rgba(31,168,92,.35)', color: c.text }}>
-          <span className="font-semibold" style={{ color: ACCENT.green }}>🟢 {targetIds.length > 1 ? t('Últimos resultados:', 'Latest results:') : t('Último resultado:', 'Latest result:')}</span>
+        <div
+          className="rounded-xl px-3 py-2 mb-3 text-sm flex items-center gap-x-3 gap-y-1 flex-wrap"
+          style={{
+            background: anyLive ? (dark ? 'rgba(229,50,43,.14)' : 'rgba(229,50,43,.10)') : dark ? 'rgba(31,168,92,.14)' : 'rgba(31,168,92,.12)',
+            border: '1px solid ' + (anyLive ? 'rgba(229,50,43,.45)' : 'rgba(31,168,92,.35)'),
+            color: c.text,
+          }}
+        >
+          <span className="font-semibold" style={{ color: anyLive ? ACCENT.red : ACCENT.green, animation: anyLive ? 'mdlGlow 1.6s ease-in-out infinite' : undefined }}>
+            {anyLive ? '🔴 ' + t('EN VIVO:', 'LIVE:') : targetIds.length > 1 ? '🟢 ' + t('Últimos resultados:', 'Latest results:') : '🟢 ' + t('Último resultado:', 'Latest result:')}
+          </span>
           {targetIds.map((mid) => {
             const rr = realResults[mid]!
             const tm = realRes.matches[mid]
+            const live = liveIds.has(mid)
             return (
               <span key={mid} className="font-medium tabular-nums whitespace-nowrap">
                 <TeamMini id={tm?.home} /> {rr.homeScore}-{rr.awayScore} <TeamMini id={tm?.away} />
+                {live && <span style={{ color: ACCENT.red, fontWeight: 700 }}> · {t('en juego', 'in play')}</span>}
                 {rr.homePens != null && rr.awayPens != null && <span style={{ color: c.muted }}> ({rr.homePens}-{rr.awayPens}p)</span>}
               </span>
             )
           })}
+          {anyLive && (
+            <span className="text-[11px] w-full" style={{ color: c.muted }}>
+              {t('Marcador y puntos PROVISORIOS hasta que termine el partido (puede cambiar en el alargue/penales).', 'Score and points are PROVISIONAL until the match ends (can change in extra time/penalties).')}
+            </span>
+          )}
         </div>
       )}
 
@@ -291,9 +321,13 @@ export function RankingView() {
                     const tm = realRes.matches[mid]
                     const hf = TEAM_BY_ID[tm?.home ?? '']?.flag ?? '🏳️'
                     const af = TEAM_BY_ID[tm?.away ?? '']?.flag ?? '🏳️'
-                    const p = predByKey.get(`${r.user_id}|${mid}`)
+                    const p = predFor(r.user_id, mid)
+                    const live = liveIds.has(mid)
                     return p ? (
-                      <PredScore key={mid} compact={isDesktop} ph={p.home} pa={p.away} rh={rr.homeScore} ra={rr.awayScore} homeFlag={hf} awayFlag={af} points={marcadorPoints(mid, p.home, p.away, rr.homeScore, rr.awayScore)} />
+                      <span key={mid} className="inline-flex items-center gap-1 shrink-0">
+                        <PredScore compact={isDesktop} ph={p.home} pa={p.away} rh={rr.homeScore} ra={rr.awayScore} homeFlag={hf} awayFlag={af} points={marcadorPoints(mid, p.home, p.away, rr.homeScore, rr.awayScore)} dim={live} />
+                        {live && <span className="text-[8px] font-bold uppercase" style={{ color: ACCENT.red }}>{t('prov', 'prov')}</span>}
+                      </span>
                     ) : (
                       <span key={mid} className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs shrink-0" style={{ color: c.faint, border: '1px solid ' + c.line }} title={t('Sin predicción', 'No prediction')}>
                         {hf}<span style={{ opacity: 0.6 }}>–</span>{af}

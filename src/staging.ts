@@ -74,6 +74,28 @@ export function simulateBucketResults(b: BucketId): Record<number, MatchResult> 
   return out
 }
 
+// Pone el PRIMER partido de un bucket EN VIVO (jugándose, empatado 1-1 → camino
+// al alargue): played=true pero finished=false. Sirve para ver cómo queda el
+// ranking mientras un partido de eliminatoria está en juego.
+export function liveBucketResults(b: BucketId): Record<number, MatchResult> {
+  const first = matchesOfBucket(b).sort((x, y) => x.id - y.id)[0]
+  if (!first) return {}
+  return { [first.id]: { played: true, finished: false, homeScore: 1, awayScore: 1, events: [] } }
+}
+
+// Predicción SINTÉTICA y determinística por (usuario, partido) — sólo staging:
+// como el real simulado no se sube a Supabase, el historial no trae predicciones
+// para los partidos de eliminatoria. Esto puebla el ranking para el preview.
+export function stagingFakePred(userId: string, matchId: number): { home: number; away: number } {
+  let h = 2166136261
+  const s = `${userId}|${matchId}`
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i)
+    h = Math.imul(h, 16777619) >>> 0
+  }
+  return { home: h % 3, away: (h >> 5) % 3 }
+}
+
 // Holder del real para que utils/stage (activeBucket) sepa qué ronda abrir en
 // staging, sin importar el store (lo mantiene en sync useActiveContext).
 let stagingReal: Record<number, MatchResult> = {}

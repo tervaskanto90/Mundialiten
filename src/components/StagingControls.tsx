@@ -1,5 +1,5 @@
 import { useStore, getScenario, REAL_SCENARIO_ID } from '../store/useStore'
-import { STAGING, KO_BUCKETS, openKnockoutBucket, simulateBucketResults, simulatedGroupResults } from '../staging'
+import { STAGING, KO_BUCKETS, openKnockoutBucket, simulateBucketResults, liveBucketResults, simulatedGroupResults } from '../staging'
 import type { MatchResult } from '../types'
 import type { BucketId } from '../utils/stage'
 import { useTheme, ACCENT } from '../theme'
@@ -40,6 +40,9 @@ export function StagingControls() {
 
   const simulate = () => {
     if (open) mergeReal(simulateBucketResults(open))
+  }
+  const goLive = () => {
+    if (open) mergeReal(liveBucketResults(open))
   }
   const reset = () =>
     useStore.setState((s) => ({
@@ -85,6 +88,13 @@ export function StagingControls() {
           <div style={{ fontSize: 11, color: c.muted, marginBottom: 8 }}>
             Etapa abierta: <strong style={{ color: c.text }}>{LABEL[open]}</strong>. Predecila y después simulá
             los resultados para abrir la próxima.
+          </div>
+          <button onClick={goLive} style={{ ...btn, background: ACCENT.red, color: '#fff', marginBottom: 6 }}>
+            🔴 Poner 1 partido EN VIVO (alargue)
+          </button>
+          <div style={{ fontSize: 10, color: c.faint, marginBottom: 8, lineHeight: 1.3 }}>
+            Pone el 1er partido de {LABEL[open]} jugándose 1-1. Mirá el Ranking: lo muestra como
+            provisorio “en juego”.
           </div>
           <button onClick={simulate} style={{ ...btn, background: ACCENT.green, color: '#fff', marginBottom: 6 }}>
             {next ? `Simular ${LABEL[open]} → abrir ${LABEL[next]}` : `Simular ${LABEL[open]} 🏁`}
