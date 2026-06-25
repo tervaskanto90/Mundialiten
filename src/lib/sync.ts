@@ -7,6 +7,7 @@ import {
   REAL_SCENARIO_ID,
 } from '../store/useStore'
 import { computeAccuracy, computeRankingScore } from '../engine/accuracy'
+import { STAGING } from '../staging'
 import {
   fetchRealResults,
   saveRealResults,
@@ -42,7 +43,9 @@ export function useSupabaseSync(): void {
       try {
         const real = await fetchRealResults()
         if (cancelled) return
-        if (real) useStore.getState().hydrateReal(real)
+        // En staging NO hidratamos el real desde Supabase: dejamos los resultados
+        // simulados de grupos que sembró la app (ver staging.ts).
+        if (real && !STAGING) useStore.getState().hydrateReal(real)
         const pred = await fetchMyPrediction(userId)
         if (cancelled) return
         useStore.getState().hydratePrediction(pred ?? {}, displayName)
@@ -87,6 +90,8 @@ async function pushAll(
   displayName: string,
   lastPushed: { current: { pred: string; real: string } },
 ): Promise<void> {
+  // Staging = sandbox local: NUNCA se escribe a Supabase (main comparte la base).
+  if (STAGING) return
   const st = useStore.getState()
   const pred = getScenario(st.scenarios, ACCOUNT_PRED_ID)
   const real = getScenario(st.scenarios, REAL_SCENARIO_ID)
@@ -104,6 +109,7 @@ async function pushAll(
 }
 
 async function pushScore(userId: string, displayName: string): Promise<void> {
+  if (STAGING) return
   const st = useStore.getState()
   const pred = getScenario(st.scenarios, ACCOUNT_PRED_ID)
   const real = getScenario(st.scenarios, REAL_SCENARIO_ID)

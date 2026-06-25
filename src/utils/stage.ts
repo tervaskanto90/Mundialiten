@@ -1,6 +1,7 @@
 import type { Match, StageId } from '../types'
 import { MATCHES } from '../data/schedule'
 import { LOCK_MINUTES } from './lock'
+import { STAGING } from '../staging'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ETAPA ACTIVA DE PREDICCIÓN
@@ -37,6 +38,9 @@ const LAST_KICKOFF: Record<BucketId, number> = (() => {
 
 /** Bucket de predicción abierto ahora (el primero no terminado), o null si terminó todo. */
 export function activeBucket(now: number = Date.now()): BucketId | null {
+  // Staging: forzamos 16avos abierto para probar el flujo de eliminatorias
+  // (los grupos se dan por terminados; ver staging.ts).
+  if (STAGING) return 'r32'
   for (const b of BUCKET_ORDER) {
     if (now <= LAST_KICKOFF[b]) return b
   }

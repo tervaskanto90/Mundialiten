@@ -22,6 +22,8 @@ import { Band } from './components/Bands'
 import { useTheme } from './theme'
 import { useIsDesktop } from './hooks/useIsDesktop'
 import { useBranding } from './lib/branding'
+import { useStore, getScenario, REAL_SCENARIO_ID } from './store/useStore'
+import { STAGING, simulatedGroupResults } from './staging'
 
 type View = 'home' | 'fixture' | 'precision' | 'ranking'
 
@@ -63,6 +65,23 @@ export default function App() {
   const [branding] = useBranding()
   useLiveSyncPolling()
   useSupabaseSync()
+
+  // STAGING (sandbox): sembramos resultados simulados de TODA la fase de grupos
+  // en el escenario REAL — sólo local, nunca se sube a Supabase (ver lib/sync).
+  // Con eso el cuadro de 16avos se arma con los clasificados y se puede probar la
+  // predicción de eliminatorias antes de tiempo.
+  useEffect(() => {
+    if (!STAGING) return
+    const sim = simulatedGroupResults()
+    const real = getScenario(useStore.getState().scenarios, REAL_SCENARIO_ID)
+    const complete = !!real && Object.keys(sim).every((id) => real.results[Number(id)]?.played)
+    if (complete) return
+    useStore.setState((s) => ({
+      scenarios: s.scenarios.map((sc) =>
+        sc.id === REAL_SCENARIO_ID ? { ...sc, results: { ...sc.results, ...sim } } : sc,
+      ),
+    }))
+  }, [])
 
   // Favicon = imagen del sitio en modo oscuro (o la clara si no hay oscura).
   useEffect(() => {
@@ -340,8 +359,8 @@ export default function App() {
             {hamburgerBtn}
             <HeaderBrand branding={branding} size={Math.round(52 * hs)} onClick={() => setView('home')} />
             <div style={{ minWidth: 0, cursor: 'pointer' }} onClick={() => setView('home')} title={t('Ir al inicio', 'Go home')}>
-              <div style={{ fontFamily: "'Archivo'", fontWeight: 900, fontSize: px(18), lineHeight: 1, letterSpacing: '-.3px', color: c.text }}>
-                MUNDIALITEN
+              <div style={{ fontFamily: "'Archivo'", fontWeight: 900, fontSize: px(18), lineHeight: 1, letterSpacing: '-.3px', color: STAGING ? '#E5322B' : c.text }}>
+                {STAGING ? 'STAGING' : 'MUNDIALITEN'}
               </div>
               <div style={{ fontSize: px(11), color: c.muted, fontWeight: 700, letterSpacing: '.3px', marginTop: '3px' }}>
                 {t('Mundial 2026', 'World Cup 2026')} · 🇺🇸 🇨🇦 🇲🇽
@@ -375,8 +394,8 @@ export default function App() {
               {hamburgerBtn}
               <HeaderBrand branding={branding} size={Math.round(46 * hs)} onClick={() => setView('home')} />
               <div style={{ flex: 1, minWidth: 0, cursor: 'pointer' }} onClick={() => setView('home')}>
-                <div style={{ fontFamily: "'Archivo'", fontWeight: 900, fontSize: px(18), lineHeight: 1, letterSpacing: '-.3px', color: c.text }}>
-                  MUNDIALITEN
+                <div style={{ fontFamily: "'Archivo'", fontWeight: 900, fontSize: px(18), lineHeight: 1, letterSpacing: '-.3px', color: STAGING ? '#E5322B' : c.text }}>
+                  {STAGING ? 'STAGING' : 'MUNDIALITEN'}
                 </div>
                 <div style={{ fontSize: px(11), color: c.muted, fontWeight: 700, letterSpacing: '.3px', marginTop: '3px' }}>
                   {t('Mundial 2026', 'World Cup 2026')} · 🇺🇸 🇨🇦 🇲🇽
