@@ -24,6 +24,7 @@ import { useIsDesktop } from './hooks/useIsDesktop'
 import { useBranding } from './lib/branding'
 import { useStore, getScenario, REAL_SCENARIO_ID } from './store/useStore'
 import { STAGING, simulatedGroupResults } from './staging'
+import { StagingControls } from './components/StagingControls'
 
 type View = 'home' | 'fixture' | 'precision' | 'ranking'
 
@@ -546,6 +547,8 @@ export default function App() {
       {accountOpen && <AccountModal onClose={() => setAccountOpen(false)} />}
 
       {tutorialOpen && <Tutorial onClose={closeTutorial} />}
+
+      {STAGING && <StagingControls />}
     </div>
   )
 }

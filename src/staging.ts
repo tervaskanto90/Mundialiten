@@ -4,19 +4,35 @@
 // Sólo se activa en el build de la rama `staging` (ver vite.config.ts). Sirve
 // para probar el flujo de predicciones de la fase ELIMINATORIA antes de tiempo:
 //  - simula TODA la fase de grupos (para que el cuadro se arme con equipos reales)
-//  - fuerza la etapa abierta a 16avos (ver utils/stage.ts)
-//  - el título muestra "STAGING" (ver App.tsx)
+//  - abre los 16avos y, con el botón de StagingControls, se puede "jugar" cada
+//    ronda (simular resultados reales) para ir abriendo la siguiente.
 //
 // IMPORTANTE: en staging NO se escribe nada a Supabase (ver lib/sync.ts). Todo es
 // local al navegador, así main (que comparte la misma base) queda intacto.
 // ─────────────────────────────────────────────────────────────────────────────
-import type { MatchResult } from './types'
+import type { MatchResult, StageId } from './types'
+import type { BucketId } from './utils/stage' // sólo tipo → no crea ciclo en runtime
 import { MATCHES } from './data/schedule'
 import { GROUPS, teamsOfGroup } from './data/teams'
 
 // __STAGING__ lo inyecta Vite. Con typeof evitamos un ReferenceError en entornos
 // donde no está definido (p. ej. el runner de tests, que no aplica el define).
 export const STAGING: boolean = typeof __STAGING__ !== 'undefined' ? __STAGING__ === true : false
+
+// Buckets de eliminatoria, en orden, y qué fases agrupa cada uno.
+export const KO_BUCKETS: BucketId[] = ['r32', 'r16', 'qf', 'finals']
+const STAGES_OF_BUCKET: Record<BucketId, StageId[]> = {
+  group: ['group'],
+  r32: ['r32'],
+  r16: ['r16'],
+  qf: ['qf'],
+  finals: ['sf', 'third', 'final'],
+}
+
+function matchesOfBucket(b: BucketId): typeof MATCHES {
+  const stages = STAGES_OF_BUCKET[b]
+  return MATCHES.filter((m) => stages.includes(m.stage))
+}
 
 // Resultados simulados de toda la fase de grupos. Cada grupo queda con un orden
 // limpio 9/6/3/0: el equipo más fuerte (menor índice dentro del grupo) le gana a
@@ -30,13 +46,39 @@ export function simulatedGroupResults(): Record<number, MatchResult> {
   for (const m of MATCHES) {
     if (m.stage !== 'group' || !m.home || !m.away) continue
     const homeWins = (idx.get(m.home) ?? 0) < (idx.get(m.away) ?? 0)
-    out[m.id] = {
-      played: true,
-      finished: true,
-      homeScore: homeWins ? 2 : 0,
-      awayScore: homeWins ? 0 : 2,
-      events: [],
-    }
+    out[m.id] = { played: true, finished: true, homeScore: homeWins ? 2 : 0, awayScore: homeWins ? 0 : 2, events: [] }
   }
   return out
+}
+
+// Primer bucket de eliminatoria que todavía NO está completo (todos sus partidos
+// jugados) en los resultados reales. null = ya se simuló toda la eliminatoria.
+export function openKnockoutBucket(results: Record<number, MatchResult>): BucketId | null {
+  for (const b of KO_BUCKETS) {
+    if (matchesOfBucket(b).some((m) => !results[m.id]?.played)) return b
+  }
+  return null
+}
+
+// Resultados simulados (DECISIVOS, sin empates) para todos los partidos de un
+// bucket de eliminatoria. Variamos el marcador por id para que haya ganadores de
+// local y de visitante (así el cuadro siguiente no es trivial).
+const KO_SCORES: Array<[number, number]> = [[2, 1], [1, 0], [3, 1], [0, 2], [1, 2], [2, 0]]
+export function simulateBucketResults(b: BucketId): Record<number, MatchResult> {
+  const out: Record<number, MatchResult> = {}
+  for (const m of matchesOfBucket(b)) {
+    const [h, a] = KO_SCORES[m.id % KO_SCORES.length]
+    out[m.id] = { played: true, finished: true, homeScore: h, awayScore: a, events: [] }
+  }
+  return out
+}
+
+// Holder del real para que utils/stage (activeBucket) sepa qué ronda abrir en
+// staging, sin importar el store (lo mantiene en sync useActiveContext).
+let stagingReal: Record<number, MatchResult> = {}
+export function setStagingReal(results: Record<number, MatchResult>): void {
+  stagingReal = results
+}
+export function stagingActiveBucket(): BucketId | null {
+  return openKnockoutBucket(stagingReal)
 }

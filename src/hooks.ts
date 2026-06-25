@@ -3,6 +3,7 @@ import { useStore, effectiveResults, REAL_SCENARIO_ID, getScenario } from './sto
 import { resolve, type Resolution } from './engine/resolve'
 import { allGroupsComplete } from './engine/standings'
 import { fetchLiveFixtures, mapFixturesToUpdates } from './engine/liveSync'
+import { STAGING, setStagingReal } from './staging'
 import type { MatchResult, Scenario } from './types'
 
 /** Intervalo de auto-actualización en vivo (ms). 1 min para seguir los partidos
@@ -25,6 +26,8 @@ export function useActiveContext(): ActiveContext {
   const activeId = useStore((s) => s.activeId)
 
   const real = getScenario(scenarios, REAL_SCENARIO_ID) ?? scenarios[0]
+  // Staging: que activeBucket sepa qué ronda abrir según el real simulado.
+  if (STAGING) setStagingReal(real.results)
   const scenario = getScenario(scenarios, activeId) ?? real
   const results = effectiveResults(scenario, real)
 
