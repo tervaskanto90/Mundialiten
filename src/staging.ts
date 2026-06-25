@@ -93,7 +93,7 @@ export function stagingFakePred(userId: string, matchId: number): { home: number
     h ^= s.charCodeAt(i)
     h = Math.imul(h, 16777619) >>> 0
   }
-  return { home: h % 3, away: (h >> 5) % 3 }
+  return { home: h % 3, away: (h >>> 5) % 3 }
 }
 
 // Holder del real para que utils/stage (activeBucket) sepa qué ronda abrir en
