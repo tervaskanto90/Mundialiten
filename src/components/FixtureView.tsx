@@ -2,9 +2,10 @@ import { useState } from 'react'
 import { CalendarView } from './CalendarView'
 import { GroupsView } from './GroupsView'
 import { BracketView } from './BracketView'
+import { SegToggle } from './SegToggle'
 import type { ActiveContext } from '../hooks'
 import { useT } from '../i18n'
-import { useTheme } from '../theme'
+import { useIsDesktop } from '../hooks/useIsDesktop'
 
 type Sub = 'calendario' | 'grupos' | 'llaves'
 
@@ -15,37 +16,24 @@ const TABS: { id: Sub; es: string; en: string; icon: string }[] = [
 ]
 
 /**
- * Sección "Fixture y Tablas": reúne Calendario, Grupos y Llaves en sub-pestañas.
- * Las tres conviven con el escenario activo (resultados / predicción / what-if),
- * que se elige con el toggle de arriba.
+ * Sección "Predicciones, Calendario y Tablas": reúne Calendario, Grupos y Llaves
+ * en sub-pestañas. Las tres conviven con el escenario activo (resultados /
+ * predicción / what-if), que se elige con el toggle de arriba.
  */
 export function FixtureView({ ctx, onEdit }: { ctx: ActiveContext; onEdit: (id: number) => void }) {
   const [sub, setSub] = useState<Sub>('calendario')
   const { lang } = useT()
-  const { c, dark } = useTheme()
-
-  const tabStyle = (active: boolean): React.CSSProperties => ({
-    fontFamily: "'Archivo'",
-    fontSize: '13px',
-    fontWeight: 700,
-    cursor: 'pointer',
-    padding: '9px 16px',
-    borderRadius: '99px',
-    whiteSpace: 'nowrap',
-    transition: 'all .18s ease',
-    color: active ? (dark ? '#0C0904' : '#FBF6EA') : c.text,
-    background: active ? c.text : dark ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.04)',
-    border: '1px solid ' + (active ? c.text : c.line),
-  })
+  const isDesktop = useIsDesktop()
 
   return (
     <div>
-      <div className="flex gap-2 mb-4 flex-wrap">
-        {TABS.map((tb) => (
-          <button key={tb.id} onClick={() => setSub(tb.id)} style={tabStyle(sub === tb.id)}>
-            {tb.icon} {lang === 'en' ? tb.en : tb.es}
-          </button>
-        ))}
+      <div className={(isDesktop ? 'flex justify-center' : '') + ' mb-4'}>
+        <SegToggle
+          block={!isDesktop}
+          options={TABS.map((tb) => ({ key: tb.id, icon: tb.icon, label: lang === 'en' ? tb.en : tb.es }))}
+          value={sub}
+          onChange={(k) => setSub(k as Sub)}
+        />
       </div>
       <div key={sub} style={{ animation: 'mdlUp .22s ease both' }}>
         {sub === 'calendario' && <CalendarView ctx={ctx} onEdit={onEdit} />}

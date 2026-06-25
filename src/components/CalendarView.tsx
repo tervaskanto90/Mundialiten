@@ -4,9 +4,11 @@ import { GROUPS } from '../data/teams'
 import type { StageId } from '../types'
 import { MatchRow } from './MatchRow'
 import { Dropdown } from './Dropdown'
+import { SegToggle } from './SegToggle'
 import { formatDate, matchDateKey } from '../utils/labels'
 import type { ActiveContext } from '../hooks'
 import { useT } from '../i18n'
+import { useIsDesktop } from '../hooks/useIsDesktop'
 import { activeBucket, type BucketId } from '../utils/stage'
 import { useTheme, ACCENT } from '../theme'
 
@@ -48,6 +50,7 @@ export function CalendarView({ ctx, onEdit }: Props) {
   )
   const { t, lang } = useT()
   const { c, dark } = useTheme()
+  const isDesktop = useIsDesktop()
 
   useEffect(() => {
     try {
@@ -122,21 +125,6 @@ export function CalendarView({ ctx, onEdit }: Props) {
     border: '1px solid ' + (active ? accent : c.line),
   })
 
-  // Botón de un control segmentado (Lista / Por grupos).
-  const seg = (active: boolean): React.CSSProperties => ({
-    fontSize: '12px',
-    fontWeight: 700,
-    fontFamily: "'Archivo'",
-    cursor: 'pointer',
-    padding: '6px 12px',
-    borderRadius: '99px',
-    whiteSpace: 'nowrap',
-    border: 'none',
-    transition: 'all .18s ease',
-    color: active ? '#fff' : c.muted,
-    background: active ? ACCENT.blue : 'transparent',
-  })
-
   return (
     <div>
       {ctx.scenario.type === 'prediction' && (
@@ -163,23 +151,21 @@ export function CalendarView({ ctx, onEdit }: Props) {
         </div>
       )}
 
-      {/* Toolbar única: agrupa el modo de lista (Lista/Por grupos), el filtro de
-          etapa y el de pendientes en un solo bloque, para no desparramar botones. */}
+      {/* Toolbar única: Lista/Por grupos (toggle) + Etapa en la misma línea. En
+          mobile se oculta "Pendientes" para no amontonar; en desktop queda. */}
       <div
         className="flex items-center gap-2 mb-3 flex-wrap rounded-2xl px-2 py-2"
         style={{ background: dark ? 'rgba(255,255,255,.03)' : 'rgba(0,0,0,.025)', border: '1px solid ' + c.line }}
       >
-        <div
-          className="inline-flex p-0.5 rounded-full"
-          style={{ background: dark ? 'rgba(0,0,0,.28)' : 'rgba(0,0,0,.05)', border: '1px solid ' + c.line }}
-        >
-          <button onClick={() => setView('calendar')} style={seg(view === 'calendar')}>
-            🗓️ {t('Lista', 'List')}
-          </button>
-          <button onClick={() => setView('groups')} style={seg(view === 'groups')}>
-            🗂️ {t('Por grupos', 'By group')}
-          </button>
-        </div>
+        <SegToggle
+          size="sm"
+          options={[
+            { key: 'calendar', icon: '🗓️', label: t('Lista', 'List') },
+            { key: 'groups', icon: '🗂️', label: t('Por grupos', 'By group') },
+          ]}
+          value={view}
+          onChange={(k) => setView(k as ViewMode)}
+        />
 
         {view === 'calendar' && (
           <Dropdown
@@ -193,13 +179,15 @@ export function CalendarView({ ctx, onEdit }: Props) {
           />
         )}
 
-        <button
-          onClick={() => setOnlyPending((v) => !v)}
-          style={{ ...pill(onlyPending, ACCENT.gold), marginLeft: 'auto' }}
-          title={t('Mostrar sólo partidos sin cargar', 'Show only matches not set yet')}
-        >
-          ⏳ {t('Pendientes', 'Pending')}
-        </button>
+        {isDesktop && (
+          <button
+            onClick={() => setOnlyPending((v) => !v)}
+            style={{ ...pill(onlyPending, ACCENT.gold), marginLeft: 'auto' }}
+            title={t('Mostrar sólo partidos sin cargar', 'Show only matches not set yet')}
+          >
+            ⏳ {t('Pendientes', 'Pending')}
+          </button>
+        )}
       </div>
 
       <div className="text-xs mb-2" style={{ color: c.faint, fontWeight: 600 }}>

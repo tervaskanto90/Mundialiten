@@ -203,8 +203,8 @@ export default function App() {
     ? { flex: '1 1 0', minWidth: 0, marginTop: '16px', overflowY: 'auto', paddingRight: '8px', paddingBottom: '32px', animation: 'mdlUp .34s ease both' }
     : { flex: 'none', minWidth: 0, marginTop: '12px', animation: 'mdlUp .34s ease both' }
   // En mobile, encabezado fijo (sticky) MÍNIMO: hamburguesa + logo + MUNDIALITEN,
-  // y debajo el/los partidos en vivo. Todo lo demás (cuenta, escenario, idioma,
-  // tema, cómo jugar) vive en el menú hamburguesa.
+  // y a la derecha (chiquito) el partido EN VIVO / último. Todo lo demás (cuenta,
+  // escenario, idioma, tema, cómo jugar) vive en el menú hamburguesa.
   const mobileHeaderStyle: React.CSSProperties = {
     position: 'sticky',
     top: 0,
@@ -388,8 +388,8 @@ export default function App() {
             </div>
           </header>
         ) : (
-          // MOBILE: encabezado fijo MÍNIMO — sólo hamburguesa + logo + MUNDIALITEN.
-          // Todo lo demás vive en el menú. El "en vivo" no se repite acá.
+          // MOBILE: encabezado fijo MÍNIMO — hamburguesa + logo + MUNDIALITEN, y
+          // a la derecha, chiquito, el partido EN VIVO / último (uno bajo el otro).
           <header style={mobileHeaderStyle}>
             <div style={{ display: 'flex', alignItems: 'center', gap: px(11) }}>
               {hamburgerBtn}
@@ -402,6 +402,7 @@ export default function App() {
                   {t('Mundial 2026', 'World Cup 2026')} · 🇺🇸 🇨🇦 🇲🇽
                 </div>
               </div>
+              <HeaderScore ctx={ctx} mini onSelect={setEditingMatch} />
             </div>
           </header>
         )}
@@ -502,7 +503,7 @@ export default function App() {
                       : { paddingBottom: '10px', marginBottom: '2px' }
                   }
                 >
-                  <ScenarioToggle />
+                  <ScenarioToggle block={!isDesktop} />
                 </div>
               )}
               {view === 'home' && <HomeView ctx={ctx} onJump={setView} onEditMatch={setEditingMatch} />}
