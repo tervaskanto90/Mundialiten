@@ -348,18 +348,23 @@ export function RankingView() {
                     const isKO = MATCH_BY_ID[mid]?.stage !== 'group'
                     const advSide = isKO && p ? advancingSide({ homeScore: p.home, awayScore: p.away, homePens: p.homePens, awayPens: p.awayPens }) : null
                     const advTeam = advSide === 'home' ? tm?.home : advSide === 'away' ? tm?.away : undefined
-                    const realAdv = rr.finished ? advancingSide({ homeScore: rr.homeScore, awayScore: rr.awayScore, homePens: rr.homePens, awayPens: rr.awayPens }) : null
-                    const advRight = realAdv != null && advSide != null && advSide === realAdv
-                    const advCol = live ? '#9b8d6e' : advRight ? ACCENT.green : realAdv != null ? ACCENT.red : '#9b8d6e'
+                    // "Quién pasa" según el resultado real (dinámico: durante el
+                    // partido refleja el estado actual, provisorio).
+                    const realAdv = advancingSide({ homeScore: rr.homeScore, awayScore: rr.awayScore, homePens: rr.homePens, awayPens: rr.awayPens })
+                    const advRight = advSide != null && advSide === realAdv
+                    const advWrong = advSide != null && realAdv != null && !advRight
+                    const advBonus = advRight ? STAGE_POINTS[MATCH_BY_ID[mid].stage].advance : 0
+                    const advCol = advRight ? ACCENT.green : advWrong ? ACCENT.red : '#9b8d6e'
                     return p ? (
                       <span key={mid} className="inline-flex items-center gap-1 shrink-0">
                         {advTeam && (
                           <span
                             className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold shrink-0"
                             style={{ background: advCol + '1A', border: '1px solid ' + advCol + '66', color: c.text, opacity: live ? 0.72 : 1 }}
-                            title={t('Eligió que pase de ronda', 'Picked to advance')}
+                            title={t('Eligió que pase de ronda (bonus por acertar)', 'Picked to advance (bonus if correct)')}
                           >
                             🎟️ {TEAM_BY_ID[advTeam]?.flag} {advTeam}
+                            {advBonus > 0 && <span style={{ color: advCol }}>+{advBonus}</span>}
                           </span>
                         )}
                         <PredScore compact={isDesktop} ph={p.home} pa={p.away} rh={rr.homeScore} ra={rr.awayScore} homeFlag={hf} awayFlag={af} points={marcadorPoints(mid, p.home, p.away, rr.homeScore, rr.awayScore)} dim={live} />
