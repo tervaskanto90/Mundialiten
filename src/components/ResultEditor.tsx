@@ -133,9 +133,11 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
         </div>
       )}
 
-      {/* Empate en eliminatoria → quién pasa (penales). En las predicciones NO se
-          carga el marcador de la tanda (es azar): se elige quién avanza, y ese
-          acierto suma el bonus "quién pasa". En el real sí mostramos el tanteo. */}
+      {/* Empate tras el alargue en eliminatoria → hay que elegir quién avanza (en
+          la práctica, por penales; el alargue ya está reflejado en el marcador).
+          En las predicciones NO se carga el marcador de la tanda (es azar): se
+          elige quién avanza y ese acierto suma el bonus "quién pasa". En el real
+          sí mostramos el tanteo de penales. */}
       {isKnockout && base.played && base.homeScore === base.awayScore && (() => {
         const isFinalish = match.stage === 'final' || match.stage === 'third'
         const hp = base.homePens ?? 0
@@ -146,7 +148,7 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
         return (
           <div className="rounded-xl p-3 mb-4" style={{ background: c.surface, border: '1px solid ' + c.line }}>
             <div className="text-xs mb-2 flex items-center gap-1.5" style={{ color: c.muted }}>
-              🥅 {isFinalish ? t('¿Quién gana por penales?', 'Who wins on penalties?') : t('¿Quién pasa por penales?', 'Who advances on penalties?')}
+              🥅 {isFinalish ? t('¿Quién gana? (si empatan tras el alargue)', 'Who wins? (if tied after extra time)') : t('¿Quién pasa? (si empatan tras el alargue)', 'Who advances? (if tied after extra time)')}
             </div>
             {editingDisabled ? (
               <div className="text-center text-sm font-bold" style={{ color: c.text }}>
