@@ -185,12 +185,13 @@ export function CalendarView({ ctx, onEdit }: Props) {
           style={{
             ...pill(onlyPending, ACCENT.gold),
             marginLeft: 'auto',
-            // En mobile, un poco más chico para que entre alineado con los otros.
-            ...(isDesktop ? {} : { padding: '6px 10px', fontSize: '11px' }),
+            // En mobile va SOLO el emoji (entra en la misma línea, alineado).
+            ...(isDesktop ? {} : { padding: '7px 10px', fontSize: '14px', lineHeight: 1 }),
           }}
           title={t('Mostrar sólo partidos sin cargar', 'Show only matches not set yet')}
+          aria-label={t('Pendientes', 'Pending')}
         >
-          ⏳ {t('Pendientes', 'Pending')}
+          ⏳{isDesktop ? ' ' + t('Pendientes', 'Pending') : ''}
         </button>
       </div>
 
