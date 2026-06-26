@@ -151,17 +151,18 @@ export function CalendarView({ ctx, onEdit }: Props) {
         </div>
       )}
 
-      {/* Toolbar única: Lista/Por grupos (toggle) + Etapa en la misma línea. En
-          mobile se oculta "Pendientes" para no amontonar; en desktop queda. */}
+      {/* Toolbar única: Lista/Por grupos (toggle) + Etapa + Pendientes en la misma
+          línea. En mobile se achican un poco para que entren los tres alineados. */}
       <div
-        className="flex items-center gap-2 mb-3 flex-wrap rounded-2xl px-2 py-2"
+        className={(isDesktop ? 'gap-2' : 'gap-1.5') + ' flex items-center mb-3 flex-wrap rounded-2xl px-2 py-2'}
         style={{ background: dark ? 'rgba(255,255,255,.03)' : 'rgba(0,0,0,.025)', border: '1px solid ' + c.line }}
       >
         <SegToggle
           size="sm"
           options={[
             { key: 'calendar', icon: '🗓️', label: t('Lista', 'List') },
-            { key: 'groups', icon: '🗂️', label: t('Por grupos', 'By group') },
+            // En mobile "Grupos" (más corto) para que entre toda la fila.
+            { key: 'groups', icon: '🗂️', label: isDesktop ? t('Por grupos', 'By group') : t('Grupos', 'Groups') },
           ]}
           value={view}
           onChange={(k) => setView(k as ViewMode)}
@@ -179,15 +180,18 @@ export function CalendarView({ ctx, onEdit }: Props) {
           />
         )}
 
-        {isDesktop && (
-          <button
-            onClick={() => setOnlyPending((v) => !v)}
-            style={{ ...pill(onlyPending, ACCENT.gold), marginLeft: 'auto' }}
-            title={t('Mostrar sólo partidos sin cargar', 'Show only matches not set yet')}
-          >
-            ⏳ {t('Pendientes', 'Pending')}
-          </button>
-        )}
+        <button
+          onClick={() => setOnlyPending((v) => !v)}
+          style={{
+            ...pill(onlyPending, ACCENT.gold),
+            marginLeft: 'auto',
+            // En mobile, un poco más chico para que entre alineado con los otros.
+            ...(isDesktop ? {} : { padding: '6px 10px', fontSize: '11px' }),
+          }}
+          title={t('Mostrar sólo partidos sin cargar', 'Show only matches not set yet')}
+        >
+          ⏳ {t('Pendientes', 'Pending')}
+        </button>
       </div>
 
       <div className="text-xs mb-2" style={{ color: c.faint, fontWeight: 600 }}>
