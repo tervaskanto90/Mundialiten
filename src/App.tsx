@@ -516,7 +516,7 @@ export default function App() {
                 {ctx.resolution.bestThirds
                   ? t('fase de grupos completa', 'group stage complete')
                   : t('fase de grupos en curso', 'group stage in progress')}{' '}
-                · v6
+                · v{__APP_VERSION__} · build {__BUILD_SHA__}
               </div>
             </main>
           )
