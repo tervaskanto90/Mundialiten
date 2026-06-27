@@ -24,33 +24,34 @@ export const config = { maxDuration: 60 }
 
 const ADMIN_EMAIL = 'boggianooctavio@gmail.com'
 const ANNOUNCE_BUCKET = 'announce'
-const ANNOUNCE_KIND = 'v2-2026'
+// Subir este valor = envío NUEVO a todos (no lo bloquea lo ya enviado antes).
+const ANNOUNCE_KIND = 'ko-16avos-2026'
 
 function buildAnnounceEmail(name: string, appUrl: string): { subject: string; html: string; text: string } {
   const hi = name ? `¡Hola, ${name}!` : '¡Hola!'
-  const subject = '🏆 Mundialiten se renovó — entrá a la nueva versión'
+  const subject = '🥅 ¡Empiezan los 16avos en Mundialiten! — cómo predecir'
   const link = appUrl || ''
   const button = link
-    ? `<p style="margin:24px 0"><a href="${link}" style="background:#16a34a;color:#fff;text-decoration:none;padding:12px 22px;border-radius:10px;font-weight:600;display:inline-block">Entrar a Mundialiten · Open the app</a></p>`
+    ? `<p style="margin:24px 0"><a href="${link}" style="background:#16a34a;color:#fff;text-decoration:none;padding:12px 22px;border-radius:10px;font-weight:600;display:inline-block">Predecir los 16avos · Open the app</a></p>`
     : ''
   const html = `<div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:520px;margin:0 auto;color:#0f172a">
-  <h2 style="margin:0 0 6px">🏆 Mundialiten se renovó</h2>
+  <h2 style="margin:0 0 6px">🥅 ¡Arrancan las eliminatorias!</h2>
   <p style="margin:0 0 16px;color:#475569">${hi}</p>
-  <p style="margin:0 0 12px">Renovamos Mundialiten por completo para la fase final del Mundial 2026. Esto es lo nuevo:</p>
-  <ul style="margin:0 0 12px;padding-left:18px;color:#334155;line-height:1.6">
-    <li>🏠 Nueva pantalla de <strong>Inicio</strong>: noticias, pronósticos de las casas y tu ranking de un vistazo.</li>
-    <li>🗓️ <strong>Fixture, tablas y llaves</strong> en un solo lugar, con clasificados y eliminados marcados.</li>
-    <li>📊 <strong>Estadísticas</strong> tuyas y comparadas con el resto.</li>
-    <li>🥅 <strong>Eliminatorias</strong>: ahora también sumás puntos por acertar <strong>quién pasa</strong> de fase.</li>
-    <li>🏆 <strong>Ranking</strong> renovado con fotos de perfil.</li>
+  <p style="margin:0 0 12px">Terminó la fase de grupos: ya podés <strong>predecir los 16avos</strong>. Va lo que necesitás para arrancar:</p>
+  <ul style="margin:0 0 12px;padding-left:18px;color:#334155;line-height:1.65">
+    <li>🗓️ <strong>Cómo predecir</strong>: en Calendario cada cruce ya viene con los equipos que <strong>realmente clasificaron</strong>. Tocá el partido y cargá el marcador (el de <strong>después del alargue</strong>) con + / −.</li>
+    <li>⏱️ Cada partido <strong>cierra 5 minutos antes</strong> de empezar.</li>
+    <li>🥊 <strong>Si predecís empate</strong>, elegís quién avanza (gana en el tiempo extra o en los penales). El marcador de la tanda no se predice: sólo <strong>quién pasa</strong>.</li>
+    <li>🎯 <strong>Puntos</strong>: por el marcador (exacto o sólo el resultado) <strong>y, aparte</strong>, un bonus por acertar quién pasa. Valen más a medida que avanza:<br>16avos 4/2 +2 · 8vos 5/2 +2 · 4tos 6/3 +3 · semis 8/4 +4 · final 10/5 +5.</li>
+    <li>🎟️ <strong>Errar un cruce no te anula</strong>: la próxima ronda se arma igual con los ganadores reales. Desempate del ranking: 1º exactos · 2º resultados · 3º pases de ronda.</li>
   </ul>
   ${button}
-  <p style="margin:12px 0 0;color:#475569;font-size:14px">Por la actualización vas a tener que <strong>volver a iniciar sesión</strong>. La primera vez te aparece un tutorial corto con las novedades (lo podés omitir).</p>
+  <p style="margin:12px 0 0;color:#475569;font-size:14px">El detalle completo está en <strong>«¿Cómo jugar?»</strong> dentro de la app, y la primera vez te aparece un tutorial corto. ¡Suerte! 🍀</p>
   <hr style="border:none;border-top:1px solid #e2e8f0;margin:20px 0">
-  <p style="margin:0;color:#64748b;font-size:13px">A fully redesigned Mundialiten is live for the World Cup 2026 knockouts. You'll need to log in again; a short tutorial greets you the first time.</p>
+  <p style="margin:0;color:#64748b;font-size:13px">The knockouts are open: predict the Round of 32. Set the score (after extra time); if you predict a draw, pick who advances. You score from the score plus a bonus for calling who goes through (R32 4/2 +2 … final 10/5 +5). Missing a tie never knocks you out. Full guide in “How to play”.</p>
   <p style="margin:14px 0 0;color:#94a3b8;font-size:12px">Recibís este aviso porque tenés una cuenta en Mundialiten.</p>
 </div>`
-  const text = `${hi}\n\nRenovamos Mundialiten por completo para la fase final del Mundial 2026.\n- Nueva pantalla de Inicio (noticias, pronósticos, ranking)\n- Fixture, tablas y llaves juntos\n- Estadísticas y comparativas\n- Eliminatorias: puntos por acertar quién pasa de fase\n- Ranking renovado con fotos\n${link ? `\n${link}\n` : ''}\nVas a tener que volver a iniciar sesión; la primera vez te aparece un tutorial corto.`
+  const text = `${hi}\n\n¡Empiezan los 16avos en Mundialiten! Ya podés predecir la fase eliminatoria.\n- Cada cruce viene con los equipos que realmente clasificaron. Cargá el marcador (después del alargue).\n- Cada partido cierra 5 minutos antes.\n- Si predecís empate, elegís quién pasa (alargue o penales). No se predice el marcador de la tanda.\n- Puntos: marcador (exacto o resultado) + bonus por acertar quién pasa. 16avos 4/2 +2 · 8vos 5/2 +2 · 4tos 6/3 +3 · semis 8/4 +4 · final 10/5 +5.\n- Errar un cruce no te anula; la próxima ronda usa los ganadores reales. Desempate: exactos > resultados > pases de ronda.\n${link ? `\n${link}\n` : ''}\nMás detalle en «¿Cómo jugar?». ¡Suerte!`
   return { subject, html, text }
 }
 
@@ -71,6 +72,7 @@ export default async function handler(req: any, res: any) {
   const queryKey = String(req.query?.secret || '')
   let authorized = !!secret && (bearer === secret || queryKey === secret)
   let seenEmail: string | null = null
+  let seenUserId: string | null = null
   let getUserErr: string | null = null
   if (!authorized && bearer) {
     // Validamos el token directamente contra GoTrue (/auth/v1/user). Más robusto
@@ -83,6 +85,7 @@ export default async function handler(req: any, res: any) {
       if (r.ok) {
         const u: any = await r.json()
         seenEmail = u?.email ?? null
+        seenUserId = u?.id ?? null
         if ((seenEmail || '').toLowerCase() === ADMIN_EMAIL) authorized = true
       } else {
         getUserErr = `${r.status} ${(await r.text()).slice(0, 120)}`
@@ -99,6 +102,9 @@ export default async function handler(req: any, res: any) {
     return
   }
   const dryRun = String(req.query?.dryRun || '') === '1'
+  // test=1: envía SOLO al admin (para previsualizar el mail real) y NO marca a
+  // nadie como avisado, así el envío masivo posterior sigue yendo a todos.
+  const isTest = String(req.query?.test || '') === '1'
 
   try {
     // Todos los usuarios (paginado) → id + email.
@@ -126,11 +132,14 @@ export default async function handler(req: any, res: any) {
         .filter((r: any) => r.bucket === ANNOUNCE_BUCKET && r.kind === ANNOUNCE_KIND)
         .map((r: any) => r.user_id),
     )
-    const targets = users
-      .filter((u) => !!u.email && !already.has(u.id))
-      .map((u) => ({ id: u.id, email: u.email as string, name: nameBy.get(u.id) || '' }))
+    const targets =
+      isTest && seenEmail
+        ? [{ id: seenUserId || 'admin', email: seenEmail, name: nameBy.get(seenUserId || '') || '' }]
+        : users
+            .filter((u) => !!u.email && !already.has(u.id))
+            .map((u) => ({ id: u.id, email: u.email as string, name: nameBy.get(u.id) || '' }))
 
-    if (dryRun) {
+    if (dryRun && !isTest) {
       res.status(200).json({
         ok: true,
         dryRun: true,
@@ -168,15 +177,18 @@ export default async function handler(req: any, res: any) {
       })
       if (r.ok) {
         sent++
-        await supa
-          .from('reminders')
-          .upsert({ user_id: t.id, bucket: ANNOUNCE_BUCKET, kind: ANNOUNCE_KIND }, { onConflict: 'user_id,bucket,kind' })
+        // En modo test NO marcamos como avisado (para no excluir a nadie del envío real).
+        if (!isTest) {
+          await supa
+            .from('reminders')
+            .upsert({ user_id: t.id, bucket: ANNOUNCE_BUCKET, kind: ANNOUNCE_KIND }, { onConflict: 'user_id,bucket,kind' })
+        }
       } else {
         errors.push(`${t.email}: ${r.status} ${await r.text()}`)
       }
     }
 
-    res.status(200).json({ ok: true, intentados: targets.length, enviados: sent, errores: errors })
+    res.status(200).json({ ok: true, test: isTest, intentados: targets.length, enviados: sent, errores: errors })
   } catch (e: any) {
     res.status(500).json({ error: String(e?.message || e) })
   }

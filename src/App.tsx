@@ -30,7 +30,7 @@ type View = 'home' | 'fixture' | 'precision' | 'ranking'
 
 // Tutorial de bienvenida: sale SOLO la primera vez en esta versión. Subir el
 // número re-dispara el tour para todos (lo usamos al pasar a producción).
-const TUTORIAL_VERSION = 'v2-2026'
+const TUTORIAL_VERSION = 'v3-16avos'
 const TUTORIAL_KEY = `mundi-tutorial-${TUTORIAL_VERSION}`
 const tutorialSeen = (): boolean => {
   try {

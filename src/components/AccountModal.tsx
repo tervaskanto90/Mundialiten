@@ -53,8 +53,28 @@ export function AccountModal({ onClose }: { onClose: () => void }) {
     }
   }
 
-  // Admin: dispara el mail de anuncio de nueva versión a todos (usa la sesión
-  // del admin como autorización; primero previsualiza y pide confirmación).
+  // Admin: envía una PRUEBA del aviso sólo a su propio correo (no marca a nadie).
+  const sendTest = async () => {
+    if (!supabase) return
+    setErr('')
+    setMsg('')
+    setAnnounceBusy(true)
+    try {
+      const { data } = await supabase.auth.getSession()
+      const token = data.session?.access_token
+      if (!token) throw new Error(t('Sesión no válida', 'Invalid session'))
+      const r = await fetch('/api/announce?test=1', { headers: { Authorization: `Bearer ${token}` } }).then((res) => res.json())
+      if (!r?.ok) throw new Error(r?.error || t('No se pudo enviar la prueba', 'Could not send the test'))
+      setMsg(t('Prueba enviada a tu correo ✅', 'Test sent to your email ✅'))
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : t('No se pudo enviar la prueba', 'Could not send the test'))
+    } finally {
+      setAnnounceBusy(false)
+    }
+  }
+
+  // Admin: dispara el mail de aviso a todos (usa la sesión del admin como
+  // autorización; primero previsualiza y pide confirmación).
   const sendAnnounce = async () => {
     if (!supabase) return
     setErr('')
@@ -187,15 +207,23 @@ export function AccountModal({ onClose }: { onClose: () => void }) {
               <div className="pt-3 mt-1" style={{ borderTop: '1px solid ' + c.line }}>
                 <div className="text-xs font-semibold pb-2" style={{ color: c.text }}>🛠️ {t('Admin', 'Admin')}</div>
                 <button
+                  onClick={sendTest}
+                  disabled={announceBusy}
+                  className="w-full py-2.5 rounded-lg text-sm font-bold disabled:opacity-50 mb-2"
+                  style={{ background: 'transparent', color: c.text, border: '1px solid ' + c.line }}
+                >
+                  {announceBusy ? '…' : t('✉️ Enviar prueba a mi correo', '✉️ Send a test to my email')}
+                </button>
+                <button
                   onClick={sendAnnounce}
                   disabled={announceBusy}
                   className="w-full py-2.5 rounded-lg text-sm font-bold disabled:opacity-50"
                   style={{ background: ACCENT.gold, color: '#1c160c' }}
                 >
-                  {announceBusy ? '…' : t('📣 Enviar anuncio de nueva versión', '📣 Send new-version announcement')}
+                  {announceBusy ? '…' : t('📣 Enviar aviso de 16avos a todos', '📣 Send R32 announcement to all')}
                 </button>
                 <p className="text-[10px] mt-1.5" style={{ color: c.muted }}>
-                  {t('Manda el mail a todos los usuarios (no duplica a quien ya recibió).', 'Emails all users (won’t duplicate to those already notified).')}
+                  {t('Probá primero con el de prueba. El de abajo manda a todos (no duplica a quien ya recibió).', 'Try the test first. The one below emails everyone (won’t duplicate to those already notified).')}
                 </p>
               </div>
             )}

@@ -18,34 +18,34 @@ interface Step {
 
 const STEPS: Step[] = [
   {
-    emoji: '🏠',
-    accent: '#2F6DF0',
-    es: { title: 'Tu nuevo Inicio', body: 'Un tablero con todo de un vistazo: noticias del Mundial, el pronóstico de las casas de apuestas, el ranking y tus estadísticas.' },
-    en: { title: 'Your new Home', body: 'A dashboard with everything at a glance: World Cup news, bookmaker odds, the ranking and your stats.' },
-  },
-  {
-    emoji: '🗓️',
-    accent: '#7B3FF2',
-    es: { title: 'Fixture y Tablas', body: 'Calendario, tablas y llaves en un solo lugar. Con el toggle de arriba cambiás entre Resultados reales, tu Predicción y What-if. Los clasificados se marcan en verde y los eliminados en rojo.' },
-    en: { title: 'Fixtures & Tables', body: 'Calendar, tables and bracket in one place. The top toggle switches between real Results, your Prediction and What-if. Qualified teams turn green, eliminated ones red.' },
-  },
-  {
     emoji: '🥅',
     accent: '#1FA85C',
-    es: { title: 'Se juega por etapas', body: 'Predecís una etapa por vez, siguiendo al Mundial, y el ranking acumula puntos toda la copa. Nuevo: en eliminatorias, además del marcador, sumás puntos por acertar quién pasa de fase.' },
-    en: { title: 'Play stage by stage', body: 'You predict one stage at a time, following the tournament, and the ranking adds up points all the way. New: in the knockouts, on top of the score you earn points for calling who advances.' },
+    es: { title: '¡Empiezan las eliminatorias!', body: 'Terminó la fase de grupos. Ahora es mata-mata: 16avos → 8vos → cuartos → semis → final. Se abre una etapa por vez, siguiendo al Mundial real. Ya podés predecir los 16avos.' },
+    en: { title: 'The knockouts are here!', body: "The group stage is over. Now it's win-or-go-home: Round of 32 → R16 → quarters → semis → final. One stage opens at a time, following the real World Cup. You can predict the Round of 32 now." },
   },
   {
-    emoji: '📊',
+    emoji: '🔮',
+    accent: '#7B3FF2',
+    es: { title: 'Cómo predecir un cruce', body: 'En Calendario, cada partido ya viene con los equipos que REALMENTE clasificaron. Tocá el partido y cargá el marcador (el de después del alargue) con + / −. Cada partido cierra 5 minutos antes de empezar.' },
+    en: { title: 'How to predict a tie', body: 'In Calendar, each match already shows the teams that ACTUALLY qualified. Tap a match and set the score (the one after extra time) with + / −. Each match closes 5 minutes before kick-off.' },
+  },
+  {
+    emoji: '🥊',
+    accent: '#2F6DF0',
+    es: { title: 'Si empatan, ¿quién pasa?', body: 'Si predecís un empate, elegís quién avanza (gana en el tiempo extra o en los penales). El marcador de la tanda no se predice: sólo quién pasa de fase.' },
+    en: { title: 'If it ends level, who goes through?', body: "If you predict a draw, you pick who advances (wins in extra time or on penalties). You don't predict the shoot-out score — only who goes through." },
+  },
+  {
+    emoji: '🎯',
     accent: '#E59A12',
-    es: { title: 'Estadísticas', body: 'Mirá tu rendimiento con gráficos, compará tus puntos contra el resto y descubrí qué predijo cada uno en los partidos ya jugados.' },
-    en: { title: 'Stats', body: 'See your performance in charts, compare your points against everyone and discover what each person predicted in the matches already played.' },
+    es: { title: 'Cómo sumás puntos', body: 'Por el marcador (exacto o sólo el resultado) Y, aparte, un bonus por acertar quién pasa. Valen más a medida que avanza: 16avos 4/2 +2 · 8vos 5/2 +2 · 4tos 6/3 +3 · semis 8/4 +4 · final 10/5 +5.' },
+    en: { title: 'How you score', body: 'From the score (exact or just the result) AND, separately, a bonus for calling who advances. Worth more as it goes: R32 4/2 +2 · R16 5/2 +2 · QF 6/3 +3 · SF 8/4 +4 · final 10/5 +5.' },
   },
   {
-    emoji: '🏆',
+    emoji: '🎟️',
     accent: '#EC1C7D',
-    es: { title: 'Ranking y menú', body: 'Ranking renovado, con fotos de perfil y desempates claros. En el celular, deslizá el dedo hacia la derecha para abrir el menú. ¡Listo, a jugar!' },
-    en: { title: 'Ranking & menu', body: 'A revamped ranking with profile photos and clear tie-breakers. On your phone, swipe right to open the menu. That’s it — enjoy!' },
+    es: { title: 'Errar no te anula', body: 'Aunque falles un cruce, la próxima ronda se arma igual con los ganadores reales: nunca quedás afuera de seguir jugando. Desempate del ranking: 1º exactos, 2º resultados, 3º pases de ronda. El detalle completo está en «¿Cómo jugar?». ¡A predecir!' },
+    en: { title: "Missing a tie doesn't sink you", body: "Even if you miss a tie, the next round is still built with the real winners — you're never out. Ranking tie-break: 1st exact scores, 2nd correct results, 3rd correct advances. Full detail in “How to play”. Go predict!" },
   },
 ]
 
@@ -81,7 +81,7 @@ export function Tutorial({ onClose }: { onClose: () => void }) {
         <div style={{ height: 5, background: `linear-gradient(90deg, ${step.accent}, ${step.accent}88)` }} />
         <div className="flex items-center justify-between px-4 pt-3">
           <span className="text-[11px] font-bold uppercase tracking-wide" style={{ color: c.muted }}>
-            {t('Novedades', "What's new")} · {i + 1}/{STEPS.length}
+            {t('Eliminatorias', 'Knockouts')} · {i + 1}/{STEPS.length}
           </span>
           <button onClick={onClose} className="text-xs font-semibold px-2 py-1 rounded-lg" style={{ color: c.muted }}>
             {t('Omitir', 'Skip')} ✕
