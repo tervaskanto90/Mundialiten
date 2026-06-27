@@ -25,8 +25,8 @@ const STEPS: Step[] = [
     key: 'stages',
     emoji: '🥅',
     accent: ACCENT.green,
-    es: { title: '¡Empiezan las eliminatorias!', body: 'Terminó la fase de grupos. Ahora es mata-mata y se abre una etapa por vez, siguiendo al Mundial. Ya podés predecir los 16avos.' },
-    en: { title: 'The knockouts are here!', body: "Group stage is over. Now it's win-or-go-home, one stage opening at a time. You can predict the Round of 32 now." },
+    es: { title: '¡Empiezan las eliminatorias!', body: 'Se predice UNA fase por vez, siguiendo al Mundial: cada etapa se abre cuando llega. Cada fase arranca de cero —cruces nuevos con los equipos reales— pero tus PUNTOS se acumulan toda la copa, no se reinician. Ya podés predecir los 16avos.' },
+    en: { title: 'The knockouts are here!', body: "You predict ONE stage at a time, following the cup: each stage opens when it arrives. Every stage starts fresh —new ties with the real teams— but your POINTS carry over the whole tournament, they don't reset. You can predict the Round of 32 now." },
   },
   {
     key: 'predict',
@@ -99,19 +99,24 @@ function StepVisual({ k, accent }: { k: StepKey; accent: string }) {
   if (k === 'stages') {
     const labels = ['16avos', '8vos', '4tos', t('Semis', 'Semis'), 'Final']
     return (
-      <div className="flex items-center justify-center gap-1 flex-wrap px-2">
-        {labels.map((l, i) => (
-          <span key={l} className="inline-flex items-center gap-1">
-            <span
-              className="rounded-full px-2 py-1 text-[11px] font-bold"
-              style={{ background: accent + '1A', border: '1px solid ' + accent + '55', color: c.text, animation: `mdlPop .42s ${i * 0.13}s both` }}
-            >
-              {l}
+      <div className="flex flex-col items-center gap-2">
+        <div className="flex items-center justify-center gap-1 flex-wrap px-2">
+          {labels.map((l, i) => (
+            <span key={l} className="inline-flex items-center gap-1">
+              <span
+                className="rounded-full px-2 py-1 text-[11px] font-bold"
+                style={{ background: accent + '1A', border: '1px solid ' + accent + '55', color: c.text, animation: `mdlPop .42s ${i * 0.13}s both` }}
+              >
+                {l}
+              </span>
+              {i < labels.length - 1 && <span style={{ color: c.faint, animation: `mdlFadeIn .4s ${i * 0.13 + 0.1}s both` }}>›</span>}
             </span>
-            {i < labels.length - 1 && <span style={{ color: c.faint, animation: `mdlFadeIn .4s ${i * 0.13 + 0.1}s both` }}>›</span>}
-          </span>
-        ))}
-        <span style={{ fontSize: 22, animation: 'mdlPop .55s .7s both' }}>🏆</span>
+          ))}
+          <span style={{ fontSize: 22, animation: 'mdlPop .55s .7s both' }}>🏆</span>
+        </div>
+        <span className="text-[11px] text-center" style={{ color: c.muted, animation: 'mdlFadeIn .5s .85s both' }}>
+          🔒 {t('una fase por vez', 'one stage at a time')} · 🏆 {t('los puntos se acumulan', 'points carry over')}
+        </span>
       </div>
     )
   }
