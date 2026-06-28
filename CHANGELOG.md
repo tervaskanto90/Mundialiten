@@ -8,6 +8,14 @@ Versionado **SemVer**: `MAYOR.MENOR.PATCH`.
 La versión vive en `package.json` (única fuente). El footer muestra
 `vX.Y.Z · build <hash de commit>` — el hash identifica el deploy.
 
+## 6.1.1 — (producción)
+- 🗝️ **Cruces de 16avos corregidos**: los mejores terceros ahora se ubican en
+  cada cruce siguiendo la **tabla oficial de la FIFA** («Annex C», 495
+  combinaciones), no "cualquier" asignación válida por grupos. Antes el cuadro
+  podía intercambiar terceros entre cruces respecto del oficial (p. ej. los
+  terceros de los grupos D y F cruzados entre P74 y P77). Verificado contra dos
+  fuentes independientes + test de regresión.
+
 ## 6.1.0 — (en staging, próximo a producción)
 - 🥅 **Tutorial de eliminatorias** rediseñado y detallado, con ejemplos visuales
   animados (cómo predecir, quién pasa, los escenarios de puntos, el bonus, y que

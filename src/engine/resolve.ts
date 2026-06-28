@@ -1,6 +1,7 @@
 import type { MatchResult } from '../types'
 import { GROUPS } from '../data/teams'
 import { MATCHES } from '../data/schedule'
+import { THIRD_PLACE_ALLOCATION, THIRD_PLACEHOLDER_ORDER } from '../data/thirdPlaceAllocation'
 import {
   computeAllStandings,
   allGroupsComplete,
@@ -73,10 +74,33 @@ const THIRD_SLOTS: { ref: string; allowed: Set<string> }[] = (() => {
 })()
 
 /**
- * Asigna los 8 mejores terceros a los 8 slots del cuadro respetando los grupos
- * válidos de cada slot (backtracking, slots más restringidos primero).
+ * Asigna los 8 mejores terceros a los 8 cruces de 16avos siguiendo la TABLA
+ * OFICIAL de la FIFA («Annex C», Mundial 2026): para cada combinación de los 8
+ * grupos cuyos terceros clasifican, la FIFA fija de antemano qué grupo va a cada
+ * cruce. (Antes se elegía "cualquier" asignación válida por sets con backtracking,
+ * lo que podía intercambiar terceros entre cruces respecto del cuadro oficial.)
+ * Si la combinación no estuviera en la tabla, cae al backtracking por sets.
  */
 function assignThirds(thirds: { teamId: string; group: string }[]): Record<string, string> {
+  const key = thirds
+    .map((t) => t.group)
+    .sort()
+    .join('')
+  const row = THIRD_PLACE_ALLOCATION[key]
+  if (!row) return assignThirdsBacktrack(thirds)
+  const teamByGroup: Record<string, string> = {}
+  for (const t of thirds) teamByGroup[t.group] = t.teamId
+  const result: Record<string, string> = {}
+  THIRD_PLACEHOLDER_ORDER.forEach((placeholder, i) => {
+    const teamId = teamByGroup[row[i]]
+    if (teamId) result[placeholder] = teamId
+  })
+  return result
+}
+
+/** Reserva: asignación válida por sets de grupo (backtracking), por si faltara
+ *  alguna combinación en la tabla oficial. */
+function assignThirdsBacktrack(thirds: { teamId: string; group: string }[]): Record<string, string> {
   const slots = [...THIRD_SLOTS].sort((a, b) => a.allowed.size - b.allowed.size)
   const used = new Array(thirds.length).fill(false)
   const result: Record<string, string> = {}
