@@ -1,0 +1,44 @@
+name: Deploy v6.1.0 (staging → main) · 28-jun 02:00 ART
+
+# Programado para las 02:00 de Argentina (UTC-3) del 28 de junio = 05:00 UTC.
+# Usamos 05:04 UTC para no caer en el minuto :00 (la cola de GitHub puede
+# atrasarse unos minutos; para un deploy nocturno no importa).
+# Mergea staging → main; Vercel deploya producción solo al recibir el push.
+on:
+  schedule:
+    - cron: '4 5 28 6 *'
+  workflow_dispatch: {} # disparo manual de respaldo (Actions → Run workflow)
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Merge staging → main
+        run: |
+          git config user.name "mundialiten-deploy"
+          git config user.email "deploy@users.noreply.github.com"
+          git fetch origin staging:staging
+          git merge --no-edit staging
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install + build + test (gate)
+        run: |
+          npm ci
+          npm run build
+          npm test
+
+      - name: Push main (Vercel deploya producción)
+        run: git push origin HEAD:main
