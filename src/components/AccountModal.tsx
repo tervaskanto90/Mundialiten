@@ -86,7 +86,8 @@ export function AccountModal({ onClose }: { onClose: () => void }) {
       if (!token) throw new Error(t('Sesión no válida', 'Invalid session'))
       const r = await fetch('/api/digest?test=1', { headers: { Authorization: `Bearer ${token}` } }).then((res) => res.json())
       if (!r?.ok) throw new Error(r?.error || t('No se pudo enviar la prueba', 'Could not send the test'))
-      if (r.enviado) setMsg(t(`Digest de prueba enviado (${r.destacados} destacado/s) ✅`, `Test digest sent (${r.destacados} featured) ✅`))
+      if (r.enviado && r.ejemplo) setMsg(t('Digest de EJEMPLO enviado a tu correo (hoy nadie trepó 2+; te muestra el formato) ✅', 'Sample digest sent to your email (no one climbed 2+ today; shows the format) ✅'))
+      else if (r.enviado) setMsg(t(`Digest de prueba enviado (${r.destacados} destacado/s) ✅`, `Test digest sent (${r.destacados} featured) ✅`))
       else setMsg(t('Nadie trepó 2+ puestos: el digest no se enviaría.', 'No one climbed 2+ spots: the digest would not be sent.'))
     } catch (e) {
       setErr(e instanceof Error ? e.message : t('No se pudo enviar la prueba', 'Could not send the test'))

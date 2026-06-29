@@ -219,12 +219,22 @@ export default async function handler(req: any, res: any) {
       return
     }
 
-    // Sin nadie que trepó 2+: NO se manda. En corrida real igual reseteamos el
-    // snapshot (la ventana siempre mira desde el último digest). En test, no.
+    // Sin nadie que trepó 2+: en corrida real NO se manda (y reseteamos el
+    // snapshot para la próxima ventana). En TEST mandamos un EJEMPLO para que el
+    // admin vea cómo queda el formato.
+    let featured = climbers
+    let isSample = false
     if (climbers.length === 0) {
-      if (!isTest) await writeSnapshot()
-      res.status(200).json({ ok: true, enviado: false, motivo: 'Nadie trepó 2+ puestos desde el último digest.', snapshotActualizado: !isTest })
-      return
+      if (!isTest) {
+        await writeSnapshot()
+        res.status(200).json({ ok: true, enviado: false, motivo: 'Nadie trepó 2+ puestos desde el último digest.', snapshotActualizado: true })
+        return
+      }
+      isSample = true
+      featured = [
+        { user_id: 'demo1', name: 'Lio', prevRank: 5, currRank: 2, gainedPos: 3, gainedPts: 12, points: 38 },
+        { user_id: 'demo2', name: 'Caro', prevRank: 6, currRank: 4, gainedPos: 2, gainedPts: 8, points: 31 },
+      ]
     }
 
     const brevoKey = process.env.BREVO_API_KEY
@@ -260,7 +270,9 @@ export default async function handler(req: any, res: any) {
     let sent = 0
     const errors: string[] = []
     for (const t of targets) {
-      const { subject, html, text } = buildDigestEmail(t.name, climbers, appUrl)
+      const built = buildDigestEmail(t.name, featured, appUrl)
+      const subject = isSample ? `(EJEMPLO) ${built.subject}` : built.subject
+      const { html, text } = built
       const r = await fetch('https://api.brevo.com/v3/smtp/email', {
         method: 'POST',
         headers: { 'api-key': brevoKey, 'content-type': 'application/json', accept: 'application/json' },
@@ -279,7 +291,7 @@ export default async function handler(req: any, res: any) {
     // Corrida real (no test): reseteamos el snapshot para la próxima ventana.
     if (!isTest) await writeSnapshot()
 
-    res.status(200).json({ ok: true, test: isTest, enviado: true, destacados: climbers.length, intentados: targets.length, enviados: sent, errores: errors })
+    res.status(200).json({ ok: true, test: isTest, ejemplo: isSample, enviado: true, destacados: featured.length, intentados: targets.length, enviados: sent, errores: errors })
   } catch (e: any) {
     res.status(500).json({ error: String(e?.message || e) })
   }
