@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../auth'
-import { fetchPastPredictions, type PastPred } from '../lib/remote'
+import { fetchPastPredictions, fetchAvatars, type PastPred } from '../lib/remote'
 import { useStore, getScenario, REAL_SCENARIO_ID } from '../store/useStore'
 import { resolve } from '../engine/resolve'
 import { MATCH_BY_ID } from '../data/schedule'
@@ -22,6 +22,8 @@ export function PastPredictions() {
   const { t, lang } = useT()
   const { c, dark } = useTheme()
   const [rows, setRows] = useState<PastPred[] | null>(null)
+  // Avatares por user_id: una sola bajada (la RPC ya no los manda, por egress).
+  const [avatars, setAvatars] = useState<Record<string, string | null>>({})
   const lastSync = useStore((s) => s.lastSync)
   const real = useStore((s) => getScenario(s.scenarios, REAL_SCENARIO_ID))
   const realResults = real?.results ?? {}
@@ -32,6 +34,12 @@ export function PastPredictions() {
     if (!(enabled && user)) return
     fetchPastPredictions().then(setRows).catch(() => setRows([]))
   }, [enabled, user, lastSync])
+
+  // Avatares: una sola bajada al montar (no se repiten en cada refresh).
+  useEffect(() => {
+    if (!(enabled && user)) return
+    fetchAvatars().then(setAvatars).catch(() => setAvatars({}))
+  }, [enabled, user])
 
   // Partidos con predicciones, del más nuevo al más viejo (por horario).
   const matchIds = useMemo(() => {
@@ -97,7 +105,7 @@ export function PastPredictions() {
             const mine = p.user_id === user.id
             return (
               <div key={p.user_id} className="flex items-center gap-2 rounded-lg px-2 py-1" style={mine ? { background: dark ? 'rgba(47,109,240,.16)' : 'rgba(47,109,240,.08)' } : undefined}>
-                <Avatar src={p.avatar_url} name={p.display_name} size={22} />
+                <Avatar src={avatars[p.user_id] ?? null} name={p.display_name} size={22} />
                 <span className="flex-1 truncate text-xs" style={{ color: c.text }}>
                   {p.display_name}{mine && <span className="text-[9px] ml-1" style={{ color: ACCENT.blue }}>{t('(vos)', '(you)')}</span>}
                 </span>

@@ -12,7 +12,7 @@ import { useTheme, ACCENT } from '../theme'
  *  ranking (puntos, % y la predicción del ÚLTIMO partido — no expone las
  *  predicciones privadas del historial). */
 export function UserComparison() {
-  const { enabled, user } = useAuth()
+  const { enabled, user, avatarUrl } = useAuth()
   const { t } = useT()
   const { c, dark } = useTheme()
   const [rows, setRows] = useState<RankingRow[] | null>(null)
@@ -65,7 +65,7 @@ export function UserComparison() {
 
       <div className="rounded-2xl p-4" style={{ background: c.cardGrad, border: '1px solid ' + c.line, boxShadow: c.shadow }}>
         <div className="flex items-center gap-3 mb-3">
-          <Avatar src={me.avatar_url} name={me.display_name} size={40} />
+          <Avatar src={avatarUrl} name={me.display_name} size={40} />
           <div className="flex-1 min-w-0">
             <div className="font-bold" style={{ fontFamily: "'Archivo'", color: c.text }}>{me.display_name}</div>
             <div className="text-[11px]" style={{ color: c.muted }}>{t('Puesto', 'Position')} #{myIdx + 1} {t('de', 'of')} {N} · {t('mejor que el', 'better than')} {Math.max(0, percentile)}%</div>

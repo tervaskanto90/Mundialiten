@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useAuth } from '../auth'
-import { fetchRanking, fetchPastPredictions, type RankingRow, type PastPred } from '../lib/remote'
+import { fetchRanking, fetchPastPredictions, fetchAvatars, type RankingRow, type PastPred } from '../lib/remote'
 import { useT } from '../i18n'
 import { useStore, getScenario, REAL_SCENARIO_ID } from '../store/useStore'
 import { resolve } from '../engine/resolve'
@@ -89,6 +89,8 @@ export function RankingView() {
   const isDesktop = useIsDesktop()
   const [rows, setRows] = useState<RankingRow[] | null>(null)
   const [past, setPast] = useState<PastPred[] | null>(null)
+  // Avatares por user_id: se bajan UNA vez (no en el polling) para no inflar el egress.
+  const [avatars, setAvatars] = useState<Record<string, string | null>>({})
   const [error, setError] = useState('')
   const [scoringOpen, setScoringOpen] = useState(false)
 
@@ -179,9 +181,28 @@ export function RankingView() {
   useEffect(() => {
     if (!(enabled && user)) return
     load()
-    const id = setInterval(load, 60_000)
-    return () => clearInterval(id)
+    // Polling cada 2 min y SÓLO con la pestaña visible. Antes era cada 60s y seguía
+    // corriendo en segundo plano → multiplicaba el egress sin que nadie mirara.
+    const id = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return
+      load()
+    }, 120_000)
+    // Al volver a la pestaña, refresca al toque (sin esperar el intervalo).
+    const onVisible = () => {
+      if (typeof document !== 'undefined' && !document.hidden) load()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      clearInterval(id)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, user])
+
+  // Avatares: una sola bajada al abrir el ranking (no entran al polling).
+  useEffect(() => {
+    if (!(enabled && user)) return
+    fetchAvatars().then(setAvatars).catch(() => setAvatars({}))
   }, [enabled, user])
 
   const lastSync = useStore((s) => s.lastSync)
@@ -391,7 +412,7 @@ export function RankingView() {
                   // DESKTOP: una sola línea — predicciones al lado del puntaje.
                   <div className="flex items-center gap-2.5">
                     <RankBadge rank={rank} />
-                    <Avatar src={r.avatar_url} name={r.display_name} size={36} />
+                    <Avatar src={avatars[r.user_id] ?? r.avatar_url ?? null} name={r.display_name} size={36} />
                     <div className="flex-1 min-w-0">
                       {nameBox}
                       <div className="mt-0.5 flex items-center gap-2 flex-wrap">{badges}</div>
@@ -405,7 +426,7 @@ export function RankingView() {
                   <>
                     <div className="flex items-center gap-2.5">
                       <RankBadge rank={rank} />
-                      <Avatar src={r.avatar_url} name={r.display_name} size={36} />
+                      <Avatar src={avatars[r.user_id] ?? r.avatar_url ?? null} name={r.display_name} size={36} />
                       <div className="flex-1 min-w-0">{nameBox}</div>
                       {pointsBox}
                     </div>

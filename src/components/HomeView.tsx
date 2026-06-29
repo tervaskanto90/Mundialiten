@@ -5,7 +5,7 @@ import { liveMatchIds } from '../utils/live'
 import { useOdds, oddsForMatch, type OddsState } from '../lib/odds'
 import { useStore, getScenario, ACCOUNT_PRED_ID } from '../store/useStore'
 import { computeRankingScore, computePredStats } from '../engine/accuracy'
-import { fetchRanking, type RankingRow } from '../lib/remote'
+import { fetchRanking, fetchAvatars, type RankingRow } from '../lib/remote'
 import { Avatar } from './Avatar'
 import type { ActiveContext } from '../hooks'
 import { useAuth } from '../auth'
@@ -278,12 +278,19 @@ function RankingSummary() {
   const { t } = useT()
   const { c, dark } = useTheme()
   const [rows, setRows] = useState<RankingRow[] | null>(null)
+  const [avatars, setAvatars] = useState<Record<string, string | null>>({})
   const lastSync = useStore((s) => s.lastSync)
 
   useEffect(() => {
     if (!(enabled && user)) return
     fetchRanking().then(setRows).catch(() => setRows([]))
   }, [enabled, user, lastSync])
+
+  // Avatares: una sola bajada (no viajan en el ranking, por egress).
+  useEffect(() => {
+    if (!(enabled && user)) return
+    fetchAvatars().then(setAvatars).catch(() => setAvatars({}))
+  }, [enabled, user])
 
   if (!enabled || !user) return <Empty>{t('Iniciá sesión para ver tu posición.', 'Sign in to see your position.')}</Empty>
   if (rows == null) return <Empty>{t('Cargando…', 'Loading…')}</Empty>
@@ -302,7 +309,7 @@ function RankingSummary() {
         return (
           <div key={r.user_id} className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs" style={mine ? { background: dark ? 'rgba(47,109,240,.18)' : 'rgba(47,109,240,.1)', border: '1px solid ' + ACCENT.blue } : { background: dark ? 'rgba(255,255,255,.03)' : 'rgba(0,0,0,.025)', border: '1px solid ' + c.line }}>
             <span className="w-5 text-center font-bold" style={{ color: c.muted }}>{pos}</span>
-            <Avatar src={r.avatar_url} name={r.display_name} size={24} />
+            <Avatar src={avatars[r.user_id] ?? r.avatar_url ?? null} name={r.display_name} size={24} />
             <span className="flex-1 truncate font-medium" style={{ color: c.text }}>
               {r.display_name}{mine && <span className="text-[9px] ml-1" style={{ color: ACCENT.blue }}>{t('(vos)', '(you)')}</span>}
             </span>

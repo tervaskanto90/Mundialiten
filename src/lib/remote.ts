@@ -46,6 +46,21 @@ export async function fetchMyAvatar(userId: string): Promise<string | null> {
   return (data?.avatar_url as string | null) ?? null
 }
 
+// Avatares de TODOS los usuarios (data URLs), indexados por user_id. Se baja UNA
+// sola vez (NO en el polling del ranking) y se reutiliza: así la foto deja de
+// viajar en cada fila del ranking y de past_predictions, que es lo que reventó
+// el Egress. Las fotos cambian poquísimo; con bajarlas al abrir la vista alcanza.
+export async function fetchAvatars(): Promise<Record<string, string | null>> {
+  if (!supabase) return {}
+  const { data, error } = await supabase.from('scores').select('user_id, avatar_url')
+  if (error) return {}
+  const map: Record<string, string | null> = {}
+  for (const r of (data as { user_id: string; avatar_url: string | null }[]) ?? []) {
+    map[r.user_id] = r.avatar_url ?? null
+  }
+  return map
+}
+
 // ─── Imagen compartida del encabezado (una para modo claro, otra para oscuro) ──
 // La sube SÓLO el admin (RLS por email en Supabase) pero la ve todo el mundo.
 // `scale` agranda toda la barra de arriba (imagen + textos + botones) y también
@@ -58,14 +73,57 @@ export interface Branding {
 
 export const DEFAULT_BRANDING: Branding = { light: null, dark: null, scale: 1 }
 
+// Caché local de branding: los logos son data URLs grandes. En vez de bajarlos en
+// cada carga, primero pedimos sólo `updated_at` (pesa nada) y, si no cambió desde
+// lo cacheado, reutilizamos las imágenes locales SIN volver a bajarlas (egress).
+const BRANDING_CACHE_KEY = 'mundi-branding-v1'
+interface BrandingCache {
+  updatedAt: string
+  branding: Branding
+}
+function readBrandingCache(): BrandingCache | null {
+  try {
+    const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(BRANDING_CACHE_KEY) : null
+    return raw ? (JSON.parse(raw) as BrandingCache) : null
+  } catch {
+    return null
+  }
+}
+function writeBrandingCache(c: BrandingCache): void {
+  try {
+    if (typeof localStorage !== 'undefined') localStorage.setItem(BRANDING_CACHE_KEY, JSON.stringify(c))
+  } catch {
+    /* localStorage lleno o no disponible: no es crítico */
+  }
+}
+
 export async function fetchBranding(): Promise<Branding | null> {
+  if (!supabase) return null
+  const cached = readBrandingCache()
+  // 1) Metadata liviana: sólo el sello de actualización (la columna existe siempre).
+  const meta = await supabase.from('branding').select('updated_at').eq('id', 1).maybeSingle()
+  if (!meta.error) {
+    if (!meta.data) return null // no hay branding configurado
+    const updatedAt = String((meta.data as { updated_at?: string }).updated_at ?? '')
+    // Si no cambió respecto del caché, reusamos las imágenes locales (cero egress).
+    if (cached && cached.updatedAt === updatedAt) return cached.branding
+    // Cambió (o no había caché): ahora sí bajamos las imágenes completas y cacheamos.
+    const branding = await fetchBrandingFull()
+    if (branding) writeBrandingCache({ updatedAt, branding })
+    return branding
+  }
+  // Si la metadata falló (tabla sin migrar, etc.), caemos al fetch completo
+  // tolerante; si tampoco se puede, usamos el caché que tengamos.
+  console.warn('[branding] meta', meta.error.message)
+  return (await fetchBrandingFull()) ?? cached?.branding ?? null
+}
+
+async function fetchBrandingFull(): Promise<Branding | null> {
   if (!supabase) return null
   // select('*') es tolerante: si todavía no se corrió la migración que agrega
   // `img_scale`, igual trae light_url/dark_url sin romper.
   const { data, error } = await supabase.from('branding').select('*').eq('id', 1).maybeSingle()
   if (error) {
-    // Si la tabla todavía no existe (migración sin correr) no rompemos la app:
-    // simplemente no hay imagen custom y se usa el escudo por defecto.
     console.warn('[branding] fetch', error.message)
     return null
   }
@@ -169,7 +227,7 @@ export interface PastPred {
   match_id: number
   user_id: string
   display_name: string
-  avatar_url?: string | null
+  // avatar_url ya NO viene en la RPC (egress): se resuelve por user_id con fetchAvatars.
   home: number
   away: number
   // Penales que predijo (sólo en eliminatorias con empate): definen a quién eligió
@@ -195,21 +253,24 @@ export async function fetchRanking(): Promise<RankingRow[]> {
   if (!supabase) return []
   // 0) con desempate: a igualdad de PUNTOS, ordena por más EXACTOS y luego por
   //    más RESULTADOS acertados. Requiere las columnas exact_count/result_count.
+  // OJO (egress): este query se POLLEA cada par de minutos, así que NO trae
+  // avatar_url. La foto se baja aparte una sola vez (fetchAvatars) y se mergea por
+  // user_id en la vista. Antes, traer la foto en cada poll inflaba el egress.
   const withTiebreak = await supabase
     .from('scores')
-    .select('user_id, display_name, accuracy, points, exact_count, result_count, advance_count, last_match_id, last_pred_home, last_pred_away, last_points, avatar_url')
+    .select('user_id, display_name, accuracy, points, exact_count, result_count, advance_count, last_match_id, last_pred_home, last_pred_away, last_points')
     .order('points', { ascending: false })
     .order('exact_count', { ascending: false })
     .order('result_count', { ascending: false })
     .order('advance_count', { ascending: false })
   if (!withTiebreak.error) return (withTiebreak.data as RankingRow[]) ?? []
-  // 1) con avatar + snapshot del último partido.
+  // 1) con snapshot del último partido (sin avatar).
   const withAvatar = await supabase
     .from('scores')
-    .select('user_id, display_name, accuracy, points, last_match_id, last_pred_home, last_pred_away, last_points, avatar_url')
+    .select('user_id, display_name, accuracy, points, last_match_id, last_pred_home, last_pred_away, last_points')
     .order('points', { ascending: false })
   if (!withAvatar.error) return (withAvatar.data as RankingRow[]) ?? []
-  // 2) sin avatar (migración de avatar sin correr), con snapshot.
+  // 2) básico con snapshot.
   const full = await supabase
     .from('scores')
     .select('user_id, display_name, accuracy, points, last_match_id, last_pred_home, last_pred_away, last_points')

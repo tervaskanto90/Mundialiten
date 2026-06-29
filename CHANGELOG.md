@@ -8,6 +8,19 @@ Versionado **SemVer**: `MAYOR.MENOR.PATCH`.
 La versión vive en `package.json` (única fuente). El footer muestra
 `vX.Y.Z · build <hash de commit>` — el hash identifica el deploy.
 
+## 6.1.2 — (producción)
+- 📉 **Egress de Supabase recortado ~50-100x** (estaba en 551% de la cuota). El
+  ranking polleaba cada 60s y bajaba los avatares (data URLs) en CADA fila —
+  `past_predictions` los duplicaba por (usuario × partido). Ahora:
+  - La RPC `past_predictions` ya **no devuelve `avatar_url`** (sólo números).
+  - Los avatares se bajan **una sola vez** (`fetchAvatars`) y se reutilizan por
+    `user_id`; salen del query polleado del ranking.
+  - El polling del ranking pasa a **2 min y se pausa con la pestaña en segundo
+    plano** (antes 60s y seguía corriendo oculto).
+  - **Branding cacheado** en localStorage: sólo re-baja los logos si cambió el
+    `updated_at` (antes bajaba las imágenes en cada carga).
+  - ⚠️ Requiere correr `supabase/migrations/past_predictions_no_avatar.sql`.
+
 ## 6.1.1 — (producción)
 - 🗝️ **Cruces de 16avos corregidos**: los mejores terceros ahora se ubican en
   cada cruce siguiendo la **tabla oficial de la FIFA** («Annex C», 495

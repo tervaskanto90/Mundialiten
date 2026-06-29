@@ -284,7 +284,10 @@ create trigger recompute_on_real_change
 -- (no se puede cambiar el tipo de retorno con CREATE OR REPLACE).
 drop function if exists public.past_predictions();
 create or replace function public.past_predictions()
-returns table(match_id int, user_id uuid, display_name text, avatar_url text, home int, away int, home_pens int, away_pens int)
+-- OJO (egress): NO devolver avatar_url acá. Esta RPC emite 1 fila por cada
+-- (usuario × partido visible); traer la foto en cada fila la duplica decenas de
+-- veces y revienta el Egress. El avatar se baja aparte (fetchAvatars), una vez.
+returns table(match_id int, user_id uuid, display_name text, home int, away int, home_pens int, away_pens int)
 language sql
 security definer
 set search_path = public
@@ -319,7 +322,6 @@ as $$
   select (pe.key)::int as match_id,
          p.user_id,
          coalesce(s.display_name, 'Jugador') as display_name,
-         s.avatar_url,
          (pe.value->>'homeScore')::int as home,
          (pe.value->>'awayScore')::int as away,
          -- penales predichos (sólo en eliminatorias con empate): definen a quién
