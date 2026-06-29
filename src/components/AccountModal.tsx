@@ -220,7 +220,7 @@ export function AccountModal({ onClose }: { onClose: () => void }) {
                   className="w-full py-2.5 rounded-lg text-sm font-bold disabled:opacity-50"
                   style={{ background: ACCENT.gold, color: '#1c160c' }}
                 >
-                  {announceBusy ? '…' : t('📣 Enviar aviso de 16avos a todos', '📣 Send R32 announcement to all')}
+                  {announceBusy ? '…' : t('📣 Enviar recordatorio a todos', '📣 Send reminder to all')}
                 </button>
                 <p className="text-[10px] mt-1.5" style={{ color: c.muted }}>
                   {t('Probá primero con el de prueba. El de abajo manda a todos (no duplica a quien ya recibió).', 'Try the test first. The one below emails everyone (won’t duplicate to those already notified).')}

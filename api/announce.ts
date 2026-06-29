@@ -25,33 +25,33 @@ export const config = { maxDuration: 60 }
 const ADMIN_EMAIL = 'boggianooctavio@gmail.com'
 const ANNOUNCE_BUCKET = 'announce'
 // Subir este valor = envío NUEVO a todos (no lo bloquea lo ya enviado antes).
-const ANNOUNCE_KIND = 'ko-16avos-2026'
+const ANNOUNCE_KIND = 'recordatorio-lio-2026'
 
 function buildAnnounceEmail(name: string, appUrl: string): { subject: string; html: string; text: string } {
   const hi = name ? `¡Hola, ${name}!` : '¡Hola!'
-  const subject = '🥅 ¡Empiezan los 16avos en Mundialiten! — cómo predecir'
+  const subject = '🚀 Lio le acertó el exacto a Brasil 2-1 y subió 3 puestos — todavía estás a tiempo'
   const link = appUrl || ''
   const button = link
-    ? `<p style="margin:24px 0"><a href="${link}" style="background:#16a34a;color:#fff;text-decoration:none;padding:12px 22px;border-radius:10px;font-weight:600;display:inline-block">Predecir los 16avos · Open the app</a></p>`
+    ? `<p style="margin:24px 0"><a href="${link}" style="background:#16a34a;color:#fff;text-decoration:none;padding:12px 22px;border-radius:10px;font-weight:600;display:inline-block">Predecir ahora · Open the app</a></p>`
     : ''
   const html = `<div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:520px;margin:0 auto;color:#0f172a">
-  <h2 style="margin:0 0 6px">🥅 ¡Arrancan las eliminatorias!</h2>
+  <h2 style="margin:0 0 6px">🚀 Un acierto y a trepar en la tabla</h2>
   <p style="margin:0 0 16px;color:#475569">${hi}</p>
-  <p style="margin:0 0 12px">Terminó la fase de grupos: ya podés <strong>predecir los 16avos</strong>. Va lo que necesitás para arrancar:</p>
+  <p style="margin:0 0 12px"><strong>Lio</strong> le metió el resultado <strong>EXACTO</strong> a <strong>Brasil 2–1 Japón</strong>. ¿El premio? <strong>6 puntos de un saque</strong> (4 por clavar el marcador + 2 por embocar quién pasaba) y un <strong>salto de 3 posiciones</strong> en el ranking. Ahora le respira en la nuca a los de arriba. 😏</p>
+  <p style="margin:0 0 12px">Lo mejor: <strong>todavía estás a tiempo</strong>. Quedan cruces de 16avos por jugarse (y toda la fase final por delante), así que podés hacer lo mismo y dar el batacazo.</p>
   <ul style="margin:0 0 12px;padding-left:18px;color:#334155;line-height:1.65">
     <li>🗓️ <strong>Cómo predecir</strong>: en Calendario cada cruce ya viene con los equipos que <strong>realmente clasificaron</strong>. Tocá el partido y cargá el marcador (el de <strong>después del alargue</strong>) con + / −.</li>
-    <li>⏱️ Cada partido <strong>cierra 5 minutos antes</strong> de empezar.</li>
-    <li>🥊 <strong>Si predecís empate</strong>, elegís quién avanza (gana en el tiempo extra o en los penales). El marcador de la tanda no se predice: sólo <strong>quién pasa</strong>.</li>
+    <li>⏱️ Cada partido <strong>cierra 5 minutos antes</strong> de empezar — no lo dejes para último momento.</li>
     <li>🎯 <strong>Puntos</strong>: por el marcador (exacto o sólo el resultado) <strong>y, aparte</strong>, un bonus por acertar quién pasa. Valen más a medida que avanza:<br>16avos 4/2 +2 · 8vos 5/2 +2 · 4tos 6/3 +3 · semis 8/4 +4 · final 10/5 +5.</li>
-    <li>🎟️ <strong>Errar un cruce no te anula</strong>: la próxima ronda se arma igual con los ganadores reales. Desempate del ranking: 1º exactos · 2º resultados · 3º pases de ronda.</li>
+    <li>🎟️ <strong>No importa si no predijiste antes</strong>: entrás cuando quieras y sumás desde ahí. Errar un cruce tampoco te anula: la próxima ronda se arma igual con los ganadores reales.</li>
   </ul>
   ${button}
-  <p style="margin:12px 0 0;color:#475569;font-size:14px">El detalle completo está en <strong>«¿Cómo jugar?»</strong> dentro de la app, y la primera vez te aparece un tutorial corto. ¡Suerte! 🍀</p>
+  <p style="margin:12px 0 0;color:#475569;font-size:14px">El detalle completo está en <strong>«¿Cómo jugar?»</strong> dentro de la app. ¡A predecir que todavía hay tabla para escalar! 🍀</p>
   <hr style="border:none;border-top:1px solid #e2e8f0;margin:20px 0">
-  <p style="margin:0;color:#64748b;font-size:13px">The knockouts are open: predict the Round of 32. Set the score (after extra time); if you predict a draw, pick who advances. You score from the score plus a bonus for calling who goes through (R32 4/2 +2 … final 10/5 +5). Missing a tie never knocks you out. Full guide in “How to play”.</p>
+  <p style="margin:0;color:#64748b;font-size:13px">Lio nailed the exact score of Brazil 2–1 Japan and jumped 3 spots (6 points: 4 for the score + 2 for calling who advanced). There’s still time: more Round of 32 matches to come and the whole knockout ahead. You can join anytime and score from there — each match closes 5 min before kickoff. Full guide in “How to play”.</p>
   <p style="margin:14px 0 0;color:#94a3b8;font-size:12px">Recibís este aviso porque tenés una cuenta en Mundialiten.</p>
 </div>`
-  const text = `${hi}\n\n¡Empiezan los 16avos en Mundialiten! Ya podés predecir la fase eliminatoria.\n- Cada cruce viene con los equipos que realmente clasificaron. Cargá el marcador (después del alargue).\n- Cada partido cierra 5 minutos antes.\n- Si predecís empate, elegís quién pasa (alargue o penales). No se predice el marcador de la tanda.\n- Puntos: marcador (exacto o resultado) + bonus por acertar quién pasa. 16avos 4/2 +2 · 8vos 5/2 +2 · 4tos 6/3 +3 · semis 8/4 +4 · final 10/5 +5.\n- Errar un cruce no te anula; la próxima ronda usa los ganadores reales. Desempate: exactos > resultados > pases de ronda.\n${link ? `\n${link}\n` : ''}\nMás detalle en «¿Cómo jugar?». ¡Suerte!`
+  const text = `${hi}\n\nLio le acertó el resultado EXACTO a Brasil 2-1 Japón: 6 puntos de un saque (4 por el marcador + 2 por embocar quién pasaba) y subió 3 posiciones en el ranking.\n\nTodavía estás a tiempo de hacer lo mismo: quedan cruces de 16avos y toda la fase final por jugarse.\n- En Calendario cada cruce viene con los equipos que realmente clasificaron. Cargá el marcador (después del alargue).\n- Cada partido cierra 5 minutos antes.\n- Puntos: marcador (exacto o resultado) + bonus por acertar quién pasa. 16avos 4/2 +2 · 8vos 5/2 +2 · 4tos 6/3 +3 · semis 8/4 +4 · final 10/5 +5.\n- No importa si no predijiste antes: entrás cuando quieras y sumás desde ahí.\n${link ? `\n${link}\n` : ''}\nMás detalle en «¿Cómo jugar?». ¡Suerte!`
   return { subject, html, text }
 }
 
