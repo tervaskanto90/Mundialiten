@@ -8,6 +8,14 @@ Versionado **SemVer**: `MAYOR.MENOR.PATCH`.
 La versión vive en `package.json` (única fuente). El footer muestra
 `vX.Y.Z · build <hash de commit>` — el hash identifica el deploy.
 
+## 6.2.1 — (producción)
+- 🥅 **Fix: los penales ya no se suman al marcador.** football-data.org reporta el
+  `fullTime` con la tanda incluida (ej.: 1-1 definido 3-4 por penales lo manda como
+  4-5). Ahora el marcador del partido es el de **después del alargue** (un empate) y
+  los penales van aparte (ALE 1-1 PAR · 3-4p). `regulationScore()` resta la tanda
+  cuando queda un empate no-negativo; si no, deja el `fullTime`. Test nuevo. Al
+  re-sincronizar, el resultado mal guardado se corrige solo.
+
 ## 6.2.0 — (producción)
 - 📈 **Digest automático cada 2 días** (`api/digest.ts` + Vercel Cron): mail a
   todos destacando a quien **trepó 2+ puestos** en el ranking desde el digest

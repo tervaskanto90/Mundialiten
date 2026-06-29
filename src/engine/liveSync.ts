@@ -155,16 +155,45 @@ async function fetchFootballData(config: LiveConfig, signal?: AbortSignal): Prom
     throw new Error(data?.error || data?.message || `El proxy respondió ${res.status}`)
   }
   const rows: any[] = data.matches ?? []
-  return rows.map((m) => ({
-    homeName: m.homeTeam?.name ?? '',
-    awayName: m.awayTeam?.name ?? '',
-    hs: m.score?.fullTime?.home ?? null,
-    as: m.score?.fullTime?.away ?? null,
-    finished: m.status === 'FINISHED',
-    apiId: m.id,
-    hpens: m.score?.penalties?.home ?? null,
-    apens: m.score?.penalties?.away ?? null,
-  }))
+  return rows.map((m) => {
+    const penH = m.score?.penalties?.home ?? null
+    const penA = m.score?.penalties?.away ?? null
+    const { hs, as } = regulationScore(m.score?.fullTime?.home ?? null, m.score?.fullTime?.away ?? null, penH, penA)
+    return {
+      homeName: m.homeTeam?.name ?? '',
+      awayName: m.awayTeam?.name ?? '',
+      hs,
+      as,
+      finished: m.status === 'FINISHED',
+      apiId: m.id,
+      hpens: penH,
+      apens: penA,
+    }
+  })
+}
+
+/**
+ * Marcador REAL del partido (el de después del alargue) a partir de lo que manda
+ * football-data.org. Ese proveedor SUMA la tanda de penales al `fullTime` (ej.:
+ * 1-1 que se define 4-3 por penales lo reporta como 5-4). Pero un partido que va
+ * a penales terminó EMPATADO tras el alargue, así que el marcador no puede llevar
+ * los penales encima.
+ *
+ * Si al restar los penales del fullTime queda un empate no-negativo, ése es el
+ * marcador real (caso de football-data). Si no, el fullTime ya venía como el
+ * marcador y se deja igual. Sin penales, devuelve el fullTime tal cual.
+ */
+export function regulationScore(
+  ftHome: number | null,
+  ftAway: number | null,
+  penHome: number | null,
+  penAway: number | null,
+): { hs: number | null; as: number | null } {
+  if (ftHome == null || ftAway == null || penHome == null || penAway == null) return { hs: ftHome, as: ftAway }
+  const rH = ftHome - penHome
+  const rA = ftAway - penAway
+  if (rH >= 0 && rA >= 0 && rH === rA) return { hs: rH, as: rA }
+  return { hs: ftHome, as: ftAway }
 }
 
 export async function fetchLiveFixtures(config: LiveConfig, signal?: AbortSignal): Promise<NormFixture[]> {

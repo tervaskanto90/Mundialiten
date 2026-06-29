@@ -1,5 +1,5 @@
 // Pruebas del mapeo de resultados en vivo (camino desatendido durante el Mundial).
-import { mapFixturesToUpdates } from '../src/engine/liveSync'
+import { mapFixturesToUpdates, regulationScore } from '../src/engine/liveSync'
 import { resolve } from '../src/engine/resolve'
 import { TEAM_BY_ID } from '../src/data/teams'
 import { MATCHES } from '../src/data/schedule'
@@ -62,6 +62,26 @@ for (const cab of ['Cape Verde', 'Cabo Verde', 'Cape Verde Islands', 'Cabo Verde
 // Otras variantes de nombre por proveedor (USA M4, Corea M2).
 check('"United States of America" → M4', mapFixturesToUpdates([fx({ homeName: 'United States of America', awayName: 'Paraguay', hs: 1, as: 0, finished: true })], res).updates.some((x) => x.matchId === 4))
 check('"Korea Republic" → M2', mapFixturesToUpdates([fx({ homeName: 'Korea Republic', awayName: 'Czechia', hs: 0, as: 0, finished: true })], res).updates.some((x) => x.matchId === 2))
+
+// ── PENALES NO SE SUMAN AL MARCADOR (football-data suma la tanda al fullTime) ──
+const rs = (fh: number | null, fa: number | null, ph: number | null, pa: number | null) => regulationScore(fh, fa, ph, pa)
+// ALE 1-1 PAR, gana PAR por penales 3-4 → football-data manda fullTime 4-5, pens 3-4.
+check('ALE-PAR: fullTime 4-5 + pens 3-4 → marcador 1-1', rs(4, 5, 3, 4).hs === 1 && rs(4, 5, 3, 4).as === 1)
+// Snapshot corrupto observado (5-5, 4-4p) → debe quedar 1-1, no 5-5.
+check('fullTime 5-5 + pens 4-4 → marcador 1-1 (no 5-5)', rs(5, 5, 4, 4).hs === 1 && rs(5, 5, 4, 4).as === 1)
+// Si el proveedor YA manda el marcador después del alargue (1-1) con pens aparte,
+// no se le resta de más (restar daría negativo → se deja el fullTime tal cual).
+check('fullTime 1-1 + pens 3-4 → marcador 1-1 (no toca)', rs(1, 1, 3, 4).hs === 1 && rs(1, 1, 3, 4).as === 1)
+// Empate alto definido por penales: 2-2 (5-4p) → marcador 2-2.
+check('fullTime 7-6 + pens 5-4 → marcador 2-2', rs(7, 6, 5, 4).hs === 2 && rs(7, 6, 5, 4).as === 2)
+// Sin penales: el marcador es el fullTime tal cual (no se toca).
+check('Sin penales: fullTime 3-1 → 3-1', rs(3, 1, null, null).hs === 3 && rs(3, 1, null, null).as === 1)
+check('Empate de fase de grupos 1-1 sin penales → 1-1', rs(1, 1, null, null).hs === 1 && rs(1, 1, null, null).as === 1)
+// El marcador resultante de un partido por penales SIEMPRE es empate.
+{
+  const x = rs(4, 5, 3, 4)
+  check('Un partido por penales queda EMPATADO en el marcador', x.hs === x.as)
+}
 
 console.log(`\n──────── LIVE SYNC: ${pass} OK, ${fail} FALLOS ────────`)
 if (fail > 0) process.exit(1)
