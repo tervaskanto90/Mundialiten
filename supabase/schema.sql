@@ -49,6 +49,11 @@ alter table public.scores add column if not exists exact_count int not null defa
 alter table public.scores add column if not exists result_count int not null default 0;
 -- 3er desempate: pases de ronda acertados (quién avanza en eliminatorias).
 alter table public.scores add column if not exists advance_count int not null default 0;
+-- Snapshot del ranking para el DIGEST cada 2 días (api/digest.ts): posición y
+-- puntos del usuario en la última corrida del digest, para detectar quién trepó.
+alter table public.scores add column if not exists digest_rank int;
+alter table public.scores add column if not exists digest_points numeric;
+alter table public.scores add column if not exists digest_at timestamptz;
 alter table public.scores enable row level security;
 create policy "scores_select_all" on public.scores
   for select to authenticated using (true);

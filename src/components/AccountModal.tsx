@@ -73,6 +73,28 @@ export function AccountModal({ onClose }: { onClose: () => void }) {
     }
   }
 
+  // Admin: previsualiza el DIGEST (quién trepó 2+ puestos) enviándolo SÓLO a su
+  // correo. No marca a nadie ni toca el snapshot. Si nadie trepó, lo avisa.
+  const sendTestDigest = async () => {
+    if (!supabase) return
+    setErr('')
+    setMsg('')
+    setAnnounceBusy(true)
+    try {
+      const { data } = await supabase.auth.getSession()
+      const token = data.session?.access_token
+      if (!token) throw new Error(t('Sesión no válida', 'Invalid session'))
+      const r = await fetch('/api/digest?test=1', { headers: { Authorization: `Bearer ${token}` } }).then((res) => res.json())
+      if (!r?.ok) throw new Error(r?.error || t('No se pudo enviar la prueba', 'Could not send the test'))
+      if (r.enviado) setMsg(t(`Digest de prueba enviado (${r.destacados} destacado/s) ✅`, `Test digest sent (${r.destacados} featured) ✅`))
+      else setMsg(t('Nadie trepó 2+ puestos: el digest no se enviaría.', 'No one climbed 2+ spots: the digest would not be sent.'))
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : t('No se pudo enviar la prueba', 'Could not send the test'))
+    } finally {
+      setAnnounceBusy(false)
+    }
+  }
+
   // Admin: dispara el mail de aviso a todos (usa la sesión del admin como
   // autorización; primero previsualiza y pide confirmación).
   const sendAnnounce = async () => {
@@ -224,6 +246,17 @@ export function AccountModal({ onClose }: { onClose: () => void }) {
                 </button>
                 <p className="text-[10px] mt-1.5" style={{ color: c.muted }}>
                   {t('Probá primero con el de prueba. El de abajo manda a todos (no duplica a quien ya recibió).', 'Try the test first. The one below emails everyone (won’t duplicate to those already notified).')}
+                </p>
+                <button
+                  onClick={sendTestDigest}
+                  disabled={announceBusy}
+                  className="w-full py-2.5 rounded-lg text-sm font-bold disabled:opacity-50 mt-3"
+                  style={{ background: 'transparent', color: c.text, border: '1px solid ' + c.line }}
+                >
+                  {announceBusy ? '…' : t('📈 Probar digest (a mi correo)', '📈 Test digest (to my email)')}
+                </button>
+                <p className="text-[10px] mt-1.5" style={{ color: c.muted }}>
+                  {t('El digest sale solo cada 2 días: destaca a quien trepó 2+ puestos. Esto te muestra cómo quedaría hoy (sólo a vos).', 'The digest runs automatically every 2 days: it highlights whoever climbed 2+ spots. This shows how it would look today (only to you).')}
                 </p>
               </div>
             )}

@@ -8,6 +8,15 @@ Versionado **SemVer**: `MAYOR.MENOR.PATCH`.
 La versión vive en `package.json` (única fuente). El footer muestra
 `vX.Y.Z · build <hash de commit>` — el hash identifica el deploy.
 
+## 6.2.0 — (producción)
+- 📈 **Digest automático cada 2 días** (`api/digest.ts` + Vercel Cron): mail a
+  todos destacando a quien **trepó 2+ puestos** en el ranking desde el digest
+  anterior (puestos y puntos ganados). Si nadie trepó 2+, **no se manda nada**;
+  si treparon varios, **los menciona a todos**. Modos `test=1` (sólo al admin,
+  preview), `dryRun=1` y `init=1` (sembrar el snapshot). Botón admin "📈 Probar
+  digest". Snapshot del ranking en `scores` (`digest_rank/points/at`).
+  - ⚠️ Requiere correr `supabase/migrations/digest_snapshot.sql`.
+
 ## 6.1.2 — (producción)
 - 📉 **Egress de Supabase recortado ~50-100x** (estaba en 551% de la cuota). El
   ranking polleaba cada 60s y bajaba los avatares (data URLs) en CADA fila —
