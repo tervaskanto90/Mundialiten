@@ -232,11 +232,12 @@ export function mapFixturesToUpdates(fixtures: NormFixture[], resolution: Resolu
     const homeScore = sameOrientation ? f.hs : f.as
     const awayScore = sameOrientation ? f.as : f.hs
     // REGLA DE PENALES (universal): un partido que se define por penales terminó
-    // EMPATADO a los 120'. Si el proveedor manda penales con un marcador que NO es
-    // empate, el dato es inconsistente (típico de football-data, que a veces suma
-    // mal la tanda) → NO lo escribimos, así no se corrompe el resultado. Con datos
-    // limpios, regulationScore ya deja el marcador en empate y este chequeo pasa.
-    if (hasPens && homeScore !== awayScore) continue
+    // EMPATADO a los 120' y la tanda SIEMPRE tiene un ganador. Si el proveedor manda
+    // penales con un marcador que NO es empate, o con la tanda EMPATADA (3-3: tanda
+    // en curso / dato incompleto), el dato es inconsistente → NO lo escribimos, así
+    // no se corrompe el resultado ni se pierde el bonus de "quién pasa". Con datos
+    // limpios, regulationScore deja el marcador en empate y la tanda viene definida.
+    if (hasPens && (homeScore !== awayScore || f.hpens === f.apens)) continue
     updates.push({
       matchId: slot.matchId,
       homeScore,

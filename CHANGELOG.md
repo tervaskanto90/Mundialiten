@@ -8,6 +8,13 @@ Versionado **SemVer**: `MAYOR.MENOR.PATCH`.
 La versión vive en `package.json` (única fuente). El footer muestra
 `vX.Y.Z · build <hash de commit>` — el hash identifica el deploy.
 
+## 6.2.5 — (producción)
+- 🥅 **Tanda de penales empatada = dato incompleto, se descarta.** Una tanda SIEMPRE
+  tiene ganador; si el proveedor manda los penales empatados (ej.: 3-3, tanda en
+  curso), `advancingSide` no encontraba ganador y se perdía el bonus de "quién pasa"
+  (caso PBA-MAR: muchos acertaron que pasaba Marruecos y no se contabilizó). Ahora la
+  sync sólo escribe el partido cuando la tanda está **definida** (un ganador). Tests.
+
 ## 6.2.4 — (producción)
 - ⚖️ **Regla de penales, universal y automática.** Un partido por penales terminó
   EMPATADO a los 120'. Ahora la sync **descarta** cualquier resultado con penales

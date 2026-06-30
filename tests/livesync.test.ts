@@ -88,6 +88,13 @@ const penOk = mapFixturesToUpdates([fx({ homeName: 'Mexico', awayName: 'South Af
 check('Penales con empate 1-1 (4-3p) se escribe', penOk.updates.length === 1 && penOk.updates[0].homeScore === 1 && penOk.updates[0].awayScore === 1 && penOk.updates[0].homePens === 4 && penOk.updates[0].awayPens === 3)
 const penBad = mapFixturesToUpdates([fx({ homeName: 'Mexico', awayName: 'South Africa', hs: 5, as: 6, hpens: 4, apens: 4, finished: true })], res)
 check('Penales con marcador NO empatado (5-6) se DESCARTA (dato malo)', penBad.updates.length === 0)
+// Tanda EMPATADA (3-3) = tanda en curso / dato incompleto → se descarta (no hay
+// ganador, se perdería el bonus de "quién pasa").
+const penTie = mapFixturesToUpdates([fx({ homeName: 'Mexico', awayName: 'South Africa', hs: 1, as: 1, hpens: 3, apens: 3, finished: true })], res)
+check('Penales EMPATADOS (1-1, 3-3p) se DESCARTA (tanda incompleta)', penTie.updates.length === 0)
+// Tanda definida (1-1, 3-4p) sí se escribe, con el ganador correcto.
+const penWin = mapFixturesToUpdates([fx({ homeName: 'Mexico', awayName: 'South Africa', hs: 1, as: 1, hpens: 3, apens: 4, finished: true })], res)
+check('Penales definidos (1-1, 3-4p) se escribe', penWin.updates.length === 1 && penWin.updates[0].homePens === 3 && penWin.updates[0].awayPens === 4)
 // Sin penales, un marcador no empatado es normal (no se descarta).
 const noPen = mapFixturesToUpdates([fx({ homeName: 'Mexico', awayName: 'South Africa', hs: 3, as: 1, finished: true })], res)
 check('Sin penales, 3-1 se escribe normal', noPen.updates.length === 1 && noPen.updates[0].homeScore === 3 && noPen.updates[0].awayScore === 1)
