@@ -291,6 +291,13 @@ export const useStore = create<State>()(
               const results = { ...sc.results }
               for (const u of updates) {
                 const prev = results[u.matchId]
+                // Un partido YA FINALIZADO no se vuelve a pisar con la sync: algunos
+                // proveedores (football-data) siguen mandando datos raros del partido
+                // después de terminado (ej.: la tanda de penales sumada al marcador,
+                // o tallies intermedios). Una vez finished, el resultado queda firme;
+                // si hubo un dato malo, se corrige una vez en la base y no se vuelve a
+                // tocar.
+                if (prev?.finished) continue
                 results[u.matchId] = applyResultOverride(u.matchId, {
                   played: true,
                   homeScore: u.homeScore,

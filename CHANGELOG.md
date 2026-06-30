@@ -8,6 +8,14 @@ Versionado **SemVer**: `MAYOR.MENOR.PATCH`.
 La versión vive en `package.json` (única fuente). El footer muestra
 `vX.Y.Z · build <hash de commit>` — el hash identifica el deploy.
 
+## 6.2.2 — (producción)
+- 🔒 **Un partido finalizado no se vuelve a pisar con la sincronización en vivo.**
+  football-data.org seguía mandando datos raros de partidos ya terminados (la tanda
+  de penales sumada al marcador, o tallies intermedios de la tanda), y la sync los
+  re-escribía cada minuto. Ahora, una vez `finished`, el resultado queda firme; si
+  quedó un dato malo, se corrige una vez en la base y no se vuelve a tocar. Va junto
+  con el fix de penales de 6.2.1.
+
 ## 6.2.1 — (producción)
 - 🥅 **Fix: los penales ya no se suman al marcador.** football-data.org reporta el
   `fullTime` con la tanda incluida (ej.: 1-1 definido 3-4 por penales lo manda como
