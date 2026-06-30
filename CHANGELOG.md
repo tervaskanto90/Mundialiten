@@ -8,6 +8,15 @@ Versionado **SemVer**: `MAYOR.MENOR.PATCH`.
 La versión vive en `package.json` (única fuente). El footer muestra
 `vX.Y.Z · build <hash de commit>` — el hash identifica el deploy.
 
+## 6.2.4 — (producción)
+- ⚖️ **Regla de penales, universal y automática.** Un partido por penales terminó
+  EMPATADO a los 120'. Ahora la sync **descarta** cualquier resultado con penales
+  cuyo marcador NO sea empate (dato inconsistente del proveedor), en vez de
+  escribirlo. Junto con `regulationScore` (marcador = 120') y el candado `locked`,
+  todo partido por penales queda bien sin tocar nada a mano. Los puntos siguen
+  saliendo del marcador de los 120' + el bonus por quién pasa, y se recalculan solos
+  al cambiar cualquier resultado. Tests nuevos.
+
 ## 6.2.3 — (producción)
 - 🔐 **Candado `locked`: la sync nunca pisa un resultado congelado a mano.** El
   candado por `finished` de 6.2.2 no alcanzaba porque football-data manda datos

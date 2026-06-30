@@ -229,10 +229,18 @@ export function mapFixturesToUpdates(fixtures: NormFixture[], resolution: Resolu
     if (f.hs == null || f.as == null) continue // en el feed pero todavía sin marcador
     const sameOrientation = slot.home === h
     const hasPens = f.hpens != null && f.apens != null
+    const homeScore = sameOrientation ? f.hs : f.as
+    const awayScore = sameOrientation ? f.as : f.hs
+    // REGLA DE PENALES (universal): un partido que se define por penales terminó
+    // EMPATADO a los 120'. Si el proveedor manda penales con un marcador que NO es
+    // empate, el dato es inconsistente (típico de football-data, que a veces suma
+    // mal la tanda) → NO lo escribimos, así no se corrompe el resultado. Con datos
+    // limpios, regulationScore ya deja el marcador en empate y este chequeo pasa.
+    if (hasPens && homeScore !== awayScore) continue
     updates.push({
       matchId: slot.matchId,
-      homeScore: sameOrientation ? f.hs : f.as,
-      awayScore: sameOrientation ? f.as : f.hs,
+      homeScore,
+      awayScore,
       finished: f.finished,
       apiId: f.apiId,
       homePens: hasPens ? (sameOrientation ? f.hpens! : f.apens!) : undefined,

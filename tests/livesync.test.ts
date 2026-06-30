@@ -83,5 +83,14 @@ check('Empate de fase de grupos 1-1 sin penales → 1-1', rs(1, 1, null, null).h
   check('Un partido por penales queda EMPATADO en el marcador', x.hs === x.as)
 }
 
+// ── REGLA DE PENALES en el mapeo: el marcador con penales SIEMPRE es empate ──
+const penOk = mapFixturesToUpdates([fx({ homeName: 'Mexico', awayName: 'South Africa', hs: 1, as: 1, hpens: 4, apens: 3, finished: true })], res)
+check('Penales con empate 1-1 (4-3p) se escribe', penOk.updates.length === 1 && penOk.updates[0].homeScore === 1 && penOk.updates[0].awayScore === 1 && penOk.updates[0].homePens === 4 && penOk.updates[0].awayPens === 3)
+const penBad = mapFixturesToUpdates([fx({ homeName: 'Mexico', awayName: 'South Africa', hs: 5, as: 6, hpens: 4, apens: 4, finished: true })], res)
+check('Penales con marcador NO empatado (5-6) se DESCARTA (dato malo)', penBad.updates.length === 0)
+// Sin penales, un marcador no empatado es normal (no se descarta).
+const noPen = mapFixturesToUpdates([fx({ homeName: 'Mexico', awayName: 'South Africa', hs: 3, as: 1, finished: true })], res)
+check('Sin penales, 3-1 se escribe normal', noPen.updates.length === 1 && noPen.updates[0].homeScore === 3 && noPen.updates[0].awayScore === 1)
+
 console.log(`\n──────── LIVE SYNC: ${pass} OK, ${fail} FALLOS ────────`)
 if (fail > 0) process.exit(1)
