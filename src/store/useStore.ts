@@ -291,12 +291,15 @@ export const useStore = create<State>()(
               const results = { ...sc.results }
               for (const u of updates) {
                 const prev = results[u.matchId]
-                // Un partido YA FINALIZADO no se vuelve a pisar con la sync: algunos
-                // proveedores (football-data) siguen mandando datos raros del partido
-                // después de terminado (ej.: la tanda de penales sumada al marcador,
-                // o tallies intermedios). Una vez finished, el resultado queda firme;
-                // si hubo un dato malo, se corrige una vez en la base y no se vuelve a
-                // tocar.
+                // CONGELADO a mano: la sync nunca pisa un resultado con `locked`. Es
+                // el escape definitivo cuando el proveedor manda datos malos de un
+                // partido (ej.: una tanda de penales que reporta mal y encima no marca
+                // el partido como FINISHED, así que el flag `finished` no alcanza).
+                if (prev?.locked) continue
+                // Un partido YA FINALIZADO tampoco se vuelve a pisar: algunos
+                // proveedores (football-data) siguen mandando datos raros después de
+                // terminado (la tanda sumada al marcador, tallies intermedios). Una vez
+                // finished, queda firme.
                 if (prev?.finished) continue
                 results[u.matchId] = applyResultOverride(u.matchId, {
                   played: true,

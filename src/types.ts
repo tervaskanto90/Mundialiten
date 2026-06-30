@@ -74,6 +74,11 @@ export interface MatchResult {
   // ¿El partido ya terminó? Lo marca la sync en vivo (status FINISHED). Si está
   // jugado pero NO finished, está EN VIVO. Sólo aplica al escenario real.
   finished?: boolean
+  // Resultado CONGELADO a mano (en la base): la sincronización en vivo NO lo toca
+  // más. Se usa cuando el proveedor manda datos malos de un partido (ej.: una
+  // tanda de penales que reporta mal y no marca el partido como terminado). Es la
+  // verdad definitiva: pase lo que pase con el feed, este resultado manda.
+  locked?: boolean
 }
 
 export type ScenarioType = 'real' | 'prediction' | 'whatif'

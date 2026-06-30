@@ -8,6 +8,13 @@ Versionado **SemVer**: `MAYOR.MENOR.PATCH`.
 La versión vive en `package.json` (única fuente). El footer muestra
 `vX.Y.Z · build <hash de commit>` — el hash identifica el deploy.
 
+## 6.2.3 — (producción)
+- 🔐 **Candado `locked`: la sync nunca pisa un resultado congelado a mano.** El
+  candado por `finished` de 6.2.2 no alcanzaba porque football-data manda datos
+  malos de un partido SIN marcarlo terminado (`finished=false`), así que seguía
+  pisándolo. Ahora un resultado con `locked:true` en la base es la verdad
+  definitiva: pase lo que pase con el feed, la sincronización lo deja quieto.
+
 ## 6.2.2 — (producción)
 - 🔒 **Un partido finalizado no se vuelve a pisar con la sincronización en vivo.**
   football-data.org seguía mandando datos raros de partidos ya terminados (la tanda
