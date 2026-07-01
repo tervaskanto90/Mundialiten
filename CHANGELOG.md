@@ -8,6 +8,17 @@ Versionado **SemVer**: `MAYOR.MENOR.PATCH`.
 La versión vive en `package.json` (única fuente). El footer muestra
 `vX.Y.Z · build <hash de commit>` — el hash identifica el deploy.
 
+## 6.2.7 — (producción)
+- 🚨 **Fix crítico: la sync en vivo escribía resultados de partidos que NO se
+  habían jugado.** El emparejado con el proveedor de datos era SÓLO por nombre de
+  equipo, sin chequear la fecha — así que un dato viejo/erróneo del proveedor con
+  los mismos dos equipos (ej. un cruce de eliminatoria ya resuelto pero todavía sin
+  jugarse) podía escribirse como si fuera nuestro partido. Caso real: un cruce de
+  octavos (Paraguay-Francia, arrancaba 3 días después) apareció con "0-3" jugado.
+  Ahora se valida la fecha del partido del proveedor contra el kickoff real de
+  nuestro calendario (tolerancia 36h); si está muy lejos, se descarta. Tests
+  nuevos (36/36 en LIVE SYNC).
+
 ## 6.2.6 — (infra, sin cambios de código)
 - 🔧 **Fix silencioso de Supabase: tope de 1000 filas en la API.** `past_predictions()`
   devuelve una fila por (usuario × partido predicho); con ~21 jugadores y todos los

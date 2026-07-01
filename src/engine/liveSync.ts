@@ -1,5 +1,5 @@
 import { TEAMS } from '../data/teams'
-import { MATCHES } from '../data/schedule'
+import { MATCHES, MATCH_BY_ID } from '../data/schedule'
 import type { EventType } from '../types'
 import type { Resolution } from './resolve'
 
@@ -96,7 +96,19 @@ interface NormFixture {
   apiId?: number
   hpens?: number | null // tanda de penales (si la hubo)
   apens?: number | null
+  /** Fecha/hora (UTC ms) del partido según el proveedor, si la manda. Sirve para
+   *  validar que el emparejado por nombre de equipo sea realmente NUESTRO partido
+   *  (ver DATE_TOLERANCE_MS más abajo). */
+  kickoffMs?: number
 }
+
+// Tolerancia entre la fecha que manda el proveedor y el kickoff real de nuestro
+// calendario para aceptar un emparejado por nombre de equipo. Generosa (36h) para
+// cubrir diferencias de huso horario/redondeo del proveedor, pero suficiente para
+// rechazar un partido de OTRO evento que casualmente tenga los mismos dos equipos
+// (ej.: un amistoso viejo, o un dato mal cacheado del proveedor) — el bug real que
+// escribió un 0-3 en un cruce de octavos que todavía no se había jugado.
+const DATE_TOLERANCE_MS = 36 * 60 * 60 * 1000
 
 const APIF_BASE = 'https://v3.football.api-sports.io'
 const FINISHED_SHORT = ['FT', 'AET', 'PEN']
@@ -120,6 +132,7 @@ async function fetchApiFootball(config: LiveConfig, signal?: AbortSignal): Promi
     as: r.goals?.away ?? null,
     finished: FINISHED_SHORT.includes(r.fixture?.status?.short),
     apiId: r.fixture?.id,
+    kickoffMs: r.fixture?.date ? Date.parse(r.fixture.date) : undefined,
   }))
 }
 
@@ -141,6 +154,7 @@ async function fetchTheSportsDb(config: LiveConfig, signal?: AbortSignal): Promi
       hs: e.intHomeScore == null || e.intHomeScore === '' ? null : Number(e.intHomeScore),
       as: e.intAwayScore == null || e.intAwayScore === '' ? null : Number(e.intAwayScore),
       finished: TSDB_FINISHED.some((h) => status.includes(h)),
+      kickoffMs: e.strTimestamp ? Date.parse(e.strTimestamp) : e.dateEvent ? Date.parse(e.dateEvent) : undefined,
     }
   })
 }
@@ -168,6 +182,7 @@ async function fetchFootballData(config: LiveConfig, signal?: AbortSignal): Prom
       apiId: m.id,
       hpens: penH,
       apens: penA,
+      kickoffMs: m.utcDate ? Date.parse(m.utcDate) : undefined,
     }
   })
 }
@@ -225,6 +240,14 @@ export function mapFixturesToUpdates(fixtures: NormFixture[], resolution: Resolu
     if (!h || !a) continue
     const slot = byPair[`${h}|${a}`]
     if (!slot) continue
+    // Sanity check de fecha: el emparejado es SÓLO por nombre de equipo, así que un
+    // dato viejo/erróneo del proveedor con los mismos dos equipos (otro amistoso,
+    // un cache corrupto) podría escribirse en un cruce nuestro que TODAVÍA no se
+    // jugó. Si el proveedor manda fecha y está lejísimos del kickoff real de ESE
+    // partido en nuestro calendario, descartamos el dato (no lo tratamos ni como
+    // "matched", para que se vea en el diagnóstico de unmatched/fetched).
+    const ourKickoff = Date.parse(MATCH_BY_ID[slot.matchId].kickoff)
+    if (f.kickoffMs != null && Math.abs(f.kickoffMs - ourKickoff) > DATE_TOLERANCE_MS) continue
     matched++ // emparejado con uno de nuestros partidos (haya o no marcador)
     if (f.hs == null || f.as == null) continue // en el feed pero todavía sin marcador
     const sameOrientation = slot.home === h

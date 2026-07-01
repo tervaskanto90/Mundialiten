@@ -2,7 +2,7 @@
 import { mapFixturesToUpdates, regulationScore } from '../src/engine/liveSync'
 import { resolve } from '../src/engine/resolve'
 import { TEAM_BY_ID } from '../src/data/teams'
-import { MATCHES } from '../src/data/schedule'
+import { MATCHES, MATCH_BY_ID } from '../src/data/schedule'
 import type { MatchResult } from '../src/types'
 
 let pass = 0, fail = 0
@@ -98,6 +98,26 @@ check('Penales definidos (1-1, 3-4p) se escribe', penWin.updates.length === 1 &&
 // Sin penales, un marcador no empatado es normal (no se descarta).
 const noPen = mapFixturesToUpdates([fx({ homeName: 'Mexico', awayName: 'South Africa', hs: 3, as: 1, finished: true })], res)
 check('Sin penales, 3-1 se escribe normal', noPen.updates.length === 1 && noPen.updates[0].homeScore === 3 && noPen.updates[0].awayScore === 1)
+
+// ── SANITY DE FECHA: descartar un emparejado por nombre que NO es nuestro partido ──
+// Caso real: un cruce de octavos (equipos ya resueltos, todavía sin jugarse) quedó
+// con un 0-3 escrito porque el proveedor mandó datos de otro partido con los mismos
+// dos equipos. Ahora se valida la fecha del fixture contra el kickoff real.
+const m1Kickoff = Date.parse(MATCH_BY_ID[1].kickoff)
+const dateOk = mapFixturesToUpdates(
+  [fx({ homeName: 'Mexico', awayName: 'South Africa', hs: 2, as: 0, finished: true, kickoffMs: m1Kickoff + 30 * 60_000 })],
+  res,
+)
+check('Fixture con fecha cercana al kickoff real (30min) SÍ se aplica', dateOk.updates.some((x) => x.matchId === 1 && x.homeScore === 2))
+const dateFar = mapFixturesToUpdates(
+  [fx({ homeName: 'Mexico', awayName: 'South Africa', hs: 0, as: 3, finished: true, kickoffMs: m1Kickoff + 90 * 24 * 60 * 60_000 })],
+  res,
+)
+check('Fixture con fecha MUY lejana (3 meses) se DESCARTA (no es nuestro partido)', dateFar.updates.length === 0 && dateFar.matched === 0)
+// Sin fecha del proveedor (algunos no la mandan): no se bloquea, se mantiene el
+// comportamiento previo (sólo por nombre de equipo).
+const dateMissing = mapFixturesToUpdates([fx({ homeName: 'Mexico', awayName: 'South Africa', hs: 4, as: 0, finished: true })], res)
+check('Sin fecha del proveedor, se aplica igual (compat)', dateMissing.updates.some((x) => x.matchId === 1 && x.homeScore === 4))
 
 console.log(`\n──────── LIVE SYNC: ${pass} OK, ${fail} FALLOS ────────`)
 if (fail > 0) process.exit(1)
