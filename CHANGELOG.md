@@ -8,6 +8,15 @@ Versionado **SemVer**: `MAYOR.MENOR.PATCH`.
 La versión vive en `package.json` (única fuente). El footer muestra
 `vX.Y.Z · build <hash de commit>` — el hash identifica el deploy.
 
+## 6.2.6 — (infra, sin cambios de código)
+- 🔧 **Fix silencioso de Supabase: tope de 1000 filas en la API.** `past_predictions()`
+  devuelve una fila por (usuario × partido predicho); con ~21 jugadores y todos los
+  partidos ya jugados, el total superó las 1000 filas por defecto de PostgREST
+  (medido: 1093) — sin error, las filas de más simplemente no llegaban (caso: la
+  predicción de "Victor pampa" para el P79 no aparecía en el ranking). Se subió el
+  techo a 10.000 filas (`alter role authenticator set pgrst.db_max_rows`). Sin
+  cambios de código; documentado en `supabase/schema.sql` para setups nuevos.
+
 ## 6.2.5 — (producción)
 - 🥅 **Tanda de penales empatada = dato incompleto, se descarta.** Una tanda SIEMPRE
   tiene ganador; si el proveedor manda los penales empatados (ej.: 3-3, tanda en

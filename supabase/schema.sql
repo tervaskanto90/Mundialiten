@@ -1,6 +1,14 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Mundialiten · esquema de Supabase
 -- Pegá todo esto en el editor SQL de tu proyecto (SQL Editor → New query → Run).
+--
+-- IMPORTANTE (una sola vez, ver supabase/migrations/pgrst_max_rows.sql): Supabase
+-- corta las respuestas de la API a 1000 filas por defecto (`db-max-rows`), SIN
+-- error — las filas de más simplemente no llegan. past_predictions() devuelve una
+-- fila por (usuario × partido predicho) y ya superó ese límite durante el
+-- Mundial. Correr también:
+--   alter role authenticator set pgrst.db_max_rows = 10000;
+--   notify pgrst, 'reload config';
 -- ─────────────────────────────────────────────────────────────────────────────
 
 -- Predicciones: una por usuario, PRIVADAS (cada uno ve sólo la suya).
