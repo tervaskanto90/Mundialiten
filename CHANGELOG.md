@@ -8,6 +8,11 @@ Versionado **SemVer**: `MAYOR.MENOR.PATCH`.
 La versión vive en `package.json` (única fuente). El footer muestra
 `vX.Y.Z · build <hash de commit>` — el hash identifica el deploy.
 
+## 6.2.11 — (producción)
+- 🧹 **Se quita el "% efectiv." del ranking** (mobile y desktop): confundía y no
+  es parte de los desempates. Quedan los badges que sí definen el orden:
+  🎯 exactos · ✅ resultados · 🎟️ pases.
+
 ## 6.2.10 — (producción)
 - ✅ **Se apaga el aviso de mantenimiento del login** (`MAINTENANCE_NOTICE = false`):
   Supabase levantó la restricción de cuota y el servicio volvió a la normalidad.

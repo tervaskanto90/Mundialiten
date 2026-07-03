@@ -346,7 +346,6 @@ export function RankingView() {
                     🎟️ {advCountOf(r)} {t('pases', 'advances')}
                   </span>
                 )}
-                <span className="text-[10px]" style={{ color: c.faint }}>{Number(r.accuracy).toFixed(0)}% {t('efectiv.', 'acc.')}</span>
               </>
             )
             const pointsBox = (
