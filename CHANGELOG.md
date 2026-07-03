@@ -8,6 +8,15 @@ Versionado **SemVer**: `MAYOR.MENOR.PATCH`.
 La versión vive en `package.json` (única fuente). El footer muestra
 `vX.Y.Z · build <hash de commit>` — el hash identifica el deploy.
 
+## 6.2.8 — (producción)
+- 🛠️ **Aviso de mantenimiento en el login.** Banner en la pantalla de entrada
+  avisando que hay un inconveniente con el servicio de base de datos (restricción
+  de cuota de Supabase pendiente de levantarse) y que login/predicciones pueden
+  fallar; aclara que los puntos y predicciones están a salvo. Bilingüe, estilado
+  con el tema. Se activa/desactiva con `MAINTENANCE_NOTICE` en `AuthGate.tsx`
+  (flag de código a propósito: el aviso existe justo para cuando la base no
+  responde). **Recordar ponerlo en `false` y re-deployar cuando se resuelva.**
+
 ## 6.2.7 — (producción)
 - 🚨 **Fix crítico: la sync en vivo escribía resultados de partidos que NO se
   habían jugado.** El emparejado con el proveedor de datos era SÓLO por nombre de

@@ -9,6 +9,12 @@ import { ProjectsShowcase } from './ProjectsShowcase'
 import { useBranding } from '../lib/branding'
 import { useIsDesktop } from '../hooks/useIsDesktop'
 
+// AVISO DE MANTENIMIENTO en la pantalla de login. Ponerlo en `false` (y
+// deployar) cuando el proveedor de la base de datos levante la restricción.
+// Tiene que ser un flag de código: no puede venir de la base porque el aviso
+// existe justamente para cuando la base no responde.
+const MAINTENANCE_NOTICE = true
+
 export function AuthGate({ children }: { children: ReactNode }) {
   const { enabled, loading, user, recovery } = useAuth()
   if (recovery) return <RecoveryScreen />
@@ -195,9 +201,29 @@ function AuthScreen() {
     </div>
   )
 
-  // (1+2) Columna centrada: login + caja de crédito debajo.
+  // Aviso de mantenimiento (arriba del login) mientras MAINTENANCE_NOTICE esté activo.
+  const maintenanceBox = MAINTENANCE_NOTICE ? (
+    <div
+      className="rounded-2xl px-4 py-3.5 text-center"
+      style={{ background: dark ? 'rgba(255,194,26,.10)' : 'rgba(255,194,26,.16)', border: '1px solid ' + ACCENT.gold + '66', boxShadow: '0 20px 50px -22px rgba(0,0,0,.5)' }}
+    >
+      <div className="text-xl leading-none mb-1">🛠️</div>
+      <p className="text-sm font-bold" style={{ color: dark ? ACCENT.gold : '#8a6d00' }}>
+        {t('Servicio temporalmente no disponible', 'Service temporarily unavailable')}
+      </p>
+      <p className="text-xs mt-1 leading-relaxed" style={{ color: c.muted }}>
+        {t(
+          'Tenemos un inconveniente con el servicio de base de datos. El login y las predicciones pueden fallar hasta que se resuelva. Tus puntos y predicciones están a salvo — no hace falta que hagas nada.',
+          'We are having an issue with our database service. Login and predictions may fail until it is resolved. Your points and predictions are safe — no action needed.',
+        )}
+      </p>
+    </div>
+  ) : null
+
+  // (1+2) Columna centrada: aviso (si aplica) + login + caja de crédito debajo.
   const centerColumn = (
     <div style={{ width: '100%', maxWidth: 360, display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {maintenanceBox}
       {loginCard}
       <FooterBox />
     </div>
