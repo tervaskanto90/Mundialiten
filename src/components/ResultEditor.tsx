@@ -179,8 +179,13 @@ export function ResultEditor({ matchId, ctx, onClose }: Props) {
               </div>
             )}
             {!editingDisabled && !pick && (
-              <div className="text-[10px] mt-1.5 text-center" style={{ color: ACCENT.red }}>
-                {t('Elegí quién avanza para sumar el bonus.', 'Pick who advances to earn the bonus.')}
+              <div
+                className="mt-2 rounded-lg px-3 py-2 text-center text-xs font-bold"
+                style={{ color: ACCENT.red, background: ACCENT.red + '1A', border: '1px solid ' + ACCENT.red + '66' }}
+              >
+                ⚠️ {isFinalish
+                  ? t('Te falta elegir quién GANA: sin esto no sumás el bonus.', 'You still need to pick who WINS: without it you earn no bonus.')
+                  : t('Te falta elegir quién PASA: sin esto no sumás el bonus de esta ronda.', 'You still need to pick who ADVANCES: without it you earn no bonus this round.')}
               </div>
             )}
           </div>

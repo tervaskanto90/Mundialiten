@@ -3,6 +3,7 @@ import { sideLabelFor, venueName, matchTimeLabel, formatDateShort, matchDateKey 
 import { canPredict } from '../utils/stage'
 import type { ActiveContext } from '../hooks'
 import { useTheme, ACCENT } from '../theme'
+import { useT } from '../i18n'
 
 interface Props {
   matchId: number
@@ -14,6 +15,7 @@ interface Props {
 
 export function MatchRow({ matchId, ctx, onEdit, showVenue = true, showDate = false }: Props) {
   const { c } = useTheme()
+  const { t } = useT()
   const match = MATCH_BY_ID[matchId]
   if (!match) return null
   const res = ctx.results[matchId]
@@ -44,6 +46,15 @@ export function MatchRow({ matchId, ctx, onEdit, showVenue = true, showDate = fa
   const awayStatus = statusFor(away.short)
   // En una predicción, marcamos los partidos que todavía no se pueden predecir.
   const lockedForPrediction = ctx.scenario.type === 'prediction' && !canPredict(match)
+  // Empate de eliminatoria SIN elegir quién pasa: la predicción está incompleta
+  // (no suma el bonus y el cuadro no puede resolver quién avanza). Aviso visible
+  // en la tarjeta para que no quede enterrado en el editor. No aplica al real.
+  const needsAdvancePick =
+    ctx.scenario.type !== 'real' &&
+    match.stage !== 'group' &&
+    !!played &&
+    res!.homeScore === res!.awayScore &&
+    (res!.homePens ?? 0) === (res!.awayPens ?? 0)
 
   const cardStyle: React.CSSProperties = {
     width: '100%',
@@ -90,6 +101,13 @@ export function MatchRow({ matchId, ctx, onEdit, showVenue = true, showDate = fa
             c={c}
           />
         </div>
+        {needsAdvancePick && (
+          <div style={{ fontSize: '10px', color: ACCENT.red, fontWeight: 800, marginTop: '4px', textAlign: 'center' }}>
+            ⚠️ {match.stage === 'final' || match.stage === 'third'
+              ? t('Falta elegir quién GANA — tocá el partido', 'Missing pick: who WINS — tap the match')
+              : t('Falta elegir quién PASA — tocá el partido', 'Missing pick: who ADVANCES — tap the match')}
+          </div>
+        )}
         {showVenue && (
           <div style={{ fontSize: '10px', color: c.faint, marginTop: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             📍 {venueName(match.venueId)}
