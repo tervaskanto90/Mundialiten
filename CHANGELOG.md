@@ -8,6 +8,10 @@ Versionado **SemVer**: `MAYOR.MENOR.PATCH`.
 La versión vive en `package.json` (única fuente). El footer muestra
 `vX.Y.Z · build <hash de commit>` — el hash identifica el deploy.
 
+## 6.2.10 — (producción)
+- ✅ **Se apaga el aviso de mantenimiento del login** (`MAINTENANCE_NOTICE = false`):
+  Supabase levantó la restricción de cuota y el servicio volvió a la normalidad.
+
 ## 6.2.9 — (producción)
 - 🛠️ **Aviso de mantenimiento: legible y sin mover el layout.** El banner del
   login tenía fondo translúcido y el mosaico de colores lavaba el texto (ilegible

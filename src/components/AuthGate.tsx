@@ -13,7 +13,7 @@ import { useIsDesktop } from '../hooks/useIsDesktop'
 // deployar) cuando el proveedor de la base de datos levante la restricción.
 // Tiene que ser un flag de código: no puede venir de la base porque el aviso
 // existe justamente para cuando la base no responde.
-const MAINTENANCE_NOTICE = true
+const MAINTENANCE_NOTICE = false
 
 export function AuthGate({ children }: { children: ReactNode }) {
   const { enabled, loading, user, recovery } = useAuth()
