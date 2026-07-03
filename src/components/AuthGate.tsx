@@ -201,29 +201,35 @@ function AuthScreen() {
     </div>
   )
 
-  // Aviso de mantenimiento (arriba del login) mientras MAINTENANCE_NOTICE esté activo.
+  // Aviso de mantenimiento mientras MAINTENANCE_NOTICE esté activo. Fondo OPACO
+  // (misma tarjeta que el login): sobre el mosaico de colores, un fondo
+  // translúcido deja pasar las bandas y el texto no se lee.
   const maintenanceBox = MAINTENANCE_NOTICE ? (
-    <div
-      className="rounded-2xl px-4 py-3.5 text-center"
-      style={{ background: dark ? 'rgba(255,194,26,.10)' : 'rgba(255,194,26,.16)', border: '1px solid ' + ACCENT.gold + '66', boxShadow: '0 20px 50px -22px rgba(0,0,0,.5)' }}
-    >
-      <div className="text-xl leading-none mb-1">🛠️</div>
-      <p className="text-sm font-bold" style={{ color: dark ? ACCENT.gold : '#8a6d00' }}>
-        {t('Servicio temporalmente no disponible', 'Service temporarily unavailable')}
-      </p>
-      <p className="text-xs mt-1 leading-relaxed" style={{ color: c.muted }}>
-        {t(
-          'Tenemos un inconveniente con el servicio de base de datos. El login y las predicciones pueden fallar hasta que se resuelva. Tus puntos y predicciones están a salvo — no hace falta que hagas nada.',
-          'We are having an issue with our database service. Login and predictions may fail until it is resolved. Your points and predictions are safe — no action needed.',
-        )}
-      </p>
+    <div className="rounded-2xl overflow-hidden" style={{ background: c.cardGrad, border: '1px solid ' + ACCENT.gold + '88', boxShadow: '0 24px 60px -20px rgba(0,0,0,.55)' }}>
+      <div style={{ height: 3, background: ACCENT.gold }} />
+      <div className="px-4 py-3 text-center">
+        <p className="text-sm font-bold" style={{ color: dark ? ACCENT.gold : '#7a5f00' }}>
+          🛠️ {t('Servicio temporalmente no disponible', 'Service temporarily unavailable')}
+        </p>
+        <p className="text-xs mt-1 leading-relaxed" style={{ color: c.muted }}>
+          {t(
+            'Tenemos un inconveniente con el servicio de base de datos. El login y las predicciones pueden fallar hasta que se resuelva. Tus puntos y predicciones están a salvo — no hace falta que hagas nada.',
+            'We are having an issue with our database service. Login and predictions may fail until it is resolved. Your points and predictions are safe — no action needed.',
+          )}
+        </p>
+      </div>
     </div>
   ) : null
 
-  // (1+2) Columna centrada: aviso (si aplica) + login + caja de crédito debajo.
-  const centerColumn = (
-    <div style={{ width: '100%', maxWidth: 360, display: 'flex', flexDirection: 'column', gap: 14 }}>
-      {maintenanceBox}
+  // (1+2) Columna centrada: login + caja de crédito debajo. En DESKTOP el aviso
+  // flota ARRIBA de la caja sin ocupar lugar en el flujo (position absolute):
+  // así la columna mide lo mismo de siempre y el panel de la derecha —anclado al
+  // tope de esta columna— no se corre. En MOBILE va en el flujo normal.
+  const centerColumn = (bannerInFlow: boolean) => (
+    <div style={{ width: '100%', maxWidth: 360, position: 'relative', display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {maintenanceBox && (bannerInFlow ? maintenanceBox : (
+        <div style={{ position: 'absolute', bottom: 'calc(100% + 14px)', left: 0, right: 0 }}>{maintenanceBox}</div>
+      ))}
       {loginCard}
       <FooterBox />
     </div>
@@ -246,7 +252,7 @@ function AuthScreen() {
       <Shell>
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}><Toggles /></div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18 }}>
-          {centerColumn}
+          {centerColumn(true)}
           <div style={{ width: '100%', maxWidth: 360 }}>
             <div className="rounded-2xl p-3" style={{ background: dark ? 'rgba(12,9,4,.5)' : 'rgba(251,246,234,.7)', backdropFilter: 'blur(6px)', border: '1px solid ' + c.line }}>
               <ProjectsShowcase compact />
@@ -265,7 +271,7 @@ function AuthScreen() {
     <Shell>
       <div style={{ minHeight: 'calc(100vh - 32px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ position: 'relative', width: '100%', display: 'flex', justifyContent: 'center' }}>
-          {centerColumn}
+          {centerColumn(false)}
           <div style={{ position: 'absolute', top: -44, right: '3%' }}>{rightSide}</div>
         </div>
       </div>
