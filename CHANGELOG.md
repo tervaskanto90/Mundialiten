@@ -8,6 +8,17 @@ Versionado **SemVer**: `MAYOR.MENOR.PATCH`.
 La versión vive en `package.json` (única fuente). El footer muestra
 `vX.Y.Z · build <hash de commit>` — el hash identifica el deploy.
 
+## 6.3.0 — (producción)
+- 🏁 **Highlights automáticos al terminar cada fase** (mismo cron diario de
+  /api/remind, sin gastar otro slot de cron): cuando una fase termina (último
+  kickoff + 3.5h), un mail a todos con el **top 3 de la fase** (puntos ganados y
+  exactos), el **total de exactos** entre todos y el **líder general**, con
+  gancho a predecir la ronda siguiente. Dedup por usuario+fase (kind
+  `highlights`) y **ventana de frescura de 48h** para no spamear resúmenes
+  viejos (p.ej. grupos, que terminó hace días). Suite de tests nueva (17 casos).
+- ℹ️ El aviso de **fase nueva abierta** ya existía y sigue igual: el mismo cron
+  manda el "Se abrió la fase" (kind `open`) a todos apenas la fase se activa.
+
 ## 6.2.12 — (producción)
 - ⚠️ **Empate de eliminatoria sin elegir quién pasa: imposible no verlo.** Era
   posible predecir un empate en el mata-mata y cerrar el editor sin elegir quién
