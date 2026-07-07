@@ -8,6 +8,15 @@ Versionado **SemVer**: `MAYOR.MENOR.PATCH`.
 La versión vive en `package.json` (única fuente). El footer muestra
 `vX.Y.Z · build <hash de commit>` — el hash identifica el deploy.
 
+## 6.4.0 — (producción)
+- 📰 **El mail de highlights ahora cuenta lo que pasó en la cancha** (máx. 2
+  párrafos): cuántos partidos y goles tuvo la fase, la mayor goleada, el partido
+  con más goles, las definiciones por penales (quién eliminó a quién y la tanda)
+  y los cruces definidos por un gol. Los partidos y nombres salen de
+  football-data (server-side) traducidos con un mapa estático de los 48 equipos
+  (con test de paridad contra `teams.ts`). Best-effort: si el proveedor falla,
+  el mail sale igual sin el resumen. Suite HIGHLIGHTS: 28 casos.
+
 ## 6.3.0 — (producción)
 - 🏁 **Highlights automáticos al terminar cada fase** (mismo cron diario de
   /api/remind, sin gastar otro slot de cron): cuando una fase termina (último

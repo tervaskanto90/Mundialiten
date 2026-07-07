@@ -191,6 +191,97 @@ const sideOf = (r: RV): 'h' | 'a' | null => {
   return null
 }
 
+// ── Resumen narrativo de la fase (nombres desde football-data) ──────────────
+// Mapa nombre-del-proveedor (normalizado) → nombre en español. Generado desde
+// src/data/teams.ts (nombres + aliases); tests/highlights.test.ts verifica
+// paridad para que no se desincronice.
+export const NAME_ES: Record<string, string> = {"mexico":"México","mex":"México","sudafrica":"Sudáfrica","rsa":"Sudáfrica","southafrica":"Sudáfrica","repdecorea":"Rep. de Corea","cor":"Rep. de Corea","southkorea":"Rep. de Corea","korearepublic":"Rep. de Corea","republickorea":"Rep. de Corea","korearep":"Rep. de Corea","korea":"Rep. de Corea","chequia":"Chequia","cze":"Chequia","czechia":"Chequia","czechrepublic":"Chequia","canada":"Canadá","can":"Canadá","qatar":"Qatar","qat":"Qatar","suiza":"Suiza","sui":"Suiza","switzerland":"Suiza","bosniaherzegovina":"Bosnia y Herzegovina","bos":"Bosnia y Herzegovina","bosnia":"Bosnia y Herzegovina","brasil":"Brasil","bra":"Brasil","brazil":"Brasil","marruecos":"Marruecos","mar":"Marruecos","morocco":"Marruecos","escocia":"Escocia","esc":"Escocia","scotland":"Escocia","haiti":"Haití","hai":"Haití","estadosunidos":"Estados Unidos","usa":"Estados Unidos","unitedstates":"Estados Unidos","unitedstatesamerica":"Estados Unidos","us":"Estados Unidos","paraguay":"Paraguay","par":"Paraguay","australia":"Australia","aus":"Australia","turquia":"Turquía","tur":"Turquía","turkey":"Turquía","turkiye":"Turquía","alemania":"Alemania","ale":"Alemania","germany":"Alemania","ecuador":"Ecuador","ecu":"Ecuador","costademarfil":"Costa de Marfil","cdm":"Costa de Marfil","ivorycoast":"Costa de Marfil","ivoire":"Costa de Marfil","cotedivoire":"Costa de Marfil","curazao":"Curazao","cur":"Curazao","curacao":"Curazao","paisesbajos":"Países Bajos","pba":"Países Bajos","netherlands":"Países Bajos","holland":"Países Bajos","japon":"Japón","jap":"Japón","japan":"Japón","tunez":"Túnez","tun":"Túnez","tunisia":"Túnez","suecia":"Suecia","swe":"Suecia","sweden":"Suecia","belgica":"Bélgica","bel":"Bélgica","belgium":"Bélgica","iran":"Irán","ira":"Irán","iriran":"Irán","islamicrepubliciran":"Irán","egipto":"Egipto","egi":"Egipto","egypt":"Egipto","nuevazelanda":"Nueva Zelanda","nzl":"Nueva Zelanda","newzealand":"Nueva Zelanda","espana":"España","esp":"España","spain":"España","uruguay":"Uruguay","uru":"Uruguay","arabiasaudi":"Arabia Saudí","ara":"Arabia Saudí","saudiarabia":"Arabia Saudí","ksa":"Arabia Saudí","caboverde":"Cabo Verde","cab":"Cabo Verde","capeverde":"Cabo Verde","capeverdeislands":"Cabo Verde","caboverdeislands":"Cabo Verde","francia":"Francia","fra":"Francia","france":"Francia","senegal":"Senegal","sen":"Senegal","noruega":"Noruega","nor":"Noruega","norway":"Noruega","irak":"Irak","irk":"Irak","iraq":"Irak","argentina":"Argentina","arg":"Argentina","argelia":"Argelia","alg":"Argelia","algeria":"Argelia","austria":"Austria","aut":"Austria","jordania":"Jordania","jor":"Jordania","jordan":"Jordania","portugal":"Portugal","por":"Portugal","uzbekistan":"Uzbekistán","uzb":"Uzbekistán","colombia":"Colombia","col":"Colombia","rddelcongo":"RD del Congo","cod":"RD del Congo","drcongo":"RD del Congo","congodr":"RD del Congo","democraticrepubliccongo":"RD del Congo","drc":"RD del Congo","congokinshasa":"RD del Congo","congo":"RD del Congo","inglaterra":"Inglaterra","ing":"Inglaterra","england":"Inglaterra","croacia":"Croacia","cro":"Croacia","croatia":"Croacia","ghana":"Ghana","gha":"Ghana","panama":"Panamá","pan":"Panamá"}
+
+export function normName(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .split(/[^a-z0-9]+/)
+    .filter((w) => w && !['and', 'the', 'of', 'y', 'e'].includes(w))
+    .join('')
+}
+const esName = (provider: string): string => NAME_ES[normName(provider)] ?? provider
+
+export interface PhaseFixture {
+  home: string // nombre en español (o el del proveedor si no lo reconocemos)
+  away: string
+  h: number
+  a: number
+  hp: number | null
+  ap: number | null
+}
+
+// football-data suma la tanda al fullTime: si al restarla queda un empate
+// no-negativo, ése es el marcador real (misma regla que src/engine/liveSync).
+function regScore(fh: number, fa: number, ph: number | null, pa: number | null): { h: number; a: number } {
+  if (ph == null || pa == null) return { h: fh, a: fa }
+  const rh = fh - ph, ra = fa - pa
+  if (rh >= 0 && ra >= 0 && rh === ra) return { h: rh, a: ra }
+  return { h: fh, a: fa }
+}
+
+// Partidos TERMINADOS de la fase, directo de football-data (server-side).
+export async function fetchPhaseFixtures(bucket: BucketId): Promise<PhaseFixture[]> {
+  const token = process.env.FOOTBALL_DATA_TOKEN
+  if (!token) return []
+  const r = await fetch('https://api.football-data.org/v4/competitions/WC/matches?season=2026', {
+    headers: { 'X-Auth-Token': token },
+  })
+  if (!r.ok) return []
+  const data: any = await r.json().catch(() => ({}))
+  const from = REMIND_BUCKETS[bucket].first - 2 * 3_600_000
+  const to = REMIND_BUCKETS[bucket].last + 6 * 3_600_000
+  const out: PhaseFixture[] = []
+  for (const m of data.matches ?? []) {
+    const ts = m.utcDate ? Date.parse(m.utcDate) : NaN
+    if (!(ts >= from && ts <= to) || m.status !== 'FINISHED') continue
+    const fh = m.score?.fullTime?.home, fa = m.score?.fullTime?.away
+    if (fh == null || fa == null) continue
+    const ph = m.score?.penalties?.home ?? null, pa = m.score?.penalties?.away ?? null
+    const { h, a } = regScore(fh, fa, ph, pa)
+    out.push({ home: esName(m.homeTeam?.name ?? '?'), away: esName(m.awayTeam?.name ?? '?'), h, a, hp: ph, ap: pa })
+  }
+  return out
+}
+
+// Resumen de la fase en DOS párrafos como máximo, armado con plantillas.
+export function buildPhaseNarrative(fx: PhaseFixture[]): string {
+  if (fx.length === 0) return ''
+  const goals = fx.reduce((s, f) => s + f.h + f.a, 0)
+  const score = (f: PhaseFixture) => `${f.home} ${f.h}-${f.a} ${f.away}`
+  // Mayor goleada (más diferencia; desempata más goles).
+  const sorted = [...fx].sort((x, y) => Math.abs(y.h - y.a) - Math.abs(x.h - x.a) || y.h + y.a - (x.h + x.a))
+  const big = sorted[0]
+  const bigDiff = Math.abs(big.h - big.a)
+  const bigWinner = big.h > big.a ? big.home : big.away
+  const topGoals = [...fx].sort((x, y) => y.h + y.a - (x.h + x.a))[0]
+  const p1parts: string[] = [
+    `Se jugaron ${fx.length} partido${fx.length === 1 ? '' : 's'} con ${goals} gol${goals === 1 ? '' : 'es'} en total.`,
+  ]
+  if (bigDiff >= 2) p1parts.push(`El golpe más contundente lo dio ${bigWinner}: ${score(big)}.`)
+  if (topGoals !== big && topGoals.h + topGoals.a >= 4) p1parts.push(`El más vibrante fue el ${score(topGoals)}.`)
+  const p1 = p1parts.join(' ')
+
+  const pens = fx.filter((f) => f.hp != null && f.ap != null && f.hp !== f.ap)
+  const tight = fx.filter((f) => Math.abs(f.h - f.a) === 1)
+  const p2parts: string[] = []
+  if (pens.length > 0) {
+    const penTxt = pens
+      .map((f) => `${(f.hp ?? 0) > (f.ap ?? 0) ? f.home : f.away} eliminó a ${(f.hp ?? 0) > (f.ap ?? 0) ? f.away : f.home} (${f.h}-${f.a}, ${f.hp}-${f.ap} en la tanda)`)
+      .join(' y ')
+    p2parts.push(`${pens.length === 1 ? 'Hubo drama desde los doce pasos' : 'Los penales fueron protagonistas'}: ${penTxt}.`)
+  }
+  if (tight.length > 0) p2parts.push(`${tight.length} cruce${tight.length === 1 ? ' se definió' : 's se definieron'} por un solo gol de diferencia.`)
+  const p2 = p2parts.join(' ')
+  return p2 ? `${p1}\n\n${p2}` : p1
+}
+
 export interface PhaseStats {
   top: Array<{ name: string; pts: number; exacts: number }>
   totalExacts: number
@@ -236,6 +327,7 @@ export function buildHighlightsEmail(
   name: string,
   s: PhaseStats,
   appUrl: string,
+  narrative = '',
 ): { subject: string; html: string; text: string } {
   const es = BUCKET_ES[bucket]
   const en = BUCKET_EN[bucket]
@@ -254,9 +346,16 @@ export function buildHighlightsEmail(
   const button = link
     ? `<p style="margin:24px 0"><a href="${link}" style="background:#16a34a;color:#fff;text-decoration:none;padding:12px 22px;border-radius:10px;font-weight:600;display:inline-block">Predecir la próxima ronda · Open the app</a></p>`
     : ''
+  const narrativeHtml = narrative
+    ? narrative
+        .split('\n\n')
+        .map((p) => `<p style="margin:0 0 12px;color:#334155">${p}</p>`)
+        .join('')
+    : ''
   const html = `<div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:520px;margin:0 auto;color:#0f172a">
   <h2 style="margin:0 0 6px">🏁 Se cerraron ${es}</h2>
   <p style="margin:0 0 16px;color:#475569">${hi}</p>
+  ${narrativeHtml}
   <p style="margin:0 0 10px">Los que más la rompieron en la fase:</p>
   ${topHtml}
   <p style="margin:0 0 8px;color:#334155">🎯 Entre todos clavaron <strong>${s.totalExacts}</strong> resultado${s.totalExacts === 1 ? '' : 's'} exacto${s.totalExacts === 1 ? '' : 's'} en la fase.</p>
@@ -267,7 +366,7 @@ export function buildHighlightsEmail(
   <p style="margin:0;color:#64748b;font-size:13px">${en.charAt(0).toUpperCase() + en.slice(1)} is over — phase highlights above. The next round is open: get your picks in before each match closes (5 min before kick-off).</p>
   <p style="margin:14px 0 0;color:#94a3b8;font-size:12px">Recibís este aviso porque tenés una cuenta en Mundialiten.</p>
 </div>`
-  const text = `${hi}\n\nSe cerraron ${es}. Los mejores de la fase:\n${topText}\n\n🎯 Exactos de la fase (entre todos): ${s.totalExacts}.${s.leader ? `\n👑 Líder general: ${s.leader.name} con ${s.leader.pts} pts.` : ''}\n\nLa próxima ronda ya está en juego.${link ? `\n\n${link}` : ''}`
+  const text = `${hi}\n\nSe cerraron ${es}.${narrative ? `\n\n${narrative}` : ''}\n\nLos mejores de la fase:\n${topText}\n\n🎯 Exactos de la fase (entre todos): ${s.totalExacts}.${s.leader ? `\n👑 Líder general: ${s.leader.name} con ${s.leader.pts} pts.` : ''}\n\nLa próxima ronda ya está en juego.${link ? `\n\n${link}` : ''}`
   return { subject, html, text }
 }
 
@@ -347,6 +446,7 @@ export default async function handler(req: any, res: any) {
       }
     }
     const statsByBucket = new Map<BucketId, PhaseStats>()
+    const narrativeByBucket = new Map<BucketId, string>()
     for (const b of new Set(highlightsPlan.map((h) => h.bucket))) {
       statsByBucket.set(
         b,
@@ -358,6 +458,13 @@ export default async function handler(req: any, res: any) {
           (scoresR.data || []) as Array<{ user_id: string; points: number }>,
         ),
       )
+      // Resumen de los partidos (best-effort: si el proveedor falla, el mail
+      // sale igual, sin el párrafo narrativo).
+      try {
+        narrativeByBucket.set(b, buildPhaseNarrative(await fetchPhaseFixtures(b)))
+      } catch {
+        narrativeByBucket.set(b, '')
+      }
     }
 
     if (!bucket && highlightsPlan.length === 0) {
@@ -383,6 +490,7 @@ export default async function handler(req: any, res: any) {
         wouldSend: targets.map((t) => ({ email: t.email, kind: t.kind })),
         wouldSendHighlights: highlightsPlan.map((h) => ({ email: h.email, bucket: h.bucket })),
         phaseStats: Object.fromEntries([...statsByBucket].map(([b, s]) => [b, s])),
+        narratives: Object.fromEntries(narrativeByBucket),
       })
       return
     }
@@ -416,7 +524,7 @@ export default async function handler(req: any, res: any) {
     // 1) Highlights de fases terminadas.
     for (const h of highlightsPlan) {
       const stats = statsByBucket.get(h.bucket)!
-      const { subject, html, text } = buildHighlightsEmail(h.bucket, h.name, stats, appUrl)
+      const { subject, html, text } = buildHighlightsEmail(h.bucket, h.name, stats, appUrl, narrativeByBucket.get(h.bucket) ?? '')
       const r = await sendMail(h.email, h.name, subject, html, text)
       if (r.ok) {
         sentHighlights++

@@ -1,7 +1,8 @@
 // HIGHLIGHTS de fin de fase (api/remind.ts): detección de fases terminadas,
 // cálculo del top de la fase y armado del mail. Es un envío masivo automático:
 // la lógica queda clavada acá.
-import { REMIND_BUCKETS, HIGHLIGHTS_GRACE_MS, HIGHLIGHTS_FRESH_MS, endedBuckets, computePhaseStats, buildHighlightsEmail } from '../api/remind'
+import { REMIND_BUCKETS, HIGHLIGHTS_GRACE_MS, HIGHLIGHTS_FRESH_MS, endedBuckets, computePhaseStats, buildHighlightsEmail, buildPhaseNarrative, NAME_ES, normName } from '../api/remind'
+import { TEAMS } from '../src/data/teams'
 
 let pass = 0, fail = 0
 const ok = (n: string, c: boolean, extra = '') => { if (c) pass++; else { fail++; console.log(`  ❌ ${n} ${extra}`) } }
@@ -58,6 +59,44 @@ ok('HTML menciona al líder general', mail.html.includes('Beto') && mail.html.in
 ok('HTML incluye el link a la app', mail.html.includes('https://app.test'))
 ok('Texto plano tiene el top y el líder', mail.text.includes('🥇') && mail.text.includes('Beto'))
 ok('Saluda por nombre', mail.html.includes('Octavio'))
+
+// ── NAME_ES: paridad con src/data/teams.ts (nombres + aliases) ──
+{
+  let missing = 0, wrong = 0
+  for (const t of TEAMS) {
+    for (const key of [t.name, t.id, ...(t.aliases ?? [])]) {
+      const got = NAME_ES[normName(key)]
+      if (got == null) { missing++; if (missing <= 3) console.log(`   falta: ${key}`) }
+      else if (got !== t.name) { wrong++; if (wrong <= 3) console.log(`   mal: ${key} → ${got} (esperado ${t.name})`) }
+    }
+  }
+  ok('NAME_ES cubre nombre+id+aliases de los 48 equipos', missing === 0, `${missing} faltantes`)
+  ok('NAME_ES mapea cada alias a su nombre en español', wrong === 0, `${wrong} incorrectos`)
+}
+
+// ── buildPhaseNarrative: 2 párrafos como máximo, con goleada y penales ──
+const fx = [
+  { home: 'Brasil', away: 'Japón', h: 4, a: 0, hp: null, ap: null },
+  { home: 'Países Bajos', away: 'Marruecos', h: 1, a: 1, hp: 2, ap: 3 },
+  { home: 'México', away: 'Ecuador', h: 2, a: 1, hp: null, ap: null },
+]
+const nar = buildPhaseNarrative(fx)
+ok('Narrativa: como máximo 2 párrafos', nar.split('\n\n').length <= 2)
+ok('Narrativa: cuenta partidos y goles', nar.includes('3 partidos') && nar.includes('9 goles'))
+ok('Narrativa: menciona la goleada con el ganador', nar.includes('Brasil') && nar.includes('4-0'))
+ok('Narrativa: cuenta la definición por penales con el eliminado', nar.includes('Marruecos eliminó a Países Bajos') && nar.includes('2-3'))
+ok('Narrativa vacía sin partidos', buildPhaseNarrative([]) === '')
+// Con penales EMPATADOS (dato inválido) no se narra tanda.
+const narBadPens = buildPhaseNarrative([{ home: 'A', away: 'B', h: 1, a: 1, hp: 3, ap: 3 }])
+ok('Tanda empatada (dato inválido) no se narra como definición', !narBadPens.includes('eliminó'))
+
+// El mail incorpora la narrativa en HTML y texto.
+const mailNar = buildHighlightsEmail('r32', 'Octavio', s, 'https://app.test', nar)
+ok('HTML del mail incluye la narrativa', mailNar.html.includes('Brasil') && mailNar.html.includes('4-0'))
+ok('Texto plano incluye la narrativa', mailNar.text.includes('Marruecos eliminó a Países Bajos'))
+// Sin narrativa, el mail sale igual (best-effort).
+const mailSin = buildHighlightsEmail('r32', 'Octavio', s, 'https://app.test')
+ok('Sin narrativa el mail se arma igual', mailSin.html.includes('🥇'))
 
 console.log(`\n──────── HIGHLIGHTS DE FASE: ${pass} OK, ${fail} FALLOS ────────`)
 if (fail > 0) process.exit(1)
