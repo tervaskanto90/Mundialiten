@@ -8,6 +8,11 @@ Versionado **SemVer**: `MAYOR.MENOR.PATCH`.
 La versión vive en `package.json` (única fuente). El footer muestra
 `vX.Y.Z · build <hash de commit>` — el hash identifica el deploy.
 
+## 6.4.4 — (producción)
+- 👉 **El mail de highlights anuncia la fase siguiente por su nombre**: "Ya se
+  abrieron los cuartos de final para predecir" (antes decía "la próxima ronda"
+  en genérico). Al cerrar la final, en cambio, despide el Mundial. Tests.
+
 ## 6.4.3 — (producción)
 - ✍️ **Nota editorial por fase en los highlights** (`PHASE_EDITORIAL` en
   api/remind.ts): una línea escrita a mano que sale SIEMPRE como "el partidazo"

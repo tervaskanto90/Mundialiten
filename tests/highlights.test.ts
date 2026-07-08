@@ -156,12 +156,15 @@ ok('Sin narrativa el mail se arma igual', mailSin.html.includes('🥇'))
   ok('PHASE_EDITORIAL.r16 existe y nombra a Argentina y Egipto', !!PHASE_EDITORIAL.r16 && PHASE_EDITORIAL.r16!.includes('Argentina') && PHASE_EDITORIAL.r16!.includes('Egipto'))
 }
 
-// ── El mail incluye el resumen del ranking general (top 5) ──
+// ── El mail incluye el resumen del ranking general (top 5) y la fase siguiente ──
 {
   const mailRk = buildHighlightsEmail('r16', 'Octavio', s, 'https://app.test')
   ok('HTML tiene el bloque de ranking general', mailRk.html.includes('ranking general') && mailRk.html.includes('👑'))
   ok('HTML lista al 2º del general (Ana — 80 pts)', mailRk.html.includes('Ana') && mailRk.html.includes('80 pts'))
   ok('Texto plano tiene el ranking numerado', mailRk.text.includes('📊 Ranking general:') && mailRk.text.includes('1. Beto — 95 pts'))
+  ok('Al cerrar octavos anuncia que se abrieron LOS CUARTOS para predecir', mailRk.html.includes('Ya se abrieron los cuartos de final para predecir') && mailRk.text.includes('Ya se abrieron los cuartos de final'))
+  const mailFin = buildHighlightsEmail('finals', 'Octavio', s, 'https://app.test')
+  ok('Al cerrar la final no anuncia fase siguiente (cierra el Mundial)', !mailFin.html.includes('Ya se abrieron') && mailFin.html.includes('se cierra el Mundial'))
 }
 
 console.log(`\n──────── HIGHLIGHTS DE FASE: ${pass} OK, ${fail} FALLOS ────────`)

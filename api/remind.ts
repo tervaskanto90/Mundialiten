@@ -385,6 +385,12 @@ export function buildHighlightsEmail(
   const en = BUCKET_EN[bucket]
   const hi = name ? `¡Hola, ${name}!` : '¡Hola!'
   const subject = `🏁 Terminaron ${es}: los highlights de la fase`
+  // Fase siguiente (si la hay): el mail la nombra explícitamente como abierta.
+  const nextIdx = BUCKET_ORDER.indexOf(bucket) + 1
+  const next = nextIdx < BUCKET_ORDER.length ? BUCKET_ORDER[nextIdx] : null
+  const nextLeadEs = next
+    ? `👉 <strong>Ya se abrieron ${BUCKET_ES[next]} para predecir</strong>: entrá y cargá tus pronósticos antes de que cierre cada partido (5 minutos antes del inicio).`
+    : '🏆 Con esto se cierra el Mundial. ¡Gracias por jugarlo con nosotros!'
   const medals = ['🥇', '🥈', '🥉']
   const topHtml = s.top.length
     ? `<ul style="margin:0 0 12px;padding-left:18px;color:#334155;line-height:1.7">${s.top
@@ -412,7 +418,7 @@ export function buildHighlightsEmail(
   ${topHtml}
   <p style="margin:0 0 8px;color:#334155">🎯 Entre todos clavaron <strong>${s.totalExacts}</strong> resultado${s.totalExacts === 1 ? '' : 's'} exacto${s.totalExacts === 1 ? '' : 's'} en la fase.</p>
   ${s.general.length ? `<p style="margin:0 0 6px;color:#334155">📊 Así quedó el ranking general:</p><ol style="margin:0 0 12px;padding-left:22px;color:#334155;line-height:1.7">${s.general.map((g, i) => `<li><strong>${g.name}</strong> — ${g.pts} pts${i === 0 ? ' 👑' : ''}</li>`).join('')}</ol>` : ''}
-  <p style="margin:0 0 12px">La próxima ronda ya está en juego: entrá y meté tus predicciones antes de que cierren (cada partido cierra 5 minutos antes de empezar).</p>
+  <p style="margin:0 0 12px">${nextLeadEs}</p>
   ${button}
   <hr style="border:none;border-top:1px solid #e2e8f0;margin:20px 0">
   <p style="margin:0;color:#64748b;font-size:13px">${en.charAt(0).toUpperCase() + en.slice(1)} is over — phase highlights above. The next round is open: get your picks in before each match closes (5 min before kick-off).</p>
@@ -421,7 +427,7 @@ export function buildHighlightsEmail(
   const generalText = s.general.length
     ? `\n\n📊 Ranking general:\n${s.general.map((g, i) => `${i + 1}. ${g.name} — ${g.pts} pts${i === 0 ? ' 👑' : ''}`).join('\n')}`
     : ''
-  const text = `${hi}\n\nSe cerraron ${es}.${narrative ? `\n\n${narrative}` : ''}\n\nLos mejores de la fase:\n${topText}\n\n🎯 Exactos de la fase (entre todos): ${s.totalExacts}.${generalText}\n\nLa próxima ronda ya está en juego.${link ? `\n\n${link}` : ''}`
+  const text = `${hi}\n\nSe cerraron ${es}.${narrative ? `\n\n${narrative}` : ''}\n\nLos mejores de la fase:\n${topText}\n\n🎯 Exactos de la fase (entre todos): ${s.totalExacts}.${generalText}\n\n${nextLeadEs.replace(/<[^>]+>/g, '')}${link ? `\n\n${link}` : ''}`
   return { subject, html, text }
 }
 
