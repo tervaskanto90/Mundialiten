@@ -47,6 +47,7 @@ ok('Top de la fase tiene 3 entradas (Dani con 0 queda afuera)', s.top.length ===
 ok('Ana y Beto empatan en 6; desempata el exacto y ordena estable', s.top[0].pts === 6 && s.top[1].pts === 6 && s.top[2].name === 'Caro' && s.top[2].pts === 4)
 ok('Exactos de la fase: Ana 1 + Beto 1 = 2', s.totalExacts === 2)
 ok('Líder general: Beto con 95', s.leader?.name === 'Beto' && s.leader?.pts === 95)
+ok('Ranking general: top 5 ordenado por puntos (Beto, Ana, Caro, Dani)', s.general.length === 4 && s.general.map((g) => g.name).join(',') === 'Beto,Ana,Caro,Dani')
 
 // Fase sin resultados jugados → top vacío, sin exactos.
 const s2 = computePhaseStats('qf', {}, preds as any, names, totals)
@@ -134,7 +135,15 @@ ok('Sin narrativa el mail se arma igual', mailSin.html.includes('🥇'))
   ]
   const nar2 = buildPhaseNarrative(fx2)
   ok('La goleada es de Bélgica (4-1)', nar2.includes('Bélgica') && nar2.includes('4-1'))
-  ok('El más vibrante es Argentina 3-2 (empata en goles pero es más peleado)', nar2.includes('Argentina 3-2 Egipto'))
+  ok('El partidazo es Argentina 3-2 (empata en goles pero es más peleado)', nar2.includes('El partidazo de la fase: Argentina 3-2 Egipto'))
+}
+
+// ── El mail incluye el resumen del ranking general (top 5) ──
+{
+  const mailRk = buildHighlightsEmail('r16', 'Octavio', s, 'https://app.test')
+  ok('HTML tiene el bloque de ranking general', mailRk.html.includes('ranking general') && mailRk.html.includes('👑'))
+  ok('HTML lista al 2º del general (Ana — 80 pts)', mailRk.html.includes('Ana') && mailRk.html.includes('80 pts'))
+  ok('Texto plano tiene el ranking numerado', mailRk.text.includes('📊 Ranking general:') && mailRk.text.includes('1. Beto — 95 pts'))
 }
 
 console.log(`\n──────── HIGHLIGHTS DE FASE: ${pass} OK, ${fail} FALLOS ────────`)

@@ -8,6 +8,13 @@ Versionado **SemVer**: `MAYOR.MENOR.PATCH`.
 La versión vive en `package.json` (única fuente). El footer muestra
 `vX.Y.Z · build <hash de commit>` — el hash identifica el deploy.
 
+## 6.4.2 — (producción)
+- 📊 **El mail de highlights suma el resumen del ranking general**: top 5 con
+  puntos (mismo orden que la app: pts → exactos → resultados → pases), con 👑
+  para el líder. Y el partido con más goles ahora se presenta como **"el
+  partidazo de la fase"** (a igual goles gana el más peleado: un 3-2 le gana a
+  un 4-1 — caso Argentina-Egipto en octavos). Suite HIGHLIGHTS: 39 casos.
+
 ## 6.4.1 — (producción)
 - 🎯 **La narrativa de highlights usa NUESTROS resultados, no los del proveedor.**
   El preview de octavos narraba "Suiza 4-3 Colombia" cuando fue 0-0 (4-3 por

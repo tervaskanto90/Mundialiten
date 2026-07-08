@@ -296,7 +296,7 @@ export function buildPhaseNarrative(fx: PhaseFixture[]): string {
     `Se jugaron ${fx.length} partido${fx.length === 1 ? '' : 's'} con ${goals} gol${goals === 1 ? '' : 'es'} en total.`,
   ]
   if (bigDiff >= 2) p1parts.push(`El golpe más contundente lo dio ${bigWinner}: ${score(big)}.`)
-  if (topGoals !== big && topGoals.h + topGoals.a >= 4) p1parts.push(`El más vibrante fue el ${score(topGoals)}.`)
+  if (topGoals !== big && topGoals.h + topGoals.a >= 4) p1parts.push(`El partidazo de la fase: ${score(topGoals)}.`)
   const p1 = p1parts.join(' ')
 
   const pens = fx.filter((f) => f.hp != null && f.ap != null && f.hp !== f.ap)
@@ -317,6 +317,8 @@ export interface PhaseStats {
   top: Array<{ name: string; pts: number; exacts: number }>
   totalExacts: number
   leader: { name: string; pts: number } | null
+  /** Top 5 del ranking GENERAL (mismo orden que la app: pts → exactos → result. → pases). */
+  general: Array<{ name: string; pts: number }>
 }
 
 export function computePhaseStats(
@@ -324,7 +326,7 @@ export function computePhaseStats(
   real: Record<string, RV>,
   preds: Array<{ user_id: string; results: Record<string, RV> }>,
   names: Map<string, string>,
-  totals: Array<{ user_id: string; points: number }>,
+  totals: Array<{ user_id: string; points: number; exact_count?: number; result_count?: number; advance_count?: number }>,
 ): PhaseStats {
   const ids = REMIND_BUCKETS[bucket].ids
   const rows: Array<{ name: string; pts: number; exacts: number }> = []
@@ -346,11 +348,19 @@ export function computePhaseStats(
     if (pts > 0) rows.push({ name: names.get(p.user_id) || 'Jugador', pts, exacts })
   }
   rows.sort((a, b) => b.pts - a.pts || b.exacts - a.exacts || a.name.localeCompare(b.name))
-  let leader: PhaseStats['leader'] = null
-  for (const tot of totals) {
-    if (!leader || Number(tot.points) > leader.pts) leader = { name: names.get(tot.user_id) || 'Jugador', pts: Number(tot.points) }
-  }
-  return { top: rows.slice(0, 3), totalExacts, leader }
+  // Ranking general: mismo orden que la app (pts → exactos → resultados → pases).
+  const general = [...totals]
+    .sort(
+      (a, b) =>
+        Number(b.points) - Number(a.points) ||
+        (b.exact_count ?? 0) - (a.exact_count ?? 0) ||
+        (b.result_count ?? 0) - (a.result_count ?? 0) ||
+        (b.advance_count ?? 0) - (a.advance_count ?? 0),
+    )
+    .slice(0, 5)
+    .map((t) => ({ name: names.get(t.user_id) || 'Jugador', pts: Number(t.points) }))
+  const leader = general[0] ?? null
+  return { top: rows.slice(0, 3), totalExacts, leader, general }
 }
 
 export function buildHighlightsEmail(
@@ -390,14 +400,17 @@ export function buildHighlightsEmail(
   <p style="margin:0 0 10px">Los que más la rompieron en la fase:</p>
   ${topHtml}
   <p style="margin:0 0 8px;color:#334155">🎯 Entre todos clavaron <strong>${s.totalExacts}</strong> resultado${s.totalExacts === 1 ? '' : 's'} exacto${s.totalExacts === 1 ? '' : 's'} en la fase.</p>
-  ${s.leader ? `<p style="margin:0 0 12px;color:#334155">👑 Líder general: <strong>${s.leader.name}</strong> con <strong>${s.leader.pts} pts</strong>.</p>` : ''}
+  ${s.general.length ? `<p style="margin:0 0 6px;color:#334155">📊 Así quedó el ranking general:</p><ol style="margin:0 0 12px;padding-left:22px;color:#334155;line-height:1.7">${s.general.map((g, i) => `<li><strong>${g.name}</strong> — ${g.pts} pts${i === 0 ? ' 👑' : ''}</li>`).join('')}</ol>` : ''}
   <p style="margin:0 0 12px">La próxima ronda ya está en juego: entrá y meté tus predicciones antes de que cierren (cada partido cierra 5 minutos antes de empezar).</p>
   ${button}
   <hr style="border:none;border-top:1px solid #e2e8f0;margin:20px 0">
   <p style="margin:0;color:#64748b;font-size:13px">${en.charAt(0).toUpperCase() + en.slice(1)} is over — phase highlights above. The next round is open: get your picks in before each match closes (5 min before kick-off).</p>
   <p style="margin:14px 0 0;color:#94a3b8;font-size:12px">Recibís este aviso porque tenés una cuenta en Mundialiten.</p>
 </div>`
-  const text = `${hi}\n\nSe cerraron ${es}.${narrative ? `\n\n${narrative}` : ''}\n\nLos mejores de la fase:\n${topText}\n\n🎯 Exactos de la fase (entre todos): ${s.totalExacts}.${s.leader ? `\n👑 Líder general: ${s.leader.name} con ${s.leader.pts} pts.` : ''}\n\nLa próxima ronda ya está en juego.${link ? `\n\n${link}` : ''}`
+  const generalText = s.general.length
+    ? `\n\n📊 Ranking general:\n${s.general.map((g, i) => `${i + 1}. ${g.name} — ${g.pts} pts${i === 0 ? ' 👑' : ''}`).join('\n')}`
+    : ''
+  const text = `${hi}\n\nSe cerraron ${es}.${narrative ? `\n\n${narrative}` : ''}\n\nLos mejores de la fase:\n${topText}\n\n🎯 Exactos de la fase (entre todos): ${s.totalExacts}.${generalText}\n\nLa próxima ronda ya está en juego.${link ? `\n\n${link}` : ''}`
   return { subject, html, text }
 }
 
@@ -436,7 +449,7 @@ export default async function handler(req: any, res: any) {
 
     const [predsR, scoresR, sentR, realR] = await Promise.all([
       supa.from('predictions').select('user_id, results'),
-      supa.from('scores').select('user_id, display_name, points'),
+      supa.from('scores').select('user_id, display_name, points, exact_count, result_count, advance_count'),
       supa.from('reminders').select('user_id, bucket, kind'),
       supa.from('real_results').select('results').eq('id', 1).maybeSingle(),
     ])
