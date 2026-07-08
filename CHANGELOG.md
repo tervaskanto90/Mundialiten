@@ -8,6 +8,17 @@ Versionado **SemVer**: `MAYOR.MENOR.PATCH`.
 La versión vive en `package.json` (única fuente). El footer muestra
 `vX.Y.Z · build <hash de commit>` — el hash identifica el deploy.
 
+## 6.4.1 — (producción)
+- 🎯 **La narrativa de highlights usa NUESTROS resultados, no los del proveedor.**
+  El preview de octavos narraba "Suiza 4-3 Colombia" cuando fue 0-0 (4-3 por
+  penales): football-data volvió a mandar la tanda sumada al marcador y sin el
+  detalle de penales. Ahora cada fixture del proveedor se empareja con nuestro
+  partido por kickoff (`KICKOFF_MS`, con test de paridad; sin ambigüedad en
+  eliminatorias) y el marcador/penales sale de `real_results` (que tiene las
+  correcciones `locked`); el proveedor sólo aporta nombres. Además, "el más
+  vibrante" desempata por partido más peleado (un 3-2 le gana a un 4-1). Suite
+  HIGHLIGHTS: 35 casos.
+
 ## 6.4.0 — (producción)
 - 📰 **El mail de highlights ahora cuenta lo que pasó en la cancha** (máx. 2
   párrafos): cuántos partidos y goles tuvo la fase, la mayor goleada, el partido

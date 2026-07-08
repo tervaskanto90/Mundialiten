@@ -1,8 +1,9 @@
 // HIGHLIGHTS de fin de fase (api/remind.ts): detección de fases terminadas,
 // cálculo del top de la fase y armado del mail. Es un envío masivo automático:
 // la lógica queda clavada acá.
-import { REMIND_BUCKETS, HIGHLIGHTS_GRACE_MS, HIGHLIGHTS_FRESH_MS, endedBuckets, computePhaseStats, buildHighlightsEmail, buildPhaseNarrative, NAME_ES, normName } from '../api/remind'
+import { REMIND_BUCKETS, HIGHLIGHTS_GRACE_MS, HIGHLIGHTS_FRESH_MS, endedBuckets, computePhaseStats, buildHighlightsEmail, buildPhaseNarrative, applyRealResults, KICKOFF_MS, NAME_ES, normName } from '../api/remind'
 import { TEAMS } from '../src/data/teams'
+import { MATCHES } from '../src/data/schedule'
 
 let pass = 0, fail = 0
 const ok = (n: string, c: boolean, extra = '') => { if (c) pass++; else { fail++; console.log(`  ❌ ${n} ${extra}`) } }
@@ -97,6 +98,44 @@ ok('Texto plano incluye la narrativa', mailNar.text.includes('Marruecos eliminó
 // Sin narrativa, el mail sale igual (best-effort).
 const mailSin = buildHighlightsEmail('r32', 'Octavio', s, 'https://app.test')
 ok('Sin narrativa el mail se arma igual', mailSin.html.includes('🥇'))
+
+// ── KICKOFF_MS: paridad con el calendario real ──
+{
+  let bad = 0
+  for (const m of MATCHES) if (KICKOFF_MS[m.id] !== Date.parse(m.kickoff)) bad++
+  ok('KICKOFF_MS coincide con schedule.ts en los 104 partidos', bad === 0, `${bad} distintos`)
+}
+
+// ── applyRealResults: NUESTRO marcador pisa al del proveedor ──
+{
+  // Caso real: Suiza-Colombia. El proveedor manda 4-3 (tanda sumada, sin pens);
+  // nuestra base tiene 0-0 con pens 4-3 (corregido/locked). Debe narrar lo nuestro.
+  const mid = REMIND_BUCKETS.r16.ids[REMIND_BUCKETS.r16.ids.length - 1] // P96
+  const providerFx = [{ home: 'Suiza', away: 'Colombia', h: 4, a: 3, hp: null, ap: null, kickoffMs: KICKOFF_MS[mid] }]
+  const ours = { [String(mid)]: { played: true, homeScore: 0, awayScore: 0, homePens: 4, awayPens: 3 } }
+  const fixed = applyRealResults('r16', providerFx as any, ours as any)
+  ok('Override: el 4-3 del proveedor pasa a nuestro 0-0 (4-3p)', fixed[0].h === 0 && fixed[0].a === 0 && fixed[0].hp === 4 && fixed[0].ap === 3)
+  const narFixed = buildPhaseNarrative(fixed)
+  ok('Narrativa post-override: Suiza eliminó a Colombia en la tanda', narFixed.includes('Suiza eliminó a Colombia') && narFixed.includes('0-0'))
+  // Sin resultado nuestro (no jugado en la base) → queda el del proveedor.
+  const untouched = applyRealResults('r16', providerFx as any, {} as any)
+  ok('Sin resultado nuestro, queda el del proveedor', untouched[0].h === 4 && untouched[0].a === 3)
+  // Fixture sin fecha → no se toca.
+  const noDate = applyRealResults('r16', [{ home: 'A', away: 'B', h: 9, a: 0, hp: null, ap: null }] as any, ours as any)
+  ok('Fixture sin kickoff no se empareja (queda igual)', noDate[0].h === 9)
+}
+
+// ── "Más vibrante": a igual goles gana el más peleado (3-2 sobre 4-1) ──
+{
+  const fx2 = [
+    { home: 'Bélgica', away: 'Estados Unidos', h: 4, a: 1, hp: null, ap: null },
+    { home: 'Argentina', away: 'Egipto', h: 3, a: 2, hp: null, ap: null },
+    { home: 'México', away: 'Inglaterra', h: 1, a: 0, hp: null, ap: null },
+  ]
+  const nar2 = buildPhaseNarrative(fx2)
+  ok('La goleada es de Bélgica (4-1)', nar2.includes('Bélgica') && nar2.includes('4-1'))
+  ok('El más vibrante es Argentina 3-2 (empata en goles pero es más peleado)', nar2.includes('Argentina 3-2 Egipto'))
+}
 
 console.log(`\n──────── HIGHLIGHTS DE FASE: ${pass} OK, ${fail} FALLOS ────────`)
 if (fail > 0) process.exit(1)
