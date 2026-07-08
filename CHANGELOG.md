@@ -8,6 +8,14 @@ Versionado **SemVer**: `MAYOR.MENOR.PATCH`.
 La versión vive en `package.json` (única fuente). El footer muestra
 `vX.Y.Z · build <hash de commit>` — el hash identifica el deploy.
 
+## 6.4.3 — (producción)
+- ✍️ **Nota editorial por fase en los highlights** (`PHASE_EDITORIAL` en
+  api/remind.ts): una línea escrita a mano que sale SIEMPRE como "el partidazo"
+  de la fase, por encima de la heurística automática — que podía dejar afuera el
+  partido que importaba (la remontada de Argentina 3-2 a Egipto no salía si otro
+  cruce tenía más goles). La de octavos ya está cargada. Si el proveedor de datos
+  falla, la editorial sale igual. Sin editorial, sigue la automática.
+
 ## 6.4.2 — (producción)
 - 📊 **El mail de highlights suma el resumen del ranking general**: top 5 con
   puntos (mismo orden que la app: pts → exactos → resultados → pases), con 👑

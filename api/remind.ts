@@ -279,8 +279,17 @@ export function applyRealResults(
   })
 }
 
+// Nota EDITORIAL por fase (opcional, escrita a mano): si existe, se usa como
+// "el partidazo" de la fase en lugar de la línea automática — garantiza que el
+// partido elegido a dedo salga SIEMPRE mencionado, diga lo que diga la
+// heurística. Editar acá antes de que cierre cada fase (o dejar vacío y sale
+// la automática).
+export const PHASE_EDITORIAL: Partial<Record<BucketId, string>> = {
+  r16: 'El partidazo lo firmó Argentina: perdía con Egipto, lo dio vuelta y se lo llevó 3-2.',
+}
+
 // Resumen de la fase en DOS párrafos como máximo, armado con plantillas.
-export function buildPhaseNarrative(fx: PhaseFixture[]): string {
+export function buildPhaseNarrative(fx: PhaseFixture[], editorial?: string): string {
   if (fx.length === 0) return ''
   const goals = fx.reduce((s, f) => s + f.h + f.a, 0)
   const score = (f: PhaseFixture) => `${f.home} ${f.h}-${f.a} ${f.away}`
@@ -296,7 +305,9 @@ export function buildPhaseNarrative(fx: PhaseFixture[]): string {
     `Se jugaron ${fx.length} partido${fx.length === 1 ? '' : 's'} con ${goals} gol${goals === 1 ? '' : 'es'} en total.`,
   ]
   if (bigDiff >= 2) p1parts.push(`El golpe más contundente lo dio ${bigWinner}: ${score(big)}.`)
-  if (topGoals !== big && topGoals.h + topGoals.a >= 4) p1parts.push(`El partidazo de la fase: ${score(topGoals)}.`)
+  // La nota editorial (si hay) MANDA sobre la heurística del partidazo.
+  if (editorial) p1parts.push(editorial)
+  else if (topGoals !== big && topGoals.h + topGoals.a >= 4) p1parts.push(`El partidazo de la fase: ${score(topGoals)}.`)
   const p1 = p1parts.join(' ')
 
   const pens = fx.filter((f) => f.hp != null && f.ap != null && f.hp !== f.ap)
@@ -508,9 +519,10 @@ export default async function handler(req: any, res: any) {
       // sólo aporta los nombres de los equipos.
       try {
         const fixtures = applyRealResults(b, await fetchPhaseFixtures(b), realResults)
-        narrativeByBucket.set(b, buildPhaseNarrative(fixtures))
+        narrativeByBucket.set(b, buildPhaseNarrative(fixtures, PHASE_EDITORIAL[b]))
       } catch {
-        narrativeByBucket.set(b, '')
+        // Sin datos del proveedor, la nota editorial sale igual (si existe).
+        narrativeByBucket.set(b, PHASE_EDITORIAL[b] ?? '')
       }
     }
 

@@ -1,7 +1,7 @@
 // HIGHLIGHTS de fin de fase (api/remind.ts): detección de fases terminadas,
 // cálculo del top de la fase y armado del mail. Es un envío masivo automático:
 // la lógica queda clavada acá.
-import { REMIND_BUCKETS, HIGHLIGHTS_GRACE_MS, HIGHLIGHTS_FRESH_MS, endedBuckets, computePhaseStats, buildHighlightsEmail, buildPhaseNarrative, applyRealResults, KICKOFF_MS, NAME_ES, normName } from '../api/remind'
+import { REMIND_BUCKETS, HIGHLIGHTS_GRACE_MS, HIGHLIGHTS_FRESH_MS, endedBuckets, computePhaseStats, buildHighlightsEmail, buildPhaseNarrative, applyRealResults, KICKOFF_MS, NAME_ES, normName, PHASE_EDITORIAL } from '../api/remind'
 import { TEAMS } from '../src/data/teams'
 import { MATCHES } from '../src/data/schedule'
 
@@ -136,6 +136,24 @@ ok('Sin narrativa el mail se arma igual', mailSin.html.includes('🥇'))
   const nar2 = buildPhaseNarrative(fx2)
   ok('La goleada es de Bélgica (4-1)', nar2.includes('Bélgica') && nar2.includes('4-1'))
   ok('El partidazo es Argentina 3-2 (empata en goles pero es más peleado)', nar2.includes('El partidazo de la fase: Argentina 3-2 Egipto'))
+}
+
+// ── NOTA EDITORIAL: garantiza la mención elegida a dedo, pase lo que pase ──
+{
+  // Aunque otro partido tenga MÁS goles (6), la editorial manda: Argentina sale sí o sí.
+  const fx3 = [
+    { home: 'Brasil', away: 'Noruega', h: 4, a: 2, hp: null, ap: null },
+    { home: 'Argentina', away: 'Egipto', h: 3, a: 2, hp: null, ap: null },
+  ]
+  const narEd = buildPhaseNarrative(fx3, PHASE_EDITORIAL.r16)
+  ok('La editorial de octavos menciona la remontada de Argentina SIEMPRE', narEd.includes('Argentina') && narEd.includes('lo dio vuelta') && narEd.includes('3-2'))
+  ok('Con editorial, la línea automática del partidazo NO duplica', !narEd.includes('El partidazo de la fase:'))
+  // Sin editorial, la heurística destaca a Brasil (goleada Y más goles) y
+  // Argentina queda AFUERA — exactamente el hueco que la editorial cubre.
+  const narAuto = buildPhaseNarrative(fx3)
+  ok('Sin editorial, Argentina podía quedar afuera (justifica la editorial)', narAuto.includes('Brasil 4-2 Noruega') && !narAuto.includes('Argentina'))
+  // La editorial de octavos está cargada en el código.
+  ok('PHASE_EDITORIAL.r16 existe y nombra a Argentina y Egipto', !!PHASE_EDITORIAL.r16 && PHASE_EDITORIAL.r16!.includes('Argentina') && PHASE_EDITORIAL.r16!.includes('Egipto'))
 }
 
 // ── El mail incluye el resumen del ranking general (top 5) ──
