@@ -25,10 +25,11 @@ const MAINTENANCE_NOTICE = false
 // ─────────────────────────────────────────────────────────────────────────────
 const FAREWELL_MODE = true
 const PODIUM: Array<{ name: string; pts: number }> = [
-  // 1º, 2º y 3º del ranking FINAL (nombre y puntos).
-  { name: 'Campeón/a', pts: 0 },
-  { name: 'Subcampeón/a', pts: 0 },
-  { name: 'Tercero/a', pts: 0 },
+  // 1º, 2º y 3º del ranking FINAL (nombre y puntos) — tabla definitiva del
+  // Mundial 2026: ManuproD22 165 · Barbara 164 · Octavio 158.
+  { name: 'ManuproD22', pts: 165 },
+  { name: 'Barbara', pts: 164 },
+  { name: 'Octavio', pts: 158 },
 ]
 
 export function AuthGate({ children }: { children: ReactNode }) {
