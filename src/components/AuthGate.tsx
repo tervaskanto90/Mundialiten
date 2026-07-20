@@ -15,12 +15,121 @@ import { useIsDesktop } from '../hooks/useIsDesktop'
 // existe justamente para cuando la base no responde.
 const MAINTENANCE_NOTICE = false
 
+// ─────────────────────────────────────────────────────────────────────────────
+// MODO DESPEDIDA (Mundial terminado): en vez del login se muestra el podio
+// final y un mensaje de cierre. NADA se borra: con FAREWELL_MODE = false la app
+// vuelve a estar entera (login, predicciones, ranking, todo). El podio va
+// hardcodeado a propósito: el torneo terminó, la tabla es definitiva, y así la
+// pantalla sigue funcionando aunque la base quede pausada por inactividad.
+// El link "Entrar" de abajo mantiene el acceso al login para el admin.
+// ─────────────────────────────────────────────────────────────────────────────
+const FAREWELL_MODE = true
+const PODIUM: Array<{ name: string; pts: number }> = [
+  // 1º, 2º y 3º del ranking FINAL (nombre y puntos).
+  { name: 'Campeón/a', pts: 0 },
+  { name: 'Subcampeón/a', pts: 0 },
+  { name: 'Tercero/a', pts: 0 },
+]
+
 export function AuthGate({ children }: { children: ReactNode }) {
   const { enabled, loading, user, recovery } = useAuth()
   if (recovery) return <RecoveryScreen />
   if (!enabled || user) return <>{children}</>
   if (loading) return <LoadingScreen />
+  if (FAREWELL_MODE) return <FarewellGate />
   return <AuthScreen />
+}
+
+// Muestra la despedida; el link "Entrar" pasa al login normal (sin recargar).
+function FarewellGate() {
+  const [showLogin, setShowLogin] = useState(false)
+  return showLogin ? <AuthScreen /> : <FarewellScreen onLogin={() => setShowLogin(true)} />
+}
+
+function FarewellScreen({ onLogin }: { onLogin: () => void }) {
+  const { t } = useT()
+  const { c, dark } = useTheme()
+  const medal = ['🥇', '🥈', '🥉']
+  const accent = [ACCENT.gold, '#9aa4b2', '#cd7f32']
+  const height = [148, 112, 92]
+  // Podio clásico: 2º a la izquierda, 1º al centro (más alto), 3º a la derecha.
+  const order = [1, 0, 2]
+  return (
+    <Shell>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+        <Toggles />
+      </div>
+      <div style={{ minHeight: 'calc(100vh - 120px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ width: '100%', maxWidth: 430, display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div className="rounded-2xl overflow-hidden text-center" style={{ background: c.cardGrad, border: '1px solid ' + c.line, boxShadow: '0 24px 60px -20px rgba(0,0,0,.55)' }}>
+            <div style={{ height: 4, background: 'linear-gradient(90deg,#2F6DF0,#7B3FF2,#EC1C7D,#FF7A1A,#FFC21A,#1FA85C)' }} />
+            <div className="px-5 pt-6 pb-2">
+              <div className="flex justify-center"><BrandLogo size={56} /></div>
+              <h1 className="text-2xl mt-1" style={{ fontFamily: "'Archivo'", fontWeight: 900, color: c.text }}>Mundialiten</h1>
+              <p className="text-sm" style={{ color: c.muted }}>
+                {t('Mundial 2026 · el prode llegó a su final', 'World Cup 2026 · the game has come to an end')}
+              </p>
+            </div>
+
+            {/* Podio */}
+            <div className="px-5 pt-4 pb-1">
+              <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 10 }}>
+                {order.map((idx) => {
+                  const p = PODIUM[idx]
+                  if (!p) return null
+                  return (
+                    <div key={idx} style={{ flex: 1, maxWidth: 128, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                      <div style={{ fontSize: idx === 0 ? 34 : 26, lineHeight: 1 }}>{medal[idx]}</div>
+                      <div className="font-bold truncate" style={{ color: c.text, fontFamily: "'Archivo'", fontSize: idx === 0 ? 16 : 14, maxWidth: '100%' }}>
+                        {p.name}
+                      </div>
+                      <div className="text-xs tabular-nums font-semibold" style={{ color: c.muted }}>
+                        {p.pts} {t('pts', 'pts')}
+                      </div>
+                      <div
+                        className="w-full rounded-t-xl flex items-start justify-center pt-2"
+                        style={{
+                          height: height[idx],
+                          background: `linear-gradient(180deg, ${accent[idx]}${dark ? '3D' : '59'}, ${accent[idx]}14)`,
+                          border: '1px solid ' + accent[idx] + '66',
+                          borderBottom: 'none',
+                          fontFamily: "'Archivo'",
+                          fontWeight: 900,
+                          fontSize: 22,
+                          color: accent[idx],
+                        }}
+                      >
+                        {idx + 1}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+              <div style={{ height: 1, background: c.line }} />
+            </div>
+
+            {/* Mensaje de despedida */}
+            <div className="px-6 pt-5 pb-6">
+              <p className="text-sm leading-relaxed" style={{ color: c.text }}>
+                {t('Gracias por haberme acompañado en el viaje de Mundialiten', 'Thank you for joining me on the Mundialiten journey')}
+              </p>
+              <p className="text-sm mt-2 font-semibold" style={{ color: c.muted, fontFamily: "'Archivo'" }}>
+                — Octavio Boggiano
+              </p>
+            </div>
+          </div>
+
+          <FooterBox />
+
+          <div className="text-center">
+            <button onClick={onLogin} className="text-xs hover:underline" style={{ color: c.faint }}>
+              {t('Entrar →', 'Log in →')}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Shell>
+  )
 }
 
 // Mosaico de color a pantalla completa (mismas bandas de la app), fijo de fondo.
