@@ -8,6 +8,13 @@ Versionado **SemVer**: `MAYOR.MENOR.PATCH`.
 La versión vive en `package.json` (única fuente). El footer muestra
 `vX.Y.Z · build <hash de commit>` — el hash identifica el deploy.
 
+## 6.5.1 — (producción)
+- 📪 **Notificaciones por correo anuladas**: se quitan los dos crons de
+  `vercel.json` (`/api/remind` diario y `/api/digest` cada 2 días). Los
+  endpoints quedan intactos (no se borra nada) pero ya no se disparan solos —
+  para revivirlos en un futuro torneo, restaurar el bloque `crons` (está en el
+  historial de git, commit de esta entrada).
+
 ## 6.5.0 — (staging → main tras aprobación)
 - 🏆 **Pantalla de despedida** (`FAREWELL_MODE` en AuthGate): con el Mundial
   terminado, en vez del login se muestra el **podio final** (1º/2º/3º con
