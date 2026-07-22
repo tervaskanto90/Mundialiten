@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Analytics } from '@vercel/analytics/react'
 import { ScenarioToggle } from './components/ScenarioToggle'
 import { AccountModal } from './components/AccountModal'
 import { ProjectsShowcase } from './components/ProjectsShowcase'
@@ -549,6 +550,8 @@ export default function App() {
       {tutorialOpen && <Tutorial onClose={closeTutorial} />}
 
       {STAGING && <StagingControls />}
+
+      <Analytics />
     </div>
   )
 }
